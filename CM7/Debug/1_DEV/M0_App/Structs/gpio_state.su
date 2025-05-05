@@ -1,0 +1,6 @@
+../../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_ll_gpio.h:855:26:LL_GPIO_IsOutputPinSet	16	static
+../../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_ll_gpio.h:884:22:LL_GPIO_SetOutputPin	16	static
+../../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_ll_gpio.h:913:22:LL_GPIO_ResetOutputPin	16	static
+../1_DEV/M0_App/Structs/gpio_state.c:13:6:toCM4_Init	8	static
+../1_DEV/M0_App/Structs/gpio_state.c:19:6:toCM4_SetState	16	static
+../1_DEV/M0_App/Structs/gpio_state.c:44:15:toCM4_GetState	16	static

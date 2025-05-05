@@ -1,0 +1,2 @@
+../1_DEV/M0_App/OS/rtos.c:14:6:OBC_RTOS_Start	1
+../1_DEV/M0_App/OS/rtos.c:24:6:vApplicationStackOverflowHook	1

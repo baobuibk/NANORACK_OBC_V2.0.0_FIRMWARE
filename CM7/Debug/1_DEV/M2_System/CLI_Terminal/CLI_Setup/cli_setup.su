@@ -1,0 +1,5 @@
+../1_DEV/M2_System/CLI_Terminal/CLI_Setup/cli_setup.c:38:13:writeCharToCli_USBCDC	16	static
+../1_DEV/M2_System/CLI_Terminal/CLI_Setup/cli_setup.c:42:13:writeCharToCli_UARTCM4	24	static
+../1_DEV/M2_System/CLI_Terminal/CLI_Setup/cli_setup.c:50:16:SystemCLI_Init	16	static
+../1_DEV/M2_System/CLI_Terminal/CLI_Setup/cli_setup.c:103:14:getUsbCdcCliPointer	4	static
+../1_DEV/M2_System/CLI_Terminal/CLI_Setup/cli_setup.c:107:14:getUartCm4CliPointer	4	static

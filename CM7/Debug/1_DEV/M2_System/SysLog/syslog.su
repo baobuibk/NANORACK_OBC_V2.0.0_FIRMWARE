@@ -1,0 +1,2 @@
+../1_DEV/M2_System/SysLog/syslog.c:16:20:syslog_level_to_str	16	static
+../1_DEV/M2_System/SysLog/syslog.c:39:6:syslog_log	216	static
