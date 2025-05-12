@@ -35,15 +35,16 @@ SUBDIRS := \
 1_DEV/M1_Drivers/SPI \
 1_DEV/M1_Drivers/UART \
 1_DEV/M1_Drivers/UART_DMA \
-1_DEV/M1_Drivers/USB_CDC \
 1_DEV/M2_System/CLI_Terminal/CLI_Auth \
 1_DEV/M2_System/CLI_Terminal/CLI_Command \
 1_DEV/M2_System/CLI_Terminal/CLI_Setup \
 1_DEV/M2_System/CLI_Terminal/CLI_Src \
+1_DEV/M2_System/Dmesg \
 1_DEV/M2_System/FileSystem \
 1_DEV/M2_System/MIN_Process \
 1_DEV/M2_System/SysLog \
 1_DEV/M2_System/SysLog_Queue \
+1_DEV/M2_System/SystemManager \
 1_DEV/M3_Devices/I2C_RTC-RV3129 \
 1_DEV/M3_Devices/IO_ExWD-TPL5010 \
 1_DEV/M3_Devices/SPI_FRAM \
@@ -65,7 +66,4 @@ Common/Src \
 Core/Src \
 Core/Startup \
 Drivers/STM32H7xx_HAL_Driver \
-Middlewares/ST/STM32_USB_Device_Library \
-USB_DEVICE/App \
-USB_DEVICE/Target \
 

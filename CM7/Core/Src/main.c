@@ -18,13 +18,17 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "usb_device.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "app.h"
 #include "board.h"
 #include "common_state.h"
+#include "SystemManager/sys_manager.h"
+#include "string.h"
+#include "stdio.h"
+
+#define USE_CORE_M4
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -49,10 +53,6 @@
 /* Private variables ---------------------------------------------------------*/
 
 MMC_HandleTypeDef hmmc1;
-MMC_HandleTypeDef hmmc2;
-
-UART_HandleTypeDef huart7;
-DMA_HandleTypeDef hdma_uart7_rx;
 
 MDMA_HandleTypeDef hmdma_mdma_channel0_sdmmc1_end_data_0;
 /* USER CODE BEGIN PV */
@@ -68,11 +68,8 @@ static void MX_DMA_Init(void);
 static void MX_BDMA_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
-static void MX_USART6_UART_Init(void);
-static void MX_I2C1_Init(void);
 static void MX_I2C2_Init(void);
 static void MX_SDMMC1_MMC_Init(void);
-static void MX_SDMMC2_MMC_Init(void);
 static void MX_SPI4_Init(void);
 static void MX_SPI5_Init(void);
 static void MX_SPI6_Init(void);
@@ -91,6 +88,29 @@ void I2C_ReInit(I2C_TypeDef *I2Cx) {
         MX_I2C2_Init();
     }
 }
+
+void SDMMC1_ReInit(void) {
+	HAL_MMC_DeInit(&hmmc1);
+	MX_SDMMC1_MMC_Init();
+}
+
+static PeriphDescriptor_t peripherals[] = {
+    {0,  "GPIO",   		PERIPH_STATE_UNINIT, 0, Sys_ERROR, MX_GPIO_Init,        	NULL},
+    {1,  "MDMA",   		PERIPH_STATE_UNINIT, 0, Sys_ERROR, MX_MDMA_Init,        	NULL},
+    {2,  "DMA",    		PERIPH_STATE_UNINIT, 0, Sys_ERROR, MX_DMA_Init,         	NULL},
+	{3,  "BMDA",   		PERIPH_STATE_UNINIT, 0, Sys_ERROR, MX_BDMA_Init,        	NULL},
+
+	{4,  "USART1",   	PERIPH_STATE_UNINIT, 0, Sys_ERROR, MX_USART1_UART_Init,     NULL},
+	{5,  "USART2",   	PERIPH_STATE_UNINIT, 0, Sys_ERROR, MX_USART2_UART_Init,     NULL},
+	{6,  "I2C2",   		PERIPH_STATE_UNINIT, 0, Sys_ERROR, MX_I2C2_Init,        	NULL},
+	{7,  "SDMMC1",   	PERIPH_STATE_UNINIT, 0, Sys_ERROR, MX_SDMMC1_MMC_Init,      SDMMC1_ReInit},
+	{8,  "SPI4",   		PERIPH_STATE_UNINIT, 0, Sys_ERROR, MX_SPI4_Init,        	NULL},
+	{9,  "SPI5",   		PERIPH_STATE_UNINIT, 0, Sys_ERROR, MX_SPI5_Init,        	NULL},
+	{10, "SPI6",   		PERIPH_STATE_UNINIT, 0, Sys_ERROR, MX_SPI6_Init,        	NULL},
+	{11, "TIM1",   		PERIPH_STATE_UNINIT, 0, Sys_ERROR, MX_TIM1_Init,        	NULL},
+	{12, "UART7",   	PERIPH_STATE_UNINIT, 0, Sys_ERROR, MX_UART7_Init,        	NULL},
+};
+
 /* USER CODE END 0 */
 
 /**
@@ -156,6 +176,7 @@ Error_Handler();
 
   /* USER CODE BEGIN SysInit */
 
+#ifndef SYS_MANAGER
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
@@ -165,22 +186,287 @@ Error_Handler();
   MX_BDMA_Init();
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
-  MX_USART6_UART_Init();
-  MX_I2C1_Init();
   MX_I2C2_Init();
   MX_SDMMC1_MMC_Init();
-  MX_SDMMC2_MMC_Init();
   MX_SPI4_Init();
   MX_SPI5_Init();
   MX_SPI6_Init();
   MX_TIM1_Init();
-  MX_USB_DEVICE_Init();
   MX_UART7_Init();
   /* USER CODE BEGIN 2 */
+#else
+
+  char boot_log[800] = {0};
+  char temp[80];
+
+  sprintf(boot_log, "\r\n-----> Booting STM32H7 - Cortex M7 on OBC ...\r\n");
+  strcat(boot_log, "[ OK ] SystemClock: 240MHz, Initializing Peripherals...\r\n");
+//  LL_mDelay(2);				//When use FreeRTOS, Sys-tick IRQ here is not enable
+  HAL_Delay(2);
+  strcat(boot_log, "[ OK ] SYSCLK OK!, HAL OK!\r\n");
+
+  //--> GPIO Init --> GPIO Init --> GPIO Init --> GPIO Init --> GPIO Init
+  MX_GPIO_Init();
+  if(peripherals[0].errorCode == Sys_OK)
+  {
+	  sprintf(temp, "[ OK ] GPIO Initialized.\r\n");
+	  strcat(boot_log, temp);
+	  LL_GPIO_SetOutputPin(MCU_IO_DEBUG_LED0_GPIO_Port, MCU_IO_DEBUG_LED0_Pin);
+	  LL_GPIO_SetOutputPin(MCU_IO_DEBUG_LED1_GPIO_Port, MCU_IO_DEBUG_LED1_Pin);
+	  sprintf(temp, "[ OK ] DEBUG0: [+] | DEBUG1: [+]\r\n");
+	  strcat(boot_log, temp);
+	  peripherals[0].state = PERIPH_STATE_INIT;
+  }
+
+  //--> MDMA Init --> MDMA Init --> MDMA Init --> MDMA Init --> MDMA Init
+  MX_MDMA_Init();
+  if(peripherals[1].errorCode == Sys_OK)
+  {
+	  sprintf(temp, "[ OK ] MDMA Initialized.\r\n");
+	  strcat(boot_log, temp);
+	  peripherals[1].state = PERIPH_STATE_INIT;
+  }else{
+	  sprintf(temp, "[ ER ] MDMA Init Error!.\r\n");
+	  strcat(boot_log, temp);
+	  peripherals[1].state = PERIPH_STATE_ERROR;
+  }
+
+  //--> DMA Init --> DMA Init --> DMA Init --> DMA Init --> DMA Init
+  MX_DMA_Init();
+  if(peripherals[2].errorCode == Sys_OK)
+  {
+	  sprintf(temp, "[ OK ] DMA Initialized.\r\n");
+	  strcat(boot_log, temp);
+	  peripherals[2].state = PERIPH_STATE_INIT;
+  }
+
+  //--> BDMA Init --> BDMA Init --> BDMA Init --> BDMA Init --> BDMA Init
+  MX_BDMA_Init();
+  if(peripherals[3].errorCode == Sys_OK)
+  {
+	  sprintf(temp, "[ OK ] BDMA Initialized.\r\n");
+      strcat(boot_log, temp);
+	  peripherals[3].state = PERIPH_STATE_INIT;
+  }
+
+  //--> USART1 Init --> USART1 Init--> USART1 Init--> USART1 Init--> USART1 Init
+  MX_USART1_UART_Init();
+  if(peripherals[4].errorCode == Sys_OK)
+  {
+	  sprintf(temp, "[ OK ] USART1 Initialized, Baud Rate: 115200.\r\n");
+	  strcat(boot_log, temp);
+	  peripherals[4].state = PERIPH_STATE_INIT;
+  }
+
+  //--> USART2 Init --> USART2 Init--> USART2 Init--> USART2 Init--> USART2 Init
+  MX_USART2_UART_Init();
+  if(peripherals[5].errorCode == Sys_OK)
+  {
+	  sprintf(temp, "[ OK ] USART2 Initialized, Baud Rate: 115200.\r\n");
+	  strcat(boot_log, temp);
+	  peripherals[5].state = PERIPH_STATE_INIT;
+  }
+
+  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
+  {
+      while (!LL_USART_IsActiveFlag_TXE(USART1));
+      LL_USART_TransmitData8(USART1, (uint8_t)boot_log[i]);
+  }
+  while (!LL_USART_IsActiveFlag_TC(USART1));
+
+  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
+  {
+      while (!LL_USART_IsActiveFlag_TXE(USART2));
+      LL_USART_TransmitData8(USART2, (uint8_t)boot_log[i]);
+  }
+  while (!LL_USART_IsActiveFlag_TC(USART2));
+
+  //--> I2C2 Init --> I2C2 Init --> I2C2 Init --> I2C2 Init --> I2C2 Init
+  MX_I2C2_Init();
+  if(peripherals[6].errorCode == Sys_OK)
+  {
+	  sprintf(boot_log, "[ OK ] I2C2 -> RTC Initialized.\r\n");
+	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
+	  {
+	      while (!LL_USART_IsActiveFlag_TXE(USART1));
+	      LL_USART_TransmitData8(USART1, (uint8_t)boot_log[i]);
+	  }
+	  while (!LL_USART_IsActiveFlag_TC(USART1));
+
+	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
+	  {
+	      while (!LL_USART_IsActiveFlag_TXE(USART2));
+	      LL_USART_TransmitData8(USART2, (uint8_t)boot_log[i]);
+	  }
+	  while (!LL_USART_IsActiveFlag_TC(USART2));
+	  peripherals[6].state = PERIPH_STATE_INIT;
+  }
+
+  //--> SDMMC1 Init --> SDMMC1 Init --> SDMMC1 Init --> SDMMC1 Init --> SDMMC1 Init
+  MX_SDMMC1_MMC_Init();
+  if(peripherals[7].errorCode == Sys_OK)
+  {
+	  sprintf(boot_log, "[ OK ] SDMMC1 -> MainStorage Initialized.\r\n");
+
+	  peripherals[7].state = PERIPH_STATE_INIT;
+  }else{
+	  sprintf(boot_log, "[ ER ] SDMMC1 -> MainStorage Init Error!.\r\n");
+	  peripherals[7].state = PERIPH_STATE_ERROR;
+  }
+
+  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
+  {
+      while (!LL_USART_IsActiveFlag_TXE(USART1));
+      LL_USART_TransmitData8(USART1, (uint8_t)boot_log[i]);
+  }
+  while (!LL_USART_IsActiveFlag_TC(USART1));
+
+  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
+  {
+      while (!LL_USART_IsActiveFlag_TXE(USART2));
+      LL_USART_TransmitData8(USART2, (uint8_t)boot_log[i]);
+  }
+  while (!LL_USART_IsActiveFlag_TC(USART2));
+
+  //--> SPI4 Init --> SPI4 Init --> SPI4 Init --> SPI4 Init --> SPI4 Init
+  MX_SPI4_Init();
+  if(peripherals[8].errorCode == Sys_OK)
+  {
+	  sprintf(boot_log, "[ OK ] SPI4 -> ExMemory Initialized.\r\n");
+	  peripherals[8].state = PERIPH_STATE_INIT;
+	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
+	  {
+	      while (!LL_USART_IsActiveFlag_TXE(USART1));
+	      LL_USART_TransmitData8(USART1, (uint8_t)boot_log[i]);
+	  }
+	  while (!LL_USART_IsActiveFlag_TC(USART1));
+
+	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
+	  {
+	      while (!LL_USART_IsActiveFlag_TXE(USART2));
+	      LL_USART_TransmitData8(USART2, (uint8_t)boot_log[i]);
+	  }
+	  while (!LL_USART_IsActiveFlag_TC(USART2));
+  }
+
+  //--> SPI5 Init --> SPI5 Init --> SPI5 Init --> SPI5 Init --> SPI5 Init
+  MX_SPI5_Init();
+  if(peripherals[9].errorCode == Sys_OK)
+  {
+	  sprintf(boot_log, "[ OK ] SPI5 -> Host Initialized.\r\n");
+	  peripherals[11].state = PERIPH_STATE_INIT;
+	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
+	  {
+	      while (!LL_USART_IsActiveFlag_TXE(USART1));
+	      LL_USART_TransmitData8(USART1, (uint8_t)boot_log[i]);
+	  }
+	  while (!LL_USART_IsActiveFlag_TC(USART1));
+
+	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
+	  {
+	      while (!LL_USART_IsActiveFlag_TXE(USART2));
+	      LL_USART_TransmitData8(USART2, (uint8_t)boot_log[i]);
+	  }
+	  while (!LL_USART_IsActiveFlag_TC(USART2));
+  }
+
+  //--> SPI6 Init --> SPI6 Init --> SPI6 Init --> SPI6 Init --> SPI6 Init
+  MX_SPI6_Init();
+  if(peripherals[10].errorCode == Sys_OK)
+  {
+	  sprintf(boot_log, "[ OK ] SPI6 -> EXP Initialized.\r\n");
+	  peripherals[10].state = PERIPH_STATE_INIT;
+	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
+	  {
+	      while (!LL_USART_IsActiveFlag_TXE(USART1));
+	      LL_USART_TransmitData8(USART1, (uint8_t)boot_log[i]);
+	  }
+	  while (!LL_USART_IsActiveFlag_TC(USART1));
+
+	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
+	  {
+	      while (!LL_USART_IsActiveFlag_TXE(USART2));
+	      LL_USART_TransmitData8(USART2, (uint8_t)boot_log[i]);
+	  }
+	  while (!LL_USART_IsActiveFlag_TC(USART2));
+  }
+
+  //--> TIM1 Init --> TIM1 Init --> TIM1 Init --> TIM1 Init --> TIM1 Init
+  MX_TIM1_Init();
+  if(peripherals[11].errorCode == Sys_OK)
+  {
+	  sprintf(boot_log, "[ OK ] Timer-Clock Ready.\r\n");
+	  peripherals[13].state = PERIPH_STATE_INIT;
+	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
+	  {
+	      while (!LL_USART_IsActiveFlag_TXE(USART1));
+	      LL_USART_TransmitData8(USART1, (uint8_t)boot_log[i]);
+	  }
+	  while (!LL_USART_IsActiveFlag_TC(USART1));
+
+	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
+	  {
+	      while (!LL_USART_IsActiveFlag_TXE(USART2));
+	      LL_USART_TransmitData8(USART2, (uint8_t)boot_log[i]);
+	  }
+	  while (!LL_USART_IsActiveFlag_TC(USART2));
+  }
+
+  //--> UART7 Init --> UART7 Init --> UART7 Init --> UART7 Init --> UART7 Init
+  MX_UART7_Init();
+  if(peripherals[12].errorCode == Sys_OK)
+  {
+	  sprintf(boot_log, "[ OK ] UART7 Initialized, Baud Rate: 115200.\r\n");
+	  peripherals[12].state = PERIPH_STATE_INIT;
+	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
+	  {
+	      while (!LL_USART_IsActiveFlag_TXE(USART1));
+	      LL_USART_TransmitData8(USART1, (uint8_t)boot_log[i]);
+	  }
+	  while (!LL_USART_IsActiveFlag_TC(USART1));
+
+	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
+	  {
+	      while (!LL_USART_IsActiveFlag_TXE(USART2));
+	      LL_USART_TransmitData8(USART2, (uint8_t)boot_log[i]);
+	  }
+	  while (!LL_USART_IsActiveFlag_TC(USART2));
+  }
+
+#endif
+
   if (Mgmt_HardwareSystemPreparing() != E_OK){
 	  system_status.init_state = INIT_STATE_FAILED;
       system_status.program_state = PROGRAM_STATE_ERROR;
-      Error_Handler();
+	  sprintf(boot_log, "[ ER ] System Hardware Preparing Fail!...\r\n[ ER ] Something wrong in Hardware Start-up\r\n");
+	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
+	  {
+	      while (!LL_USART_IsActiveFlag_TXE(USART1));
+	      LL_USART_TransmitData8(USART1, (uint8_t)boot_log[i]);
+	  }
+	  while (!LL_USART_IsActiveFlag_TC(USART1));
+
+	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
+	  {
+	      while (!LL_USART_IsActiveFlag_TXE(USART2));
+	      LL_USART_TransmitData8(USART2, (uint8_t)boot_log[i]);
+	  }
+	  while (!LL_USART_IsActiveFlag_TC(USART2));
+  }else{
+	  sprintf(boot_log, "[ OK ] System Hardware Preparing Done...\r\n");
+	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
+	  {
+	      while (!LL_USART_IsActiveFlag_TXE(USART1));
+	      LL_USART_TransmitData8(USART1, (uint8_t)boot_log[i]);
+	  }
+	  while (!LL_USART_IsActiveFlag_TC(USART1));
+
+	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
+	  {
+	      while (!LL_USART_IsActiveFlag_TXE(USART2));
+	      LL_USART_TransmitData8(USART2, (uint8_t)boot_log[i]);
+	  }
+	  while (!LL_USART_IsActiveFlag_TC(USART2));
   }
 
   Mgmt_SystemStart();
@@ -259,73 +545,6 @@ void SystemClock_Config(void)
 }
 
 /**
-  * @brief I2C1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_I2C1_Init(void)
-{
-
-  /* USER CODE BEGIN I2C1_Init 0 */
-
-  /* USER CODE END I2C1_Init 0 */
-
-  LL_I2C_InitTypeDef I2C_InitStruct = {0};
-
-  LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
-  RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
-
-  /** Initializes the peripherals clock
-  */
-  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_I2C1;
-  PeriphClkInitStruct.I2c123ClockSelection = RCC_I2C123CLKSOURCE_D2PCLK1;
-  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  LL_AHB4_GRP1_EnableClock(LL_AHB4_GRP1_PERIPH_GPIOB);
-  /**I2C1 GPIO Configuration
-  PB6   ------> I2C1_SCL
-  PB7   ------> I2C1_SDA
-  */
-  GPIO_InitStruct.Pin = LL_GPIO_PIN_6|LL_GPIO_PIN_7;
-  GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
-  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_OPENDRAIN;
-  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-  GPIO_InitStruct.Alternate = LL_GPIO_AF_4;
-  LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /* Peripheral clock enable */
-  LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_I2C1);
-
-  /* USER CODE BEGIN I2C1_Init 1 */
-
-  /* USER CODE END I2C1_Init 1 */
-
-  /** I2C Initialization
-  */
-  LL_I2C_EnableAutoEndMode(I2C1);
-  LL_I2C_SetOwnAddress2(I2C1, 0, LL_I2C_OWNADDRESS2_NOMASK);
-  LL_I2C_DisableOwnAddress2(I2C1);
-  LL_I2C_DisableGeneralCall(I2C1);
-  LL_I2C_EnableClockStretching(I2C1);
-  I2C_InitStruct.PeripheralMode = LL_I2C_MODE_I2C;
-  I2C_InitStruct.Timing = 0x107075B0;
-  I2C_InitStruct.AnalogFilter = LL_I2C_ANALOGFILTER_ENABLE;
-  I2C_InitStruct.DigitalFilter = 0;
-  I2C_InitStruct.OwnAddress1 = 0;
-  I2C_InitStruct.TypeAcknowledge = LL_I2C_ACK;
-  I2C_InitStruct.OwnAddrSize = LL_I2C_OWNADDRESS1_7BIT;
-  LL_I2C_Init(I2C1, &I2C_InitStruct);
-  /* USER CODE BEGIN I2C1_Init 2 */
-
-  /* USER CODE END I2C1_Init 2 */
-
-}
-
-/**
   * @brief I2C2 Initialization Function
   * @param None
   * @retval None
@@ -387,7 +606,7 @@ static void MX_I2C2_Init(void)
   I2C_InitStruct.OwnAddrSize = LL_I2C_OWNADDRESS1_7BIT;
   LL_I2C_Init(I2C2, &I2C_InitStruct);
   /* USER CODE BEGIN I2C2_Init 2 */
-
+  peripherals[7].errorCode = Sys_OK;
   /* USER CODE END I2C2_Init 2 */
 
 }
@@ -415,42 +634,11 @@ static void MX_SDMMC1_MMC_Init(void)
   hmmc1.Init.ClockDiv = 4;
   if (HAL_MMC_Init(&hmmc1) != HAL_OK)
   {
-    Error_Handler();
+    return;
   }
   /* USER CODE BEGIN SDMMC1_Init 2 */
-
+  peripherals[8].errorCode = Sys_OK;
   /* USER CODE END SDMMC1_Init 2 */
-
-}
-
-/**
-  * @brief SDMMC2 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_SDMMC2_MMC_Init(void)
-{
-
-  /* USER CODE BEGIN SDMMC2_Init 0 */
-
-  /* USER CODE END SDMMC2_Init 0 */
-
-  /* USER CODE BEGIN SDMMC2_Init 1 */
-
-  /* USER CODE END SDMMC2_Init 1 */
-  hmmc2.Instance = SDMMC2;
-  hmmc2.Init.ClockEdge = SDMMC_CLOCK_EDGE_RISING;
-  hmmc2.Init.ClockPowerSave = SDMMC_CLOCK_POWER_SAVE_DISABLE;
-  hmmc2.Init.BusWide = SDMMC_BUS_WIDE_4B;
-  hmmc2.Init.HardwareFlowControl = SDMMC_HARDWARE_FLOW_CONTROL_DISABLE;
-  hmmc2.Init.ClockDiv = 4;
-  if (HAL_MMC_Init(&hmmc2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN SDMMC2_Init 2 */
-
-  /* USER CODE END SDMMC2_Init 2 */
 
 }
 
@@ -518,6 +706,7 @@ static void MX_SPI4_Init(void)
   /* USER CODE BEGIN SPI4_Init 2 */
   LL_SPI_Enable(SPI4);
   LL_SPI_StartMasterTransfer(SPI4);
+  peripherals[10].errorCode = Sys_OK;
   /* USER CODE END SPI4_Init 2 */
 
 }
@@ -610,6 +799,7 @@ static void MX_SPI5_Init(void)
   LL_SPI_DisableNSSPulseMgt(SPI5);
   /* USER CODE BEGIN SPI5_Init 2 */
 
+  peripherals[11].errorCode = Sys_OK;
   /* USER CODE END SPI5_Init 2 */
 
 }
@@ -725,6 +915,7 @@ static void MX_SPI6_Init(void)
   LL_SPI_EnableNSSPulseMgt(SPI6);
   /* USER CODE BEGIN SPI6_Init 2 */
   LL_SPI_Enable(SPI6);
+  peripherals[12].errorCode = Sys_OK;
   /* USER CODE END SPI6_Init 2 */
 
 }
@@ -768,6 +959,7 @@ static void MX_TIM1_Init(void)
   LL_TIM_EnableIT_UPDATE(TIM1);
   LL_TIM_EnableUpdateEvent(TIM1);
   LL_TIM_EnableCounter(TIM1);
+  peripherals[13].errorCode = Sys_OK;
   /* USER CODE END TIM1_Init 2 */
 
 }
@@ -784,38 +976,90 @@ static void MX_UART7_Init(void)
 
   /* USER CODE END UART7_Init 0 */
 
+  LL_USART_InitTypeDef UART_InitStruct = {0};
+
+  LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
+  RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
+
+  /** Initializes the peripherals clock
+  */
+  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_UART7;
+  PeriphClkInitStruct.Usart234578ClockSelection = RCC_USART234578CLKSOURCE_D2PCLK1;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /* Peripheral clock enable */
+  LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_UART7);
+
+  LL_AHB4_GRP1_EnableClock(LL_AHB4_GRP1_PERIPH_GPIOE);
+  /**UART7 GPIO Configuration
+  PE7   ------> UART7_RX
+  PE8   ------> UART7_TX
+  */
+  GPIO_InitStruct.Pin = LL_GPIO_PIN_7|LL_GPIO_PIN_8;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
+  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+  GPIO_InitStruct.Alternate = LL_GPIO_AF_7;
+  LL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+
+  /* UART7 DMA Init */
+
+  /* UART7_RX Init */
+  LL_DMA_SetPeriphRequest(DMA2, LL_DMA_STREAM_1, LL_DMAMUX1_REQ_UART7_RX);
+
+  LL_DMA_SetDataTransferDirection(DMA2, LL_DMA_STREAM_1, LL_DMA_DIRECTION_PERIPH_TO_MEMORY);
+
+  LL_DMA_SetStreamPriorityLevel(DMA2, LL_DMA_STREAM_1, LL_DMA_PRIORITY_LOW);
+
+  LL_DMA_SetMode(DMA2, LL_DMA_STREAM_1, LL_DMA_MODE_CIRCULAR);
+
+  LL_DMA_SetPeriphIncMode(DMA2, LL_DMA_STREAM_1, LL_DMA_PERIPH_NOINCREMENT);
+
+  LL_DMA_SetMemoryIncMode(DMA2, LL_DMA_STREAM_1, LL_DMA_MEMORY_INCREMENT);
+
+  LL_DMA_SetPeriphSize(DMA2, LL_DMA_STREAM_1, LL_DMA_PDATAALIGN_BYTE);
+
+  LL_DMA_SetMemorySize(DMA2, LL_DMA_STREAM_1, LL_DMA_MDATAALIGN_BYTE);
+
+  LL_DMA_DisableFifoMode(DMA2, LL_DMA_STREAM_1);
+
+  /* UART7 interrupt Init */
+  NVIC_SetPriority(UART7_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),7, 0));
+  NVIC_EnableIRQ(UART7_IRQn);
+
   /* USER CODE BEGIN UART7_Init 1 */
 
   /* USER CODE END UART7_Init 1 */
-  huart7.Instance = UART7;
-  huart7.Init.BaudRate = 115200;
-  huart7.Init.WordLength = UART_WORDLENGTH_8B;
-  huart7.Init.StopBits = UART_STOPBITS_1;
-  huart7.Init.Parity = UART_PARITY_NONE;
-  huart7.Init.Mode = UART_MODE_TX_RX;
-  huart7.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart7.Init.OverSampling = UART_OVERSAMPLING_16;
-  huart7.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-  huart7.Init.ClockPrescaler = UART_PRESCALER_DIV1;
-  huart7.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-  if (HAL_UART_Init(&huart7) != HAL_OK)
+  UART_InitStruct.PrescalerValue = LL_USART_PRESCALER_DIV1;
+  UART_InitStruct.BaudRate = 115200;
+  UART_InitStruct.DataWidth = LL_USART_DATAWIDTH_8B;
+  UART_InitStruct.StopBits = LL_USART_STOPBITS_1;
+  UART_InitStruct.Parity = LL_USART_PARITY_NONE;
+  UART_InitStruct.TransferDirection = LL_USART_DIRECTION_TX_RX;
+  UART_InitStruct.HardwareFlowControl = LL_USART_HWCONTROL_NONE;
+  UART_InitStruct.OverSampling = LL_USART_OVERSAMPLING_16;
+  LL_USART_Init(UART7, &UART_InitStruct);
+  LL_USART_DisableFIFO(UART7);
+  LL_USART_SetTXFIFOThreshold(UART7, LL_USART_FIFOTHRESHOLD_1_8);
+  LL_USART_SetRXFIFOThreshold(UART7, LL_USART_FIFOTHRESHOLD_1_8);
+  LL_USART_ConfigAsyncMode(UART7);
+
+  /* USER CODE BEGIN WKUPType UART7 */
+
+  /* USER CODE END WKUPType UART7 */
+
+  LL_USART_Enable(UART7);
+
+  /* Polling UART7 initialisation */
+  while((!(LL_USART_IsActiveFlag_TEACK(UART7))) || (!(LL_USART_IsActiveFlag_REACK(UART7))))
   {
-    Error_Handler();
-  }
-  if (HAL_UARTEx_SetTxFifoThreshold(&huart7, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_UARTEx_SetRxFifoThreshold(&huart7, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_UARTEx_DisableFifoMode(&huart7) != HAL_OK)
-  {
-    Error_Handler();
   }
   /* USER CODE BEGIN UART7_Init 2 */
-
+  peripherals[12].errorCode = Sys_OK;
   /* USER CODE END UART7_Init 2 */
 
 }
@@ -915,7 +1159,7 @@ static void MX_USART1_UART_Init(void)
   {
   }
   /* USER CODE BEGIN USART1_Init 2 */
-
+  peripherals[4].errorCode = Sys_OK;
   /* USER CODE END USART1_Init 2 */
 
 }
@@ -1015,108 +1259,8 @@ static void MX_USART2_UART_Init(void)
   {
   }
   /* USER CODE BEGIN USART2_Init 2 */
-
+  peripherals[5].errorCode = Sys_OK;
   /* USER CODE END USART2_Init 2 */
-
-}
-
-/**
-  * @brief USART6 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_USART6_UART_Init(void)
-{
-
-  /* USER CODE BEGIN USART6_Init 0 */
-
-  /* USER CODE END USART6_Init 0 */
-
-  LL_USART_InitTypeDef USART_InitStruct = {0};
-
-  LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
-  RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
-
-  /** Initializes the peripherals clock
-  */
-  PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_USART6;
-  PeriphClkInitStruct.Usart16ClockSelection = RCC_USART16CLKSOURCE_D2PCLK2;
-  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /* Peripheral clock enable */
-  LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_USART6);
-
-  LL_AHB4_GRP1_EnableClock(LL_AHB4_GRP1_PERIPH_GPIOG);
-  /**USART6 GPIO Configuration
-  PG9   ------> USART6_RX
-  PG14   ------> USART6_TX
-  */
-  GPIO_InitStruct.Pin = LL_GPIO_PIN_9|LL_GPIO_PIN_14;
-  GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
-  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-  GPIO_InitStruct.Alternate = LL_GPIO_AF_7;
-  LL_GPIO_Init(GPIOG, &GPIO_InitStruct);
-
-  /* USART6 DMA Init */
-
-  /* USART6_RX Init */
-  LL_DMA_SetPeriphRequest(DMA2, LL_DMA_STREAM_0, LL_DMAMUX1_REQ_USART6_RX);
-
-  LL_DMA_SetDataTransferDirection(DMA2, LL_DMA_STREAM_0, LL_DMA_DIRECTION_PERIPH_TO_MEMORY);
-
-  LL_DMA_SetStreamPriorityLevel(DMA2, LL_DMA_STREAM_0, LL_DMA_PRIORITY_LOW);
-
-  LL_DMA_SetMode(DMA2, LL_DMA_STREAM_0, LL_DMA_MODE_CIRCULAR);
-
-  LL_DMA_SetPeriphIncMode(DMA2, LL_DMA_STREAM_0, LL_DMA_PERIPH_NOINCREMENT);
-
-  LL_DMA_SetMemoryIncMode(DMA2, LL_DMA_STREAM_0, LL_DMA_MEMORY_INCREMENT);
-
-  LL_DMA_SetPeriphSize(DMA2, LL_DMA_STREAM_0, LL_DMA_PDATAALIGN_BYTE);
-
-  LL_DMA_SetMemorySize(DMA2, LL_DMA_STREAM_0, LL_DMA_MDATAALIGN_BYTE);
-
-  LL_DMA_DisableFifoMode(DMA2, LL_DMA_STREAM_0);
-
-  /* USART6 interrupt Init */
-  NVIC_SetPriority(USART6_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),7, 0));
-  NVIC_EnableIRQ(USART6_IRQn);
-
-  /* USER CODE BEGIN USART6_Init 1 */
-
-  /* USER CODE END USART6_Init 1 */
-  USART_InitStruct.PrescalerValue = LL_USART_PRESCALER_DIV1;
-  USART_InitStruct.BaudRate = 115200;
-  USART_InitStruct.DataWidth = LL_USART_DATAWIDTH_8B;
-  USART_InitStruct.StopBits = LL_USART_STOPBITS_1;
-  USART_InitStruct.Parity = LL_USART_PARITY_NONE;
-  USART_InitStruct.TransferDirection = LL_USART_DIRECTION_TX_RX;
-  USART_InitStruct.HardwareFlowControl = LL_USART_HWCONTROL_NONE;
-  USART_InitStruct.OverSampling = LL_USART_OVERSAMPLING_16;
-  LL_USART_Init(USART6, &USART_InitStruct);
-  LL_USART_SetTXFIFOThreshold(USART6, LL_USART_FIFOTHRESHOLD_1_8);
-  LL_USART_SetRXFIFOThreshold(USART6, LL_USART_FIFOTHRESHOLD_1_8);
-  LL_USART_DisableFIFO(USART6);
-  LL_USART_ConfigAsyncMode(USART6);
-
-  /* USER CODE BEGIN WKUPType USART6 */
-
-  /* USER CODE END WKUPType USART6 */
-
-  LL_USART_Enable(USART6);
-
-  /* Polling USART6 initialisation */
-  while((!(LL_USART_IsActiveFlag_TEACK(USART6))) || (!(LL_USART_IsActiveFlag_REACK(USART6))))
-  {
-  }
-  /* USER CODE BEGIN USART6_Init 2 */
-
-  /* USER CODE END USART6_Init 2 */
 
 }
 
@@ -1159,12 +1303,9 @@ static void MX_DMA_Init(void)
   /* DMA1_Stream7_IRQn interrupt configuration */
   NVIC_SetPriority(DMA1_Stream7_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),7, 0));
   NVIC_EnableIRQ(DMA1_Stream7_IRQn);
-  /* DMA2_Stream0_IRQn interrupt configuration */
-  NVIC_SetPriority(DMA2_Stream0_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),7, 0));
-  NVIC_EnableIRQ(DMA2_Stream0_IRQn);
   /* DMA2_Stream1_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA2_Stream1_IRQn, 7, 0);
-  HAL_NVIC_EnableIRQ(DMA2_Stream1_IRQn);
+  NVIC_SetPriority(DMA2_Stream1_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),7, 0));
+  NVIC_EnableIRQ(DMA2_Stream1_IRQn);
 
 }
 
@@ -1199,20 +1340,20 @@ static void MX_MDMA_Init(void)
   hmdma_mdma_channel0_sdmmc1_end_data_0.Init.DestBlockAddressOffset = 0;
   if (HAL_MDMA_Init(&hmdma_mdma_channel0_sdmmc1_end_data_0) != HAL_OK)
   {
-    Error_Handler();
+    return;
   }
 
   /* Configure post request address and data masks */
   if (HAL_MDMA_ConfigPostRequestMask(&hmdma_mdma_channel0_sdmmc1_end_data_0, 0, 0) != HAL_OK)
   {
-    Error_Handler();
+    return;
   }
 
   /* MDMA interrupt initialization */
   /* MDMA_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(MDMA_IRQn, 7, 0);
   HAL_NVIC_EnableIRQ(MDMA_IRQn);
-
+  peripherals[1].errorCode = Sys_OK;
 }
 
 /**
@@ -1258,8 +1399,7 @@ static void MX_GPIO_Init(void)
   LL_GPIO_ResetOutputPin(GPIOE, MCU_IO_IRQ_CM4_D1_Pin|MCU_IO_IRQ_CM4_D0_Pin);
 
   /**/
-  LL_GPIO_ResetOutputPin(GPIOD, MCU_IO_DEBUG_LED0_Pin|MCU_IO_DEBUG_LED1_Pin|MCU_IO_DEBUG_LED2_Pin|MCU_IO_DEBUG_LED3_Pin
-                          |MCU_DETECT_SD_Pin|MCU_WD_DONE_Pin);
+  LL_GPIO_ResetOutputPin(GPIOD, MCU_IO_DEBUG_LED0_Pin|MCU_IO_DEBUG_LED1_Pin|MCU_DETECT_SD_Pin|MCU_WD_DONE_Pin);
 
   /**/
   LL_GPIO_ResetOutputPin(GPIOG, Bootloader_DETECT_UPG6_Pin|MCU_IO_GLOBAL_EN_CM4_Pin);
@@ -1310,8 +1450,8 @@ static void MX_GPIO_Init(void)
   LL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
   /**/
-  GPIO_InitStruct.Pin = MCU_IO_DEBUG_LED0_Pin|MCU_IO_DEBUG_LED1_Pin|MCU_IO_DEBUG_LED2_Pin|MCU_IO_DEBUG_LED3_Pin
-                          |MCU_IO_HUB_RESET_Pin|MCU_DETECT_SD_Pin|MCU_WD_DONE_Pin;
+  GPIO_InitStruct.Pin = MCU_IO_DEBUG_LED0_Pin|MCU_IO_DEBUG_LED1_Pin|MCU_IO_HUB_RESET_Pin|MCU_DETECT_SD_Pin
+                          |MCU_WD_DONE_Pin;
   GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
   GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
   GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
@@ -1333,7 +1473,7 @@ static void MX_GPIO_Init(void)
   LL_GPIO_Init(GPIOG, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
-
+  peripherals[0].errorCode = Sys_OK;
   /* USER CODE END MX_GPIO_Init_2 */
 }
 

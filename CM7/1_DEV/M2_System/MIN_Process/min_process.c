@@ -58,7 +58,7 @@ void MIN_Process_Init(void){
 	pendingCommandsQueue = xQueueCreate(10, sizeof(CommandInfo_t));
 	MIN_RegisterResponseHandler(MIN_ResponseCallback);
 
-	SYSLOG_NOTICE("MIN Process Init!");
+	Sys_Boardcast(E_OK, LOG_INFOR, "MIN Process Init!");
 }
 
 void MIN_Processing(void){

@@ -1187,6 +1187,7 @@ static void printAlignedColumn(EmbeddedCli *cli, const char *str, int colWidth) 
         writeToOutput(cli, " ");
     }
 }
+
 void CMD_Help(EmbeddedCli *cli, char *tokens, void *context) {
     UNUSED(context);
     PREPARE_IMPL(cli);
@@ -1204,10 +1205,12 @@ void CMD_Help(EmbeddedCli *cli, char *tokens, void *context) {
         int catCount = 0;
 
         for (int i = 0; i < impl->bindingsCount; i++) {
-            const char* cat = impl->bindings[i].category ? impl->bindings[i].category : "Uncategorized";
-            int idx = findCategoryIndex(cat, categories, catCount);
-            if (idx < 0 && catCount < MAX_CAT) {
-                categories[catCount++] = cat;
+            const char* cat = impl->bindings[i].category;
+            if (cat != NULL) {
+                int idx = findCategoryIndex(cat, categories, catCount);
+                if (idx < 0 && catCount < MAX_CAT) {
+                    categories[catCount++] = cat;
+                }
             }
         }
 
@@ -1218,17 +1221,17 @@ void CMD_Help(EmbeddedCli *cli, char *tokens, void *context) {
             writeToOutput(cli, lineBreak);
 
             for (int i = 0; i < impl->bindingsCount; i++) {
-                const char* cmdCat = impl->bindings[i].category ? impl->bindings[i].category : "Uncategorized";
-                if (strcmp(cmdCat, categories[c]) == 0) {
-                	writeToOutput(cli, "    ");
-                	printAlignedColumn(cli, impl->bindings[i].name, CMD_NAME_COL_WIDTH);
-                	writeToOutput(cli, "| ");
-                	if (impl->bindings[i].help) {
-                	    writeToOutput(cli, impl->bindings[i].help);
-                	} else {
-                	    writeToOutput(cli, "(no help)");
-                	}
-                	writeToOutput(cli, lineBreak);
+                const char* cmdCat = impl->bindings[i].category;
+                if (cmdCat != NULL && strcmp(cmdCat, categories[c]) == 0) {
+                    writeToOutput(cli, "    ");
+                    printAlignedColumn(cli, impl->bindings[i].name, CMD_NAME_COL_WIDTH);
+                    writeToOutput(cli, "| ");
+                    if (impl->bindings[i].help) {
+                        writeToOutput(cli, impl->bindings[i].help);
+                    } else {
+                        writeToOutput(cli, "(no help)");
+                    }
+                    writeToOutput(cli, lineBreak);
                 }
             }
             writeToOutput(cli, lineBreak);
@@ -1237,6 +1240,7 @@ void CMD_Help(EmbeddedCli *cli, char *tokens, void *context) {
         const char *cmdName = embeddedCliGetToken(tokens, 1);
         bool found = false;
         for (int i = 0; i < impl->bindingsCount; ++i) {
+            if (impl->bindings[i].category == NULL) continue;
             if (strcmp(impl->bindings[i].name, cmdName) == 0) {
                 found = true;
                 writeToOutput(cli, "Command: ");
@@ -1244,7 +1248,7 @@ void CMD_Help(EmbeddedCli *cli, char *tokens, void *context) {
                 writeToOutput(cli, lineBreak);
 
                 writeToOutput(cli, "Category: ");
-                writeToOutput(cli, impl->bindings[i].category ? impl->bindings[i].category : "Uncategorized");
+                writeToOutput(cli, impl->bindings[i].category);
                 writeToOutput(cli, lineBreak);
 
                 if (impl->bindings[i].help) {
@@ -1263,6 +1267,97 @@ void CMD_Help(EmbeddedCli *cli, char *tokens, void *context) {
         }
     } else {
         writeToOutput(cli, "Command \"help\" receives one or zero arguments");
+        writeToOutput(cli, lineBreak);
+    }
+}
+
+void CMD_Dev(EmbeddedCli *cli, char *tokens, void *context) {
+    UNUSED(context);
+    PREPARE_IMPL(cli);
+
+    if (impl->bindingsCount == 0) {
+        writeToOutput(cli, "No development commands available");
+        writeToOutput(cli, lineBreak);
+        return;
+    }
+
+    uint16_t tokenCount = embeddedCliGetTokenCount(tokens);
+    if (tokenCount == 0) {
+        const int MAX_CAT = 32;
+        const char* categories[MAX_CAT];
+        int catCount = 0;
+
+        for (int i = 0; i < impl->bindingsCount; i++) {
+            const char* cat = impl->bindings[i].category;
+            if (cat != NULL && strcmp(cat, "Dev") != 0) continue;
+            const char* display_cat = (cat == NULL) ? "Deployment" : cat;
+            int idx = findCategoryIndex(display_cat, categories, catCount);
+            if (idx < 0 && catCount < MAX_CAT) {
+                categories[catCount++] = display_cat;
+            }
+        }
+
+        if (catCount == 0) {
+            writeToOutput(cli, "No development commands available");
+            writeToOutput(cli, lineBreak);
+            return;
+        }
+
+        for (int c = 0; c < catCount; c++) {
+            writeToOutput(cli, "[");
+            writeToOutput(cli, categories[c]);
+            writeToOutput(cli, "]");
+            writeToOutput(cli, lineBreak);
+
+            for (int i = 0; i < impl->bindingsCount; i++) {
+                const char* cmdCat = impl->bindings[i].category;
+                const char* display_cmdCat = (cmdCat == NULL) ? "Deployment" : cmdCat;
+                if (strcmp(display_cmdCat, categories[c]) == 0) {
+                    writeToOutput(cli, "    ");
+                    printAlignedColumn(cli, impl->bindings[i].name, CMD_NAME_COL_WIDTH);
+                    writeToOutput(cli, "| ");
+                    if (impl->bindings[i].help) {
+                        writeToOutput(cli, impl->bindings[i].help);
+                    } else {
+                        writeToOutput(cli, "(no help)");
+                    }
+                    writeToOutput(cli, lineBreak);
+                }
+            }
+            writeToOutput(cli, lineBreak);
+        }
+    } else if (tokenCount == 1) {
+        const char *cmdName = embeddedCliGetToken(tokens, 1);
+        bool found = false;
+        for (int i = 0; i < impl->bindingsCount; ++i) {
+            if (strcmp(impl->bindings[i].name, cmdName) == 0) {
+                const char* cat = impl->bindings[i].category;
+                if (cat != NULL && strcmp(cat, "Dev") != 0) continue;
+                found = true;
+                writeToOutput(cli, "Command: ");
+                writeToOutput(cli, impl->bindings[i].name);
+                writeToOutput(cli, lineBreak);
+
+                writeToOutput(cli, "Category: ");
+                writeToOutput(cli, cat ? cat : "Deployment");
+                writeToOutput(cli, lineBreak);
+
+                if (impl->bindings[i].help) {
+                    writeToOutput(cli, "Help: ");
+                    writeToOutput(cli, impl->bindings[i].help);
+                    writeToOutput(cli, lineBreak);
+                } else {
+                    writeToOutput(cli, "(no help)");
+                    writeToOutput(cli, lineBreak);
+                }
+                break;
+            }
+        }
+        if (!found) {
+            onUnknownCommand(cli, cmdName);
+        }
+    } else {
+        writeToOutput(cli, "Command \"dev\" receives one or zero arguments");
         writeToOutput(cli, lineBreak);
     }
 }

@@ -18,15 +18,13 @@
 #include "utils.h"
 #include "stdbool.h"
 
-#define UART_DMA_DRIVER_COUNT 4
+#define UART_DMA_DRIVER_COUNT 3
 
 #define UART1_BUFFER_SIZE    			1024
-#define UART6_BUFFER_SIZE    			256
 #define UART2_BUFFER_SIZE    			1024
 #define UART7_BUFFER_SIZE    			1024
 
 #define UART1_DMA_RX_BUFFER_SIZE 		1024
-#define UART6_DMA_RX_BUFFER_SIZE 		256
 #define UART2_DMA_RX_BUFFER_SIZE 		1024
 #define UART7_DMA_RX_BUFFER_SIZE    	1024
 

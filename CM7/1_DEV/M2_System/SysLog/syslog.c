@@ -10,6 +10,7 @@
 #include "uart_driver_dma.h"
 #include "utils.h"
 #include "DateTime/date_time.h"
+#include "Dmesg/dmesg.h"
 
 static USART_TypeDef* syslog_uarts[SYSLOG_OUTPUT_UART_COUNT] = SYSLOG_OUTPUT_UARTS;
 
@@ -24,6 +25,52 @@ static const char* syslog_level_to_str(syslog_level_t level)
         case LOG_FATAL:  return "[FATAL] ";
         default:         return "[UNK]   ";
     }
+}
+
+void Sys_Boardcast(bool status, syslog_level_t level, const char *msg)
+{
+    switch(level) {
+        case LOG_INFOR:  if (!LOG_INFOR_ENABLED)  return; break;
+        case LOG_DEBUG:  if (!LOG_DEBUG_ENABLED)  return; break;
+        case LOG_NOTICE: if (!LOG_NOTICE_ENABLED) return; break;
+        case LOG_WARN:   if (!LOG_WARN_ENABLED)   return; break;
+        case LOG_ERROR:  if (!LOG_ERROR_ENABLED)  return; break;
+        case LOG_FATAL:  if (!LOG_FATAL_ENABLED)  return; break;
+        default:         return; // unknown level
+    }
+
+    char log_buffer[128];
+    int offset;
+
+    offset = 0;
+    const char* status_str = status ? "[ ER ] " : "[ OK ] ";
+    offset += snprintf(log_buffer + offset, sizeof(log_buffer) - offset, "%s", status_str);
+
+    const char* level_str = syslog_level_to_str(level);
+    offset += snprintf(log_buffer + offset, sizeof(log_buffer) - offset, "%s->[OBC-STM32] ", level_str);
+
+    offset += snprintf(log_buffer + offset, sizeof(log_buffer) - offset, "\"%s\"\r\n", msg);
+
+    for (uint32_t i = 0; log_buffer[i] != '\0'; i++)
+    {
+        while (!LL_USART_IsActiveFlag_TXE(UART_DEBUG));
+        LL_USART_TransmitData8(UART_DEBUG, (uint8_t)log_buffer[i]);
+    }
+    while (!LL_USART_IsActiveFlag_TC(UART_DEBUG));
+
+    offset = 0;
+    offset += snprintf(log_buffer + offset, sizeof(log_buffer) - offset, "%s", status_str);
+
+    offset += snprintf(log_buffer + offset, sizeof(log_buffer) - offset, "%s->[USB-STM32] ", level_str);
+
+    offset += snprintf(log_buffer + offset, sizeof(log_buffer) - offset, "\"%s\"\r\n", msg);
+
+    for (uint32_t i = 0; log_buffer[i] != '\0'; i++)
+    {
+        while (!LL_USART_IsActiveFlag_TXE(UART_USB));
+        LL_USART_TransmitData8(UART_USB, (uint8_t)log_buffer[i]);
+    }
+    while (!LL_USART_IsActiveFlag_TC(UART_USB));
 }
 
 /*
@@ -69,12 +116,10 @@ void syslog_log(syslog_level_t level, const char *msg, int use_polling)
                 "\"%s\"\r\n", msg);
 
 #ifdef DEBUG_USE_UART
-    for (int i = 0; i < SYSLOG_OUTPUT_UART_COUNT; i++) {
         if (use_polling) {
-            UART_Driver_Polling_SendString(syslog_uarts[i], log_buffer);
+            UART_Driver_Polling_SendString(syslog_uarts[0], log_buffer);
         } else {
-            UART_Driver_SendString(syslog_uarts[i], log_buffer);
+            Dmesg_SafeWrite(log_buffer);
         }
-    }
 #endif
 }

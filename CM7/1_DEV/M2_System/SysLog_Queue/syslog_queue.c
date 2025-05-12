@@ -11,8 +11,9 @@
 #include "uart_driver_dma.h"
 #include "stdio.h"
 #include "DateTime/date_time.h"
+#include "Dmesg/dmesg.h"
 
-#define SYSLOG_OUTPUT_BUFFER_SIZE 256
+#define SYSLOG_OUTPUT_BUFFER_SIZE 128
 #define SYSLOG_MSG_MAX_LENGTH     64
 #define SYSLOG_QUEUE_SLOT		  16
 
@@ -23,8 +24,8 @@ typedef struct {
 
 static QueueHandle_t syslogQueue = NULL;
 
-static USART_TypeDef* syslog_uarts[SYSLOG_OUTPUT_UART_COUNT] = SYSLOG_OUTPUT_UARTS;
-static const int syslog_uart_count = sizeof(syslog_uarts) / sizeof(syslog_uarts[0]);
+//static USART_TypeDef* syslog_uarts[SYSLOG_OUTPUT_UART_COUNT] = SYSLOG_OUTPUT_UARTS;
+//static const int syslog_uart_count = sizeof(syslog_uarts) / sizeof(syslog_uarts[0]);
 
 static const char* syslog_level_to_str(syslog_level_t level)
 {
@@ -38,7 +39,6 @@ static const char* syslog_level_to_str(syslog_level_t level)
         default:         return "[UNK]   ";
     }
 }
-
 
 void SysLogQueue_Init(void)
 {
@@ -104,9 +104,7 @@ void SysLog_Task(void *parameters)
                                "\"%s\"\r\n", logMsg.msg);
 
   #ifdef DEBUG_USE_UART
-			for (int i = 0; i < syslog_uart_count ; i++) {
-				UART_Driver_SendString(syslog_uarts[i], outputBuffer);
-			}
+            Dmesg_SafeWrite(outputBuffer);
   #endif
         }
     }

@@ -18,10 +18,11 @@
 #include "CLI_Terminal/CLI_Setup/cli_setup.h"
 #include "SysLog_Queue/syslog_queue.h"
 #include "DateTime/date_time.h"
-#include "cdc_driver.h"
 #include "devices.h"
 #include "SPI_FRAM/fram_spi.h"
 #include "IO_ExWD-TPL5010/wd_tpl5010.h"
+#include "SPI_SlaveOfCM4/spi_slave.h"
+#include "SPI_MasterOfEXP/spi_master.h"
 
 SystemStatus_t Mgmt_GetSystemStatus(void);
 
@@ -37,20 +38,19 @@ Std_ReturnType Mgmt_HardwareSystemPreparing(void)
     Watchdog_Device_Init();
 
 	Utils_SoftTime_Init();
-	CDC_RingBuffer_Init();
 
-	SYSLOG_NOTICE_POLL("STM32-OBC Boot-up!");
-	SYSLOG_INFO_POLL("STM32-OBC Boot-up!");
-	SYSLOG_DEBUG_POLL("STM32-OBC Boot-up!");
-	SYSLOG_WARN_POLL("STM32-OBC Boot-up!");
-	SYSLOG_ERROR_POLL("STM32-OBC Boot-up!");
-	SYSLOG_FATAL_POLL("STM32-OBC Boot-up!");
-
+	Sys_Boardcast(E_OK,	LOG_NOTICE , 	"OBC OS Preparing!");
+	Sys_Boardcast(E_OK,	LOG_INFOR ,  	"OBC OS Preparing!");
+	Sys_Boardcast(E_OK,	LOG_DEBUG, 		"OBC OS Preparing!");
+	Sys_Boardcast(E_OK, LOG_WARN, 		"OBC OS Preparing!");
+	Sys_Boardcast(E_OK, LOG_ERROR, 		"OBC OS Preparing!");
+	Sys_Boardcast(E_OK, LOG_FATAL, 		"OBC OS Preparing!");
 	return ret;
 }
 
 void Mgmt_SystemStart(void){
-	SYSLOG_NOTICE_POLL("OS starting");
+	Sys_Boardcast(E_OK,	LOG_NOTICE , 	"OBC OS Starting!");
+
 	OBC_RTOS_Start();
 }
 
@@ -63,64 +63,80 @@ Std_ReturnType Mgmt_SystemInitStepZero(void)
 {
 	Std_ReturnType ret = E_ERROR;
 	system_status.init_state = INIT_STATE_STEP_ZERO;
+	Sys_Boardcast(E_OK, LOG_INFOR, "Step Zero: Pending...");
 
 	ret = Utils_SoftTime_Sync();
 	if(Utils_SoftTime_Sync() == E_OK){
-		UART_Driver_SendString(UART_DEBUG,"\r\n[Sync Time!]\r\n");
+		Sys_Boardcast(E_OK,	LOG_NOTICE, "[Sync Time!]");
 	}else{
 		system_status.last_error = ret;
 		system_status.init_state = INIT_STATE_FAILED;
 	}
 
-	if(ret != E_OK) return ret;
-	UART_Driver_SendString(UART_DEBUG, "System-Init Step 0: ");
-	UART_Driver_SendString(UART_DEBUG, "OK!\r\n");
 	return ret;
 }
 
 Std_ReturnType Mgmt_SystemInitStepOne(void)
 {
 	system_status.init_state = INIT_STATE_STEP_ONE;
-	UART_Driver_SendString(UART_DEBUG, "System-Init Step 1: ");
 	Std_ReturnType ret = E_ERROR;
+	Sys_Boardcast(E_OK, LOG_INFOR, "Step One: Pending...");
 
 	ret = SystemCLI_Init();
 	if(ret != E_OK){
-		UART_Driver_SendString(UART_DEBUG, "\r\n[CLI Init Fail]\r\n");
+		Sys_Boardcast(E_ERROR, LOG_ERROR, "[CLI-Interface Init Fail]");
 		system_status.last_error = ret;
 		system_status.init_state = INIT_STATE_FAILED;
+	}else{
+		Sys_Boardcast(E_OK, LOG_NOTICE, "[CLI-Interface Init Done]");
 	}
 
 	ret = Link_SDFS_Driver();
 	if(ret != E_OK){
-		UART_Driver_SendString(UART_DEBUG, "\r\n[Link FATFS Fail]\r\n");
+		Sys_Boardcast(E_ERROR, LOG_ERROR, "[Link FATFS Fail]");
 		system_status.last_error = ret;
 		system_status.init_state = INIT_STATE_FAILED;
 	}else{
-		UART_Driver_SendString(UART_DEBUG, "\r\n[Link FATFS Successfully]\r\n");
+		Sys_Boardcast(E_OK, LOG_NOTICE, "[Link FATFS Success]");
 	}
 
 	SysLogQueue_Init();
 
-	if(ret != E_OK) return ret;
-	UART_Driver_SendString(UART_DEBUG, "OK!\r\n");
 	return ret;
 }
 
 Std_ReturnType Mgmt_SystemInitStepTwo(void)
 {
 	system_status.init_state = INIT_STATE_STEP_TWO;
-	UART_Driver_SendString(UART_DEBUG, "System-Init Step 2: ");
-	UART_Driver_SendString(UART_DEBUG, "OK!\r\n");
-	return E_OK;
+	Std_ReturnType ret = E_ERROR;
+	Sys_Boardcast(E_OK, LOG_INFOR, "Step Two: Pending...");
+
+	ret = SPI_SlaveDevice_Init();
+	if(ret != E_OK){
+		Sys_Boardcast(E_ERROR, LOG_ERROR, "[SPI Device Init Fail]");
+		system_status.last_error = ret;
+		system_status.init_state = INIT_STATE_FAILED;
+	}else{
+		Sys_Boardcast(E_OK, LOG_NOTICE, "[SPI Device Init Done]");
+	}
+
+	ret = SPI_MasterDevice_Init(SPI6, SPI6_EXP_CS_GPIO_Port, SPI6_EXP_CS_Pin);
+	if(ret != E_OK){
+		Sys_Boardcast(E_ERROR, LOG_ERROR, "[SPI Master Init Fail]");
+		system_status.last_error = ret;
+		system_status.init_state = INIT_STATE_FAILED;
+	}else{
+		Sys_Boardcast(E_OK, LOG_NOTICE, "[SPI Master Init Done]");
+	}
+
+	return ret;
 }
 
 Std_ReturnType Mgmt_SystemInitFinal(void)
 {
 	system_status.init_state = INIT_STATE_FINAL;
-	UART_Driver_SendString(UART_DEBUG, "System-Init Final: ");
-	UART_Driver_SendString(UART_DEBUG, "OK!\r\n");
 	system_status.init_state = INIT_STATE_COMPLETED;
+	Sys_Boardcast(E_OK, LOG_INFOR, "Step Final: Pending...");
 	return E_OK;
 }
 

@@ -6,16 +6,11 @@
  */
 
 #include "uart_driver_dma.h"
-#include "cdc_driver.h"
 
 // Buffers USART1
 static uint8_t uart1_dma_rx_buffer[UART1_DMA_RX_BUFFER_SIZE];
 static RingBufElement uart1_rx_data[UART1_BUFFER_SIZE];
 static RingBufElement uart1_tx_data[UART1_BUFFER_SIZE];
-// Buffers USART6
-static uint8_t uart6_dma_rx_buffer[UART6_DMA_RX_BUFFER_SIZE];
-static RingBufElement uart6_rx_data[UART6_BUFFER_SIZE];
-static RingBufElement uart6_tx_data[UART6_BUFFER_SIZE];
 
 // Buffers USART2
 static uint8_t uart2_dma_rx_buffer[UART2_DMA_RX_BUFFER_SIZE];
@@ -53,18 +48,7 @@ static UART_DMA_Driver_t uart_dma_drivers[UART_DMA_DRIVER_COUNT] = {
         .dma_rx_buffer_size = UART2_DMA_RX_BUFFER_SIZE,
 		.old_dma_pos = 0
     },
-	// USART6
-    {
-        .uart = USART6,
-        .rx_buffer = {0},
-		.tx_buffer = {0},
-        .rxSemaphore = NULL,
-        .dma_rx_instance = DMA2,
-        .dma_rx_channel = LL_DMA_STREAM_0,
-        .dma_rx_buffer = uart6_dma_rx_buffer,
-        .dma_rx_buffer_size = UART6_DMA_RX_BUFFER_SIZE,
-		.old_dma_pos = 0
-    },
+
 	// UART7
     {
         .uart = UART7,
@@ -139,13 +123,13 @@ Std_ReturnType UART_DMA_Driver_Init(void)
     LL_USART_EnableIT_IDLE(USART2);
     LL_USART_EnableIT_RXNE(USART2);
 
-    // USART6 (index 2)
-    RingBuffer_Create(&uart_dma_drivers[2].rx_buffer, 9, "UART6_RX", uart6_rx_data, UART6_BUFFER_SIZE);
-    RingBuffer_Create(&uart_dma_drivers[2].tx_buffer, 10, "UART6_TX", uart6_tx_data, UART6_BUFFER_SIZE);
+    // UART7 (index 2)
+    RingBuffer_Create(&uart_dma_drivers[2].rx_buffer, 7, "UART7_RX", uart7_rx_data, UART7_BUFFER_SIZE);
+    RingBuffer_Create(&uart_dma_drivers[2].tx_buffer, 8, "UART7_TX", uart7_tx_data, UART7_BUFFER_SIZE);
     uart_dma_drivers[2].rxSemaphore = xSemaphoreCreateBinary();
 
     LL_DMA_SetPeriphAddress(uart_dma_drivers[2].dma_rx_instance, uart_dma_drivers[2].dma_rx_channel,
-                           LL_USART_DMA_GetRegAddr(USART6, LL_USART_DMA_REG_DATA_RECEIVE));
+                           LL_USART_DMA_GetRegAddr(UART7, LL_USART_DMA_REG_DATA_RECEIVE));
     LL_DMA_SetDataLength(uart_dma_drivers[2].dma_rx_instance, uart_dma_drivers[2].dma_rx_channel,
                          uart_dma_drivers[2].dma_rx_buffer_size);
     LL_DMA_SetMemoryAddress(uart_dma_drivers[2].dma_rx_instance, uart_dma_drivers[2].dma_rx_channel,
@@ -153,28 +137,8 @@ Std_ReturnType UART_DMA_Driver_Init(void)
     LL_DMA_EnableIT_TC(uart_dma_drivers[2].dma_rx_instance, uart_dma_drivers[2].dma_rx_channel);
     LL_DMA_EnableIT_HT(uart_dma_drivers[2].dma_rx_instance, uart_dma_drivers[2].dma_rx_channel);
 
-    LL_USART_EnableDMAReq_RX(USART6);
-    LL_DMA_EnableStream(uart_dma_drivers[2].dma_rx_instance, uart_dma_drivers[2].dma_rx_channel);
-
-    LL_USART_EnableIT_IDLE(USART6);
-    LL_USART_EnableIT_RXNE(USART6);
-
-    // UART7 (index 3)
-    RingBuffer_Create(&uart_dma_drivers[3].rx_buffer, 7, "UART7_RX", uart7_rx_data, UART7_BUFFER_SIZE);
-    RingBuffer_Create(&uart_dma_drivers[3].tx_buffer, 8, "UART7_TX", uart7_tx_data, UART7_BUFFER_SIZE);
-    uart_dma_drivers[3].rxSemaphore = xSemaphoreCreateBinary();
-
-    LL_DMA_SetPeriphAddress(uart_dma_drivers[3].dma_rx_instance, uart_dma_drivers[3].dma_rx_channel,
-                           LL_USART_DMA_GetRegAddr(UART7, LL_USART_DMA_REG_DATA_RECEIVE));
-    LL_DMA_SetDataLength(uart_dma_drivers[3].dma_rx_instance, uart_dma_drivers[3].dma_rx_channel,
-                         uart_dma_drivers[3].dma_rx_buffer_size);
-    LL_DMA_SetMemoryAddress(uart_dma_drivers[3].dma_rx_instance, uart_dma_drivers[3].dma_rx_channel,
-                            (uint32_t)uart_dma_drivers[3].dma_rx_buffer);
-    LL_DMA_EnableIT_TC(uart_dma_drivers[3].dma_rx_instance, uart_dma_drivers[3].dma_rx_channel);
-    LL_DMA_EnableIT_HT(uart_dma_drivers[3].dma_rx_instance, uart_dma_drivers[3].dma_rx_channel);
-
     LL_USART_EnableDMAReq_RX(UART7);
-    LL_DMA_EnableStream(uart_dma_drivers[3].dma_rx_instance, uart_dma_drivers[3].dma_rx_channel);
+    LL_DMA_EnableStream(uart_dma_drivers[2].dma_rx_instance, uart_dma_drivers[2].dma_rx_channel);
 
     LL_USART_EnableIT_IDLE(UART7);
     LL_USART_EnableIT_RXNE(UART7);

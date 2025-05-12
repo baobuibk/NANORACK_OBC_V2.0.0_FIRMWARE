@@ -7,7 +7,6 @@
 
 #include "cli_setup.h"
 #include "uart_driver_dma.h"
-#include "cdc_driver.h"
 #include "board.h"
 #include "CLI_Terminal/CLI_Command/cli_command.h"
 
@@ -36,7 +35,8 @@ static _Bool cliIsReady = false;
  *************************************************/
 
 static void writeCharToCli_USBCDC(EmbeddedCli *embeddedCli, char c) {
-	CDC_SendChar(c);
+    uint8_t c_to_send = c;
+    UART_Driver_Write(UART_USB, c_to_send);
 }
 
 static void writeCharToCli_UARTCM4(EmbeddedCli *embeddedCli, char c) {

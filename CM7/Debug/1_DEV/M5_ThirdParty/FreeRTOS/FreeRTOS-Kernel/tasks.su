@@ -12,10 +12,6 @@
 ../1_DEV/M5_ThirdParty/FreeRTOS/FreeRTOS-Kernel/tasks.c:2691:17:uxTaskBasePriorityGet	24	static
 ../1_DEV/M5_ThirdParty/FreeRTOS/FreeRTOS-Kernel/tasks.c:2717:17:uxTaskBasePriorityGetFromISR	40	static,ignoring_inline_asm
 ../1_DEV/M5_ThirdParty/FreeRTOS/FreeRTOS-Kernel/tasks.c:2765:10:vTaskPrioritySet	40	static,ignoring_inline_asm
-../1_DEV/M5_ThirdParty/FreeRTOS/FreeRTOS-Kernel/tasks.c:3121:10:vTaskSuspend	32	static,ignoring_inline_asm
-../1_DEV/M5_ThirdParty/FreeRTOS/FreeRTOS-Kernel/tasks.c:3283:23:prvTaskIsTaskSuspended	32	static,ignoring_inline_asm
-../1_DEV/M5_ThirdParty/FreeRTOS/FreeRTOS-Kernel/tasks.c:3353:10:vTaskResume	32	static,ignoring_inline_asm
-../1_DEV/M5_ThirdParty/FreeRTOS/FreeRTOS-Kernel/tasks.c:3414:16:xTaskResumeFromISR	48	static,ignoring_inline_asm
 ../1_DEV/M5_ThirdParty/FreeRTOS/FreeRTOS-Kernel/tasks.c:3511:19:prvCreateIdleTasks	72	static
 ../1_DEV/M5_ThirdParty/FreeRTOS/FreeRTOS-Kernel/tasks.c:3665:6:vTaskStartScheduler	24	static,ignoring_inline_asm
 ../1_DEV/M5_ThirdParty/FreeRTOS/FreeRTOS-Kernel/tasks.c:3768:6:vTaskEndScheduler	16	static,ignoring_inline_asm
@@ -29,7 +25,7 @@
 ../1_DEV/M5_ThirdParty/FreeRTOS/FreeRTOS-Kernel/tasks.c:4385:17:uxTaskGetSystemState	32	static
 ../1_DEV/M5_ThirdParty/FreeRTOS/FreeRTOS-Kernel/tasks.c:4546:12:xTaskCatchUpTicks	24	static,ignoring_inline_asm
 ../1_DEV/M5_ThirdParty/FreeRTOS/FreeRTOS-Kernel/tasks.c:4670:12:xTaskIncrementTick	48	static,ignoring_inline_asm
-../1_DEV/M5_ThirdParty/FreeRTOS/FreeRTOS-Kernel/tasks.c:5056:10:vTaskSwitchContext	32	static,ignoring_inline_asm
+../1_DEV/M5_ThirdParty/FreeRTOS/FreeRTOS-Kernel/tasks.c:5056:10:vTaskSwitchContext	40	static,ignoring_inline_asm
 ../1_DEV/M5_ThirdParty/FreeRTOS/FreeRTOS-Kernel/tasks.c:5243:6:vTaskPlaceOnEventList	24	static,ignoring_inline_asm
 ../1_DEV/M5_ThirdParty/FreeRTOS/FreeRTOS-Kernel/tasks.c:5272:6:vTaskPlaceOnUnorderedEventList	40	static,ignoring_inline_asm
 ../1_DEV/M5_ThirdParty/FreeRTOS/FreeRTOS-Kernel/tasks.c:5304:10:vTaskPlaceOnEventListRestricted	32	static,ignoring_inline_asm
@@ -64,7 +60,7 @@
 ../1_DEV/M5_ThirdParty/FreeRTOS/FreeRTOS-Kernel/tasks.c:8118:10:vTaskGenericNotifyGiveFromISR	72	static,ignoring_inline_asm
 ../1_DEV/M5_ThirdParty/FreeRTOS/FreeRTOS-Kernel/tasks.c:8234:16:xTaskGenericNotifyStateClear	32	static,ignoring_inline_asm
 ../1_DEV/M5_ThirdParty/FreeRTOS/FreeRTOS-Kernel/tasks.c:8272:14:ulTaskGenericNotifyValueClear	40	static,ignoring_inline_asm
-../1_DEV/M5_ThirdParty/FreeRTOS/FreeRTOS-Kernel/tasks.c:8415:13:prvAddCurrentTaskToDelayedList	40	static
+../1_DEV/M5_ThirdParty/FreeRTOS/FreeRTOS-Kernel/tasks.c:8415:13:prvAddCurrentTaskToDelayedList	32	static
 ../1_DEV/M5_ThirdParty/FreeRTOS/FreeRTOS-Kernel/tasks.c:8584:10:vApplicationGetIdleTaskMemory	24	static
 ../1_DEV/M5_ThirdParty/FreeRTOS/FreeRTOS-Kernel/tasks.c:8625:10:vApplicationGetTimerTaskMemory	24	static
 ../1_DEV/M5_ThirdParty/FreeRTOS/FreeRTOS-Kernel/tasks.c:8645:6:vTaskResetState	16	static

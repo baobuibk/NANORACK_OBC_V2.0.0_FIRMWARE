@@ -9,7 +9,7 @@
 #define M2_SYSTEM_SYSLOG_SYSLOG_H_
 
 #include "board.h"
-
+#include "stdbool.h"
 
 /*
  * Customizable configurations - SYSLOG & QUEUELOG
@@ -83,6 +83,7 @@ typedef enum {
 
 void syslog_log(syslog_level_t level, const char *msg, int use_polling);
 
+void Sys_Boardcast(bool status, syslog_level_t level, const char *msg);
 /*---------------------------
  * --> List Macro:
  *---------------------------*/

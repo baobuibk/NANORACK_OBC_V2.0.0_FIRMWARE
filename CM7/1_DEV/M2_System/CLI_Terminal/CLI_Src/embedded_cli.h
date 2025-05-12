@@ -302,6 +302,7 @@ uint16_t embeddedCliGetTokenCount(const char *tokenizedStr);
  */
 void CMD_Help(EmbeddedCli *cli, char *tokens, void *context);
 
+void CMD_Dev(EmbeddedCli *cli, char *tokens, void *context);
 
 #ifdef __cplusplus
 }

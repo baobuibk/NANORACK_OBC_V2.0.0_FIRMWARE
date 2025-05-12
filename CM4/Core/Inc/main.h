@@ -28,6 +28,7 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32h7xx_hal.h"
+
 #include "stm32h7xx_ll_i2c.h"
 #include "stm32h7xx_ll_rcc.h"
 #include "stm32h7xx_ll_spi.h"
@@ -70,6 +71,10 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define MCU_IO_DEBUG_LED2_Pin LL_GPIO_PIN_14
+#define MCU_IO_DEBUG_LED2_GPIO_Port GPIOD
+#define MCU_IO_DEBUG_LED3_Pin LL_GPIO_PIN_15
+#define MCU_IO_DEBUG_LED3_GPIO_Port GPIOD
 
 /* USER CODE BEGIN Private defines */
 

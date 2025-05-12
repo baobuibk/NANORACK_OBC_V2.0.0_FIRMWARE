@@ -190,6 +190,14 @@ SECTIONS
     . = . + _Min_Stack_Size;
     . = ALIGN(8);
   } >RAM_D1
+  
+  .dmesg_buffer (NOLOAD) :
+  {
+	    . = ALIGN(4);
+	    _sdmesg_buffer = .;    /* startpoint buffer */
+	    . = . + 0x18000;     /* 96KB = 0x18000 bytes */
+	    _edmesg_buffer = .;    /* endpoint buffer */
+  } >DTCMRAM
 
   .custom_data (NOLOAD) :
   {

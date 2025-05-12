@@ -9,9 +9,6 @@ RM := rm -rf
 
 # All of the sources participating in the build are defined here
 -include sources.mk
--include USB_DEVICE/Target/subdir.mk
--include USB_DEVICE/App/subdir.mk
--include Middlewares/ST/STM32_USB_Device_Library/subdir.mk
 -include Drivers/STM32H7xx_HAL_Driver/subdir.mk
 -include Core/Startup/subdir.mk
 -include Core/Src/subdir.mk
@@ -33,15 +30,16 @@ RM := rm -rf
 -include 1_DEV/M3_Devices/SPI_FRAM/subdir.mk
 -include 1_DEV/M3_Devices/IO_ExWD-TPL5010/subdir.mk
 -include 1_DEV/M3_Devices/I2C_RTC-RV3129/subdir.mk
+-include 1_DEV/M2_System/SystemManager/subdir.mk
 -include 1_DEV/M2_System/SysLog_Queue/subdir.mk
 -include 1_DEV/M2_System/SysLog/subdir.mk
 -include 1_DEV/M2_System/MIN_Process/subdir.mk
 -include 1_DEV/M2_System/FileSystem/subdir.mk
+-include 1_DEV/M2_System/Dmesg/subdir.mk
 -include 1_DEV/M2_System/CLI_Terminal/CLI_Src/subdir.mk
 -include 1_DEV/M2_System/CLI_Terminal/CLI_Setup/subdir.mk
 -include 1_DEV/M2_System/CLI_Terminal/CLI_Command/subdir.mk
 -include 1_DEV/M2_System/CLI_Terminal/CLI_Auth/subdir.mk
--include 1_DEV/M1_Drivers/USB_CDC/subdir.mk
 -include 1_DEV/M1_Drivers/UART_DMA/subdir.mk
 -include 1_DEV/M1_Drivers/UART/subdir.mk
 -include 1_DEV/M1_Drivers/SPI/subdir.mk

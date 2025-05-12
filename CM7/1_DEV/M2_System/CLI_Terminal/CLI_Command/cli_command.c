@@ -22,6 +22,8 @@
 #include "min_proto.h"
 #include "MIN_Process/min_process.h"
 #include "CLI_Terminal/CLI_Auth/simple_shield.h"
+#include "Dmesg/dmesg.h"
+
 //#include "inter_cpu_comm.h"
 #include "utils.h"
 #include "FreeRTOS.h"
@@ -70,7 +72,9 @@ static void CMD_PullData(EmbeddedCli *cli, char *args, void *context);
 static void CMD_SPISlaveRST(EmbeddedCli *cli, char *args, void *context);
 static void CMD_MasterRead(EmbeddedCli *cli, char *args, void *context);
 
+static void CMD_Dmesg(EmbeddedCli *cli, char *args, void *context);
 static void CMD_Test(EmbeddedCli *cli, char *args, void *context);
+
 /*************************************************
  *                 Command  Array                *
  *************************************************/
@@ -85,6 +89,7 @@ static void CMD_Test(EmbeddedCli *cli, char *args, void *context);
 
 
 static const CliCommandBinding cliStaticBindings_internal[] = {
+	{ "Ultis",          "dev",          "Print list of developer commands",             		false,  NULL, CMD_Dev,           },
     { "Ultis",		 	"help",        	"Print list of commands [Firmware: 1]",             	false,  NULL, CMD_Help,			 },
     { "Ultis",			"cls",         	"Clears the console",                               	false,  NULL, CMD_ClearCLI,  	 },
     { "Time", 			"rtc_set",     	"Set RTC time: rtc_set <h> <m> <s> <DD> <MM> <YY>",   	true,  	NULL, CMD_RtcSet,    	 },
@@ -108,7 +113,8 @@ static const CliCommandBinding cliStaticBindings_internal[] = {
 	{ "System", 		"rtos_check", 	"Check FreeRTOS tasks: rtos_check", 					false, 	NULL, CMD_RtosCheck 	 },
 	{ "System", 		"log_out", 		"Log Out", 												false, 	NULL, CMD_LogOut		 },
     { "System",         "pwd_change",   "Change user password: pwd_change <new_password>", 		true,   NULL, CMD_PwdChange    	 },
-    { NULL,        		"reset",       	"Reset MCU: reset",                                 	false, 	NULL, CMD_Reset,     	 },
+    { "System",         "dmesg",        "Print dmesg logs: dmesg [N]",                          true,   NULL, CMD_Dmesg,         },
+    { "Dev",        	"reset",       	"Reset MCU: reset",                                 	false, 	NULL, CMD_Reset,     	 },
 
 	{ "Memory",         "ram_fill",     "Fill 200KB RAM_D2 with pattern data 1|2|3",    		true,   NULL, CMD_RamFill,       },
 	{ "Memory",         "ram_dump",     "Dump contents of 200KB RAM_D2",               			false,  NULL, CMD_RamDump,       },
@@ -991,7 +997,6 @@ static void CMD_RtosCheck(EmbeddedCli *cli, char *args, void *context) {
 static TimerHandle_t logoutTimer = NULL;
 static void LogoutTimerCallback(TimerHandle_t xTimer) {
     Shield_Reset(&auth_usb);
-    Shield_Reset(&auth_uart);
 }
 static void CMD_LogOut(EmbeddedCli *cli, char *args, void *context) {
     embeddedCliPrint(cli, "Logging out...");
@@ -1010,11 +1015,10 @@ static void CMD_PwdChange(EmbeddedCli *cli, char *args, void *context) {
         return;
     }
 
-	ShieldAuthState_t auth_state1, auth_state2;
-	auth_state1 = Shield_GetState(&auth_uart);
-	auth_state2 = Shield_GetState(&auth_usb);
+	ShieldAuthState_t auth_state;
+	auth_state = Shield_GetState(&auth_usb);
 
-    if (auth_state1 == AUTH_ADMIN || auth_state2 == AUTH_ADMIN) {
+    if (auth_state == AUTH_ADMIN) {
     	size_t pwd_len = strlen(new_password);
         if (pwd_len > MAX_PASSWORD_LEN) {
         	embeddedCliPrint(cli, "Password too long (max 16 characters).");
@@ -1037,6 +1041,18 @@ static void CMD_PwdChange(EmbeddedCli *cli, char *args, void *context) {
         embeddedCliPrint(cli, "Must be logged in as admin to change password.");
         return;
     }
+    embeddedCliPrint(cli, "");
+}
+
+static void CMD_Dmesg(EmbeddedCli *cli, char *args, void *context) {
+    const char *arg1 = embeddedCliGetToken(args, 1);
+    if (arg1 == NULL) {
+        Dmesg_GetLogs(cli);
+    } else {
+        size_t N = (size_t)strtoul(arg1, NULL, 10);
+        Dmesg_GetLatestN(N, cli);
+    }
+    embeddedCliPrint(cli, "--------> Done <--------");
     embeddedCliPrint(cli, "");
 }
 

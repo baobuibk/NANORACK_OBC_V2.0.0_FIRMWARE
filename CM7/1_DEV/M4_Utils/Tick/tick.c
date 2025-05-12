@@ -9,7 +9,6 @@
 #include "stm32h7xx_ll_tim.h"
 #include "CLI_Terminal/CLI_Auth/simple_shield.h"
 
-extern ShieldInstance_t auth_uart;
 extern ShieldInstance_t auth_usb;
 
 volatile uint32_t LL_Tick = 0;
@@ -18,7 +17,6 @@ void TickTimer_IRQHandler(void) {
     if (LL_TIM_IsActiveFlag_UPDATE(TIM1)) {
         LL_TIM_ClearFlag_UPDATE(TIM1);
         LL_Tick++;
-        Shield_UpdateTimer(&auth_uart);
         Shield_UpdateTimer(&auth_usb);
     }
 }

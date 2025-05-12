@@ -32,5 +32,6 @@
 ../1_DEV/M2_System/CLI_Terminal/CLI_Src/embedded_cli.c:1147:17:getTokenPosition	7
 ../1_DEV/M2_System/CLI_Terminal/CLI_Src/embedded_cli.c:1174:12:findCategoryIndex	3
 ../1_DEV/M2_System/CLI_Terminal/CLI_Src/embedded_cli.c:1183:13:printAlignedColumn	2
-../1_DEV/M2_System/CLI_Terminal/CLI_Src/embedded_cli.c:1190:6:CMD_Help	18
-../1_DEV/M2_System/CLI_Terminal/CLI_Src/embedded_cli.c:1270:13:onUnknownCommand	1
+../1_DEV/M2_System/CLI_Terminal/CLI_Src/embedded_cli.c:1191:6:CMD_Help	18
+../1_DEV/M2_System/CLI_Terminal/CLI_Src/embedded_cli.c:1274:6:CMD_Dev	23
+../1_DEV/M2_System/CLI_Terminal/CLI_Src/embedded_cli.c:1365:13:onUnknownCommand	1

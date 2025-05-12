@@ -13,7 +13,9 @@
 
 #define UART_DEBUG					USART1
 
-#define UART_EXP					USART6
+#define UART_EXP					UART7
+
+#define UART_USB					USART2
 
 #define I2C_RTC						I2C2
 
