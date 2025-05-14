@@ -50,6 +50,7 @@
 								</option>
 								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.includepaths.718734546" name="Include paths (-I)" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.option.includepaths" useByScannerDiscovery="false" valueType="includePath">
 									<listOptionValue builtIn="false" value="../Core/Inc"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/04_obc_v111/CM7/1_DEV/M1_Drivers/Shared_REG}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/1_DEV/M5_ThirdParty/MIN_R01}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/04_obc_v111/CM7/1_DEV/M2_System/FileSystem}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/04_obc_v111/CM7/1_DEV/M2_System}&quot;"/>
@@ -217,5 +218,12 @@
 			<autodiscovery enabled="false" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
 	</storageModule>
-	<storageModule moduleId="refreshScope"/>
+	<storageModule moduleId="refreshScope" versionNumber="2">
+		<configuration configurationName="Debug">
+			<resource resourceType="PROJECT" workspacePath="/04_obc_v111_CM7"/>
+		</configuration>
+		<configuration configurationName="Release">
+			<resource resourceType="PROJECT" workspacePath="/04_obc_v111_CM7"/>
+		</configuration>
+	</storageModule>
 </cproject>

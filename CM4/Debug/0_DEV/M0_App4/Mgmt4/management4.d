@@ -44,7 +44,8 @@
  D:/LAB_PROJECT_7.7.7.7.7.7.7/stm32cubeide/04_obc_v111/CM4/0_DEV/M4_Util4/RingBuffer/ring_buffer.h \
  D:/LAB_PROJECT_7.7.7.7.7.7.7/stm32cubeide/04_obc_v111/CM4/0_DEV/M4_Util4/Define/define.h \
  D:/LAB_PROJECT_7.7.7.7.7.7.7/stm32cubeide/04_obc_v111/CM4/0_DEV/M0_App4/OS4/scheduler.h \
- D:/LAB_PROJECT_7.7.7.7.7.7.7/stm32cubeide/04_obc_v111/CM4/0_DEV/M0_App4/Task4/scheduler_tasks.h
+ D:/LAB_PROJECT_7.7.7.7.7.7.7/stm32cubeide/04_obc_v111/CM4/0_DEV/M0_App4/Task4/scheduler_tasks.h \
+ D:/LAB_PROJECT_7.7.7.7.7.7.7/stm32cubeide/04_obc_v111/CM4/0_DEV/M1_Driver4/Shared_REG/shared_reg.h
 ../0_DEV/M0_App4/Mgmt4/management4.h:
 D:/LAB_PROJECT_7.7.7.7.7.7.7/stm32cubeide/04_obc_v111/CM4/0_DEV/M1_Driver4/USB_CDC/cdc_driver.h:
 D:/LAB_PROJECT_7.7.7.7.7.7.7/stm32cubeide/04_obc_v111/CM4/0_DEV/M1_Driver4/UART_DMA/uart_dma_driver.h:
@@ -91,3 +92,4 @@ D:/LAB_PROJECT_7.7.7.7.7.7.7/stm32cubeide/04_obc_v111/CM4/0_DEV/M4_Util4/RingBuf
 D:/LAB_PROJECT_7.7.7.7.7.7.7/stm32cubeide/04_obc_v111/CM4/0_DEV/M4_Util4/Define/define.h:
 D:/LAB_PROJECT_7.7.7.7.7.7.7/stm32cubeide/04_obc_v111/CM4/0_DEV/M0_App4/OS4/scheduler.h:
 D:/LAB_PROJECT_7.7.7.7.7.7.7/stm32cubeide/04_obc_v111/CM4/0_DEV/M0_App4/Task4/scheduler_tasks.h:
+D:/LAB_PROJECT_7.7.7.7.7.7.7/stm32cubeide/04_obc_v111/CM4/0_DEV/M1_Driver4/Shared_REG/shared_reg.h:

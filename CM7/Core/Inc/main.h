@@ -118,6 +118,10 @@ void Error_Handler(void);
 #define MCU_DETECT_SD_GPIO_Port GPIOD
 #define MCU_WD_DONE_Pin LL_GPIO_PIN_7
 #define MCU_WD_DONE_GPIO_Port GPIOD
+#define MCU_I2C1_SCL_Pin LL_GPIO_PIN_6
+#define MCU_I2C1_SCL_GPIO_Port GPIOB
+#define MCU_I2C1_SDA_Pin LL_GPIO_PIN_7
+#define MCU_I2C1_SDA_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 

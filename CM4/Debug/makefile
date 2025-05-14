@@ -20,6 +20,7 @@ RM := rm -rf
 -include 0_DEV/M4_Util4/RingBuffer/subdir.mk
 -include 0_DEV/M1_Driver4/USB_CDC/subdir.mk
 -include 0_DEV/M1_Driver4/UART_DMA/subdir.mk
+-include 0_DEV/M1_Driver4/Shared_REG/subdir.mk
 -include 0_DEV/M0_App4/Task4/subdir.mk
 -include 0_DEV/M0_App4/OS4/subdir.mk
 -include 0_DEV/M0_App4/Mgmt4/subdir.mk

@@ -7,6 +7,7 @@
 "./1_DEV/M1_Drivers/IPC/inter_cpu_comm.o"
 "./1_DEV/M1_Drivers/SDMMC/emmc_bsp_driver.o"
 "./1_DEV/M1_Drivers/SPI/spi_driver.o"
+"./1_DEV/M1_Drivers/Shared_REG/shared_reg.o"
 "./1_DEV/M1_Drivers/UART/uart_driver.o"
 "./1_DEV/M1_Drivers/UART_DMA/uart_driver_dma.o"
 "./1_DEV/M2_System/CLI_Terminal/CLI_Auth/simple_shield.o"

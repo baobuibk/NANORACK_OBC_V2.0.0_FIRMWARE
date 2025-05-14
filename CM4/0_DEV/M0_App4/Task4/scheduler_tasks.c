@@ -129,14 +129,13 @@ static void USB_Check_Task(void)
 }
 static void UART_Port_RxPoll_Task(void)
 {
-    if (UART_DMA_Driver_IsDataAvailable(UART_PORT))
-    {
+
         int c;
         while ((c = UART_DMA_Driver_Read(UART_PORT)) != -1)
         {
             CDC_SendChar((char)c);
         }
-    }
+
 }
 
 /*************************************************

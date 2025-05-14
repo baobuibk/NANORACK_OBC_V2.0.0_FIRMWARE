@@ -118,7 +118,6 @@ int main(void)
   MX_USART6_UART_Init();
   MX_TIM2_Init();
   MX_USB_DEVICE_Init();
-
   /* USER CODE BEGIN 2 */
   Mgmt_HardwareSystemPreparing();
 

@@ -42,6 +42,7 @@ RM := rm -rf
 -include 1_DEV/M2_System/CLI_Terminal/CLI_Auth/subdir.mk
 -include 1_DEV/M1_Drivers/UART_DMA/subdir.mk
 -include 1_DEV/M1_Drivers/UART/subdir.mk
+-include 1_DEV/M1_Drivers/Shared_REG/subdir.mk
 -include 1_DEV/M1_Drivers/SPI/subdir.mk
 -include 1_DEV/M1_Drivers/SDMMC/subdir.mk
 -include 1_DEV/M1_Drivers/IPC/subdir.mk

@@ -23,6 +23,7 @@
 #include "IO_ExWD-TPL5010/wd_tpl5010.h"
 #include "SPI_SlaveOfCM4/spi_slave.h"
 #include "SPI_MasterOfEXP/spi_master.h"
+#include "shared_reg.h"
 
 SystemStatus_t Mgmt_GetSystemStatus(void);
 
@@ -38,6 +39,8 @@ Std_ReturnType Mgmt_HardwareSystemPreparing(void)
     Watchdog_Device_Init();
 
 	Utils_SoftTime_Init();
+
+	SharedREG_Init(DIR_M7_TO_M4);
 
 	Sys_Debugcast(E_OK,	LOG_NOTICE , 	"OBC OS Preparing!");
 	Sys_Debugcast(E_OK,	LOG_INFOR ,  	"OBC OS Preparing!");

@@ -15,6 +15,7 @@
 #include "UART_DMA/uart_dma_driver.h"
 #include "OS4/scheduler.h"
 #include "Task4/scheduler_tasks.h"
+#include "Shared_REG/shared_reg.h"
 
 //#include "../../_Target4/board4.h"
 //#include "UART_DMA/uart_dma_driver.h"
@@ -25,6 +26,7 @@
 void Mgmt_HardwareSystemPreparing(void){
 	UART_DMA_Driver_Init();
 	CDC_RingBuffer_Init();
+	SharedREG_Init(DIR_M4_TO_M7);
 //	UART_Driver_SendString(UART_PORT, "Hello");
 }
 

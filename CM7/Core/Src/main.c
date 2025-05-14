@@ -1051,6 +1051,7 @@ static void MX_UART7_Init(void)
   /* USER CODE BEGIN WKUPType UART7 */
 
   /* USER CODE END WKUPType UART7 */
+
   LL_USART_Enable(UART7);
 
   /* Polling UART7 initialisation */
@@ -1280,6 +1281,7 @@ static void MX_BDMA_Init(void)
   NVIC_SetPriority(BDMA_Channel1_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
   NVIC_EnableIRQ(BDMA_Channel1_IRQn);
 
+  peripherals[3].errorCode = Sys_OK;
 }
 
 /**
@@ -1306,6 +1308,7 @@ static void MX_DMA_Init(void)
   NVIC_SetPriority(DMA2_Stream1_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),7, 0));
   NVIC_EnableIRQ(DMA2_Stream1_IRQn);
 
+  peripherals[2].errorCode = Sys_OK;
 }
 
 /**
@@ -1353,6 +1356,7 @@ static void MX_MDMA_Init(void)
   HAL_NVIC_SetPriority(MDMA_IRQn, 7, 0);
   HAL_NVIC_EnableIRQ(MDMA_IRQn);
   peripherals[1].errorCode = Sys_OK;
+
 }
 
 /**
@@ -1470,6 +1474,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
   GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
   LL_GPIO_Init(GPIOG, &GPIO_InitStruct);
+
+  /**/
+  GPIO_InitStruct.Pin = MCU_I2C1_SCL_Pin|MCU_I2C1_SDA_Pin;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+  LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
   peripherals[0].errorCode = Sys_OK;

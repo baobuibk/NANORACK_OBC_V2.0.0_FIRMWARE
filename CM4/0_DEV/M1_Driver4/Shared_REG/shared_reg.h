@@ -7,11 +7,10 @@
  *    [-]
  ************************************************/
 
-#ifndef M1_DRIVER4_SHARED_REG_SHARED_REG_H_
-#define M1_DRIVER4_SHARED_REG_SHARED_REG_H_
+#ifndef M1_DRIVERS_SHARED_REG_SHARED_REG_H_
+#define M1_DRIVERS_SHARED_REG_SHARED_REG_H_
 
 #include <stdint.h>
-
 #define SHARED_BASE  (0x3800F800UL)
 
 typedef struct {
@@ -34,25 +33,9 @@ typedef enum {
     #define SHARED_IS_WRITER(dir)   ((dir) == DIR_M4_TO_M7)
 #endif
 
-void SharedREG_Write(SharedDir_t dir, uint16_t slot, uint8_t data)
-{
-    if (slot > SHARED_SLOT_MAX) return;
-    if (!SHARED_IS_WRITER(dir)) return;
+void SharedREG_Write(SharedDir_t dir, uint16_t slot, uint8_t data);
+uint8_t SharedREG_Read(SharedDir_t dir, uint16_t slot);
+void SharedREG_Clear(SharedDir_t dir);
+void SharedREG_Init(SharedDir_t dir);
 
-    if (dir == DIR_M7_TO_M4)
-        SHARED.M7_to_M4[slot] = data;
-    else
-        SHARED.M4_to_M7[slot] = data;
-
-}
-
-uint8_t SharedREG_Read(SharedDir_t dir, uint16_t slot)
-{
-    if (slot > SHARED_SLOT_MAX) return 0;
-
-    return (dir == DIR_M7_TO_M4) ?
-            SHARED.M7_to_M4[slot] :
-            SHARED.M4_to_M7[slot];
-}
-
-#endif /* M1_DRIVER4_SHARED_REG_SHARED_REG_H_ */
+#endif /* M1_DRIVERS_SHARED_REG_SHARED_REG_H_ */
