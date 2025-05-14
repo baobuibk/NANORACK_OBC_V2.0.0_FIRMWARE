@@ -39,17 +39,17 @@ Std_ReturnType Mgmt_HardwareSystemPreparing(void)
 
 	Utils_SoftTime_Init();
 
-	Sys_Boardcast(E_OK,	LOG_NOTICE , 	"OBC OS Preparing!");
-	Sys_Boardcast(E_OK,	LOG_INFOR ,  	"OBC OS Preparing!");
-	Sys_Boardcast(E_OK,	LOG_DEBUG, 		"OBC OS Preparing!");
-	Sys_Boardcast(E_OK, LOG_WARN, 		"OBC OS Preparing!");
-	Sys_Boardcast(E_OK, LOG_ERROR, 		"OBC OS Preparing!");
-	Sys_Boardcast(E_OK, LOG_FATAL, 		"OBC OS Preparing!");
+	Sys_Debugcast(E_OK,	LOG_NOTICE , 	"OBC OS Preparing!");
+	Sys_Debugcast(E_OK,	LOG_INFOR ,  	"OBC OS Preparing!");
+	Sys_Debugcast(E_OK,	LOG_DEBUG, 		"OBC OS Preparing!");
+	Sys_Debugcast(E_OK, LOG_WARN, 		"OBC OS Preparing!");
+	Sys_Debugcast(E_OK, LOG_ERROR, 		"OBC OS Preparing!");
+	Sys_Debugcast(E_OK, LOG_FATAL, 		"OBC OS Preparing!");
 	return ret;
 }
 
 void Mgmt_SystemStart(void){
-	Sys_Boardcast(E_OK,	LOG_NOTICE , 	"OBC OS Starting!");
+	Sys_Debugcast(E_OK,	LOG_NOTICE , 	"OBC OS Starting!");
 
 	OBC_RTOS_Start();
 }
@@ -63,7 +63,7 @@ Std_ReturnType Mgmt_SystemInitStepZero(void)
 {
 	Std_ReturnType ret = E_ERROR;
 	system_status.init_state = INIT_STATE_STEP_ZERO;
-	Sys_Boardcast(E_OK, LOG_INFOR, "Step Zero: Pending...");
+	Sys_Debugcast(E_OK, LOG_INFOR, "Step Zero: Pending...");
 
 	ret = Utils_SoftTime_Sync();
 	if(Utils_SoftTime_Sync() == E_OK){
@@ -80,7 +80,7 @@ Std_ReturnType Mgmt_SystemInitStepOne(void)
 {
 	system_status.init_state = INIT_STATE_STEP_ONE;
 	Std_ReturnType ret = E_ERROR;
-	Sys_Boardcast(E_OK, LOG_INFOR, "Step One: Pending...");
+	Sys_Debugcast(E_OK, LOG_INFOR, "Step One: Pending...");
 
 	ret = SystemCLI_Init();
 	if(ret != E_OK){
@@ -109,7 +109,7 @@ Std_ReturnType Mgmt_SystemInitStepTwo(void)
 {
 	system_status.init_state = INIT_STATE_STEP_TWO;
 	Std_ReturnType ret = E_ERROR;
-	Sys_Boardcast(E_OK, LOG_INFOR, "Step Two: Pending...");
+	Sys_Debugcast(E_OK, LOG_INFOR, "Step Two: Pending...");
 
 	ret = SPI_SlaveDevice_Init();
 	if(ret != E_OK){
@@ -136,7 +136,7 @@ Std_ReturnType Mgmt_SystemInitFinal(void)
 {
 	system_status.init_state = INIT_STATE_FINAL;
 	system_status.init_state = INIT_STATE_COMPLETED;
-	Sys_Boardcast(E_OK, LOG_INFOR, "Step Final: Pending...");
+	Sys_Debugcast(E_OK, LOG_INFOR, "Step Final: Pending...");
 	return E_OK;
 }
 

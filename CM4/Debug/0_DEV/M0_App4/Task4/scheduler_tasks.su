@@ -1,6 +1,12 @@
 ../../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_ll_gpio.h:884:22:LL_GPIO_SetOutputPin	16	static
 ../../Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_ll_gpio.h:913:22:LL_GPIO_ResetOutputPin	16	static
-../0_DEV/M0_App4/Task4/scheduler_tasks.c:37:13:BlinkLed1_Task	8	static
-../0_DEV/M0_App4/Task4/scheduler_tasks.c:52:13:BlinkLed2_Task	8	static
-../0_DEV/M0_App4/Task4/scheduler_tasks.c:77:6:SchedulerTasks_Create	16	static
-../0_DEV/M0_App4/Task4/scheduler_tasks.c:89:12:SchedulerTasks_RegisterTask	24	static
+D:/LAB_PROJECT_7.7.7.7.7.7.7/stm32cubeide/04_obc_v111/CM4/0_DEV/M1_Driver4/Shared_REG/shared_reg.h:37:6:SharedREG_Write	16	static
+D:/LAB_PROJECT_7.7.7.7.7.7.7/stm32cubeide/04_obc_v111/CM4/0_DEV/M1_Driver4/Shared_REG/shared_reg.h:49:9:SharedREG_Read	16	static
+../0_DEV/M0_App4/Task4/scheduler_tasks.c:49:13:BlinkLed1_Task	8	static
+../0_DEV/M0_App4/Task4/scheduler_tasks.c:64:13:BlinkLed2_Task	4	static
+../0_DEV/M0_App4/Task4/scheduler_tasks.c:79:13:CDC_RxPoll_Task	16	static
+../0_DEV/M0_App4/Task4/scheduler_tasks.c:91:13:CDC_TxPoll_Task	2064	static
+../0_DEV/M0_App4/Task4/scheduler_tasks.c:116:13:USB_Check_Task	16	static
+../0_DEV/M0_App4/Task4/scheduler_tasks.c:130:13:UART_Port_RxPoll_Task	16	static
+../0_DEV/M0_App4/Task4/scheduler_tasks.c:148:6:SchedulerTasks_Create	16	static
+../0_DEV/M0_App4/Task4/scheduler_tasks.c:160:12:SchedulerTasks_RegisterTask	24	static

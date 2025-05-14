@@ -11,11 +11,11 @@
 
 #define USE_FREERTOS
 
-#define UART_DEBUG					USART1
+#define UART_DEBUG					USART2
 
 #define UART_EXP					UART7
 
-#define UART_USB					USART2
+#define UART_USB					USART1
 
 #define I2C_RTC						I2C2
 

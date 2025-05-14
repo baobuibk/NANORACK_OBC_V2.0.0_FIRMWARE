@@ -73,6 +73,38 @@ void Sys_Boardcast(bool status, syslog_level_t level, const char *msg)
     while (!LL_USART_IsActiveFlag_TC(UART_USB));
 }
 
+void Sys_Debugcast(bool status, syslog_level_t level, const char *msg)
+{
+    switch(level) {
+        case LOG_INFOR:  if (!LOG_INFOR_ENABLED)  return; break;
+        case LOG_DEBUG:  if (!LOG_DEBUG_ENABLED)  return; break;
+        case LOG_NOTICE: if (!LOG_NOTICE_ENABLED) return; break;
+        case LOG_WARN:   if (!LOG_WARN_ENABLED)   return; break;
+        case LOG_ERROR:  if (!LOG_ERROR_ENABLED)  return; break;
+        case LOG_FATAL:  if (!LOG_FATAL_ENABLED)  return; break;
+        default:         return; // unknown level
+    }
+
+    char log_buffer[128];
+    int offset;
+
+    offset = 0;
+    const char* status_str = status ? "[ ER ] " : "[ OK ] ";
+    offset += snprintf(log_buffer + offset, sizeof(log_buffer) - offset, "%s", status_str);
+
+    const char* level_str = syslog_level_to_str(level);
+    offset += snprintf(log_buffer + offset, sizeof(log_buffer) - offset, "%s->[OBC-STM32] ", level_str);
+
+    offset += snprintf(log_buffer + offset, sizeof(log_buffer) - offset, "\"%s\"\r\n", msg);
+
+    for (uint32_t i = 0; log_buffer[i] != '\0'; i++)
+    {
+        while (!LL_USART_IsActiveFlag_TXE(UART_DEBUG));
+        LL_USART_TransmitData8(UART_DEBUG, (uint8_t)log_buffer[i]);
+    }
+    while (!LL_USART_IsActiveFlag_TC(UART_DEBUG));
+}
+
 /*
  * Function syslog_log:
  * - If SYSLOG_USE_RTC is enabled, retrieves RTC time and formats it as: "20YY-MM-DD HH:MM:SS "
@@ -113,11 +145,12 @@ void syslog_log(syslog_level_t level, const char *msg, int use_polling)
 #endif
 
     offset += snprintf(log_buffer + offset, sizeof(log_buffer) - offset,
-                "\"%s\"\r\n", msg);
+                "\"%s", msg);
 
 #ifdef DEBUG_USE_UART
         if (use_polling) {
             UART_Driver_Polling_SendString(syslog_uarts[0], log_buffer);
+            UART_Driver_Polling_SendString(syslog_uarts[0], "\r\n");
         } else {
             Dmesg_SafeWrite(log_buffer);
         }

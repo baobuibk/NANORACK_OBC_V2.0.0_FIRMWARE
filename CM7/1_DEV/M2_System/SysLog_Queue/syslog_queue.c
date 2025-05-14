@@ -101,7 +101,7 @@ void SysLog_Task(void *parameters)
   #endif
 
             offset += snprintf(outputBuffer + offset, SYSLOG_OUTPUT_BUFFER_SIZE - offset,
-                               "\"%s\"\r\n", logMsg.msg);
+                               "\"%s", logMsg.msg);
 
   #ifdef DEBUG_USE_UART
             Dmesg_SafeWrite(outputBuffer);

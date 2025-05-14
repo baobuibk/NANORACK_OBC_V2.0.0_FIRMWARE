@@ -269,17 +269,17 @@ Error_Handler();
 
   for (uint32_t i = 0; boot_log[i] != '\0'; i++)
   {
-      while (!LL_USART_IsActiveFlag_TXE(USART1));
-      LL_USART_TransmitData8(USART1, (uint8_t)boot_log[i]);
+      while (!LL_USART_IsActiveFlag_TXE(UART_DEBUG));
+      LL_USART_TransmitData8(UART_DEBUG, (uint8_t)boot_log[i]);
   }
-  while (!LL_USART_IsActiveFlag_TC(USART1));
+  while (!LL_USART_IsActiveFlag_TC(UART_DEBUG));
 
-  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
-  {
-      while (!LL_USART_IsActiveFlag_TXE(USART2));
-      LL_USART_TransmitData8(USART2, (uint8_t)boot_log[i]);
-  }
-  while (!LL_USART_IsActiveFlag_TC(USART2));
+//  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
+//  {
+//      while (!LL_USART_IsActiveFlag_TXE(UART_USB));
+//      LL_USART_TransmitData8(UART_USB, (uint8_t)boot_log[i]);
+//  }
+//  while (!LL_USART_IsActiveFlag_TC(UART_USB));
 
   //--> I2C2 Init --> I2C2 Init --> I2C2 Init --> I2C2 Init --> I2C2 Init
   MX_I2C2_Init();
@@ -288,17 +288,17 @@ Error_Handler();
 	  sprintf(boot_log, "[ OK ] I2C2 -> RTC Initialized.\r\n");
 	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
 	  {
-	      while (!LL_USART_IsActiveFlag_TXE(USART1));
-	      LL_USART_TransmitData8(USART1, (uint8_t)boot_log[i]);
+	      while (!LL_USART_IsActiveFlag_TXE(UART_DEBUG));
+	      LL_USART_TransmitData8(UART_DEBUG, (uint8_t)boot_log[i]);
 	  }
-	  while (!LL_USART_IsActiveFlag_TC(USART1));
+	  while (!LL_USART_IsActiveFlag_TC(UART_DEBUG));
 
-	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
-	  {
-	      while (!LL_USART_IsActiveFlag_TXE(USART2));
-	      LL_USART_TransmitData8(USART2, (uint8_t)boot_log[i]);
-	  }
-	  while (!LL_USART_IsActiveFlag_TC(USART2));
+//	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
+//	  {
+//	      while (!LL_USART_IsActiveFlag_TXE(UART_USB));
+//	      LL_USART_TransmitData8(UART_USB, (uint8_t)boot_log[i]);
+//	  }
+//	  while (!LL_USART_IsActiveFlag_TC(UART_USB));
 	  peripherals[6].state = PERIPH_STATE_INIT;
   }
 
@@ -316,17 +316,17 @@ Error_Handler();
 
   for (uint32_t i = 0; boot_log[i] != '\0'; i++)
   {
-      while (!LL_USART_IsActiveFlag_TXE(USART1));
-      LL_USART_TransmitData8(USART1, (uint8_t)boot_log[i]);
+      while (!LL_USART_IsActiveFlag_TXE(UART_DEBUG));
+      LL_USART_TransmitData8(UART_DEBUG, (uint8_t)boot_log[i]);
   }
-  while (!LL_USART_IsActiveFlag_TC(USART1));
+  while (!LL_USART_IsActiveFlag_TC(UART_DEBUG));
 
-  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
-  {
-      while (!LL_USART_IsActiveFlag_TXE(USART2));
-      LL_USART_TransmitData8(USART2, (uint8_t)boot_log[i]);
-  }
-  while (!LL_USART_IsActiveFlag_TC(USART2));
+//  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
+//  {
+//      while (!LL_USART_IsActiveFlag_TXE(UART_USB));
+//      LL_USART_TransmitData8(UART_USB, (uint8_t)boot_log[i]);
+//  }
+//  while (!LL_USART_IsActiveFlag_TC(UART_USB));
 
   //--> SPI4 Init --> SPI4 Init --> SPI4 Init --> SPI4 Init --> SPI4 Init
   MX_SPI4_Init();
@@ -336,17 +336,17 @@ Error_Handler();
 	  peripherals[8].state = PERIPH_STATE_INIT;
 	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
 	  {
-	      while (!LL_USART_IsActiveFlag_TXE(USART1));
-	      LL_USART_TransmitData8(USART1, (uint8_t)boot_log[i]);
+	      while (!LL_USART_IsActiveFlag_TXE(UART_DEBUG));
+	      LL_USART_TransmitData8(UART_DEBUG, (uint8_t)boot_log[i]);
 	  }
-	  while (!LL_USART_IsActiveFlag_TC(USART1));
+	  while (!LL_USART_IsActiveFlag_TC(UART_DEBUG));
 
-	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
-	  {
-	      while (!LL_USART_IsActiveFlag_TXE(USART2));
-	      LL_USART_TransmitData8(USART2, (uint8_t)boot_log[i]);
-	  }
-	  while (!LL_USART_IsActiveFlag_TC(USART2));
+//	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
+//	  {
+//	      while (!LL_USART_IsActiveFlag_TXE(UART_USB));
+//	      LL_USART_TransmitData8(UART_USB, (uint8_t)boot_log[i]);
+//	  }
+//	  while (!LL_USART_IsActiveFlag_TC(UART_USB));
   }
 
   //--> SPI5 Init --> SPI5 Init --> SPI5 Init --> SPI5 Init --> SPI5 Init
@@ -357,17 +357,17 @@ Error_Handler();
 	  peripherals[11].state = PERIPH_STATE_INIT;
 	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
 	  {
-	      while (!LL_USART_IsActiveFlag_TXE(USART1));
-	      LL_USART_TransmitData8(USART1, (uint8_t)boot_log[i]);
+	      while (!LL_USART_IsActiveFlag_TXE(UART_DEBUG));
+	      LL_USART_TransmitData8(UART_DEBUG, (uint8_t)boot_log[i]);
 	  }
-	  while (!LL_USART_IsActiveFlag_TC(USART1));
+	  while (!LL_USART_IsActiveFlag_TC(UART_DEBUG));
 
-	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
-	  {
-	      while (!LL_USART_IsActiveFlag_TXE(USART2));
-	      LL_USART_TransmitData8(USART2, (uint8_t)boot_log[i]);
-	  }
-	  while (!LL_USART_IsActiveFlag_TC(USART2));
+//	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
+//	  {
+//	      while (!LL_USART_IsActiveFlag_TXE(UART_USB));
+//	      LL_USART_TransmitData8(UART_USB, (uint8_t)boot_log[i]);
+//	  }
+//	  while (!LL_USART_IsActiveFlag_TC(UART_USB));
   }
 
   //--> SPI6 Init --> SPI6 Init --> SPI6 Init --> SPI6 Init --> SPI6 Init
@@ -378,17 +378,17 @@ Error_Handler();
 	  peripherals[10].state = PERIPH_STATE_INIT;
 	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
 	  {
-	      while (!LL_USART_IsActiveFlag_TXE(USART1));
-	      LL_USART_TransmitData8(USART1, (uint8_t)boot_log[i]);
+	      while (!LL_USART_IsActiveFlag_TXE(UART_DEBUG));
+	      LL_USART_TransmitData8(UART_DEBUG, (uint8_t)boot_log[i]);
 	  }
-	  while (!LL_USART_IsActiveFlag_TC(USART1));
+	  while (!LL_USART_IsActiveFlag_TC(UART_DEBUG));
 
-	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
-	  {
-	      while (!LL_USART_IsActiveFlag_TXE(USART2));
-	      LL_USART_TransmitData8(USART2, (uint8_t)boot_log[i]);
-	  }
-	  while (!LL_USART_IsActiveFlag_TC(USART2));
+//	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
+//	  {
+//	      while (!LL_USART_IsActiveFlag_TXE(UART_USB));
+//	      LL_USART_TransmitData8(UART_USB, (uint8_t)boot_log[i]);
+//	  }
+//	  while (!LL_USART_IsActiveFlag_TC(UART_USB));
   }
 
   //--> TIM1 Init --> TIM1 Init --> TIM1 Init --> TIM1 Init --> TIM1 Init
@@ -399,17 +399,17 @@ Error_Handler();
 	  peripherals[13].state = PERIPH_STATE_INIT;
 	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
 	  {
-	      while (!LL_USART_IsActiveFlag_TXE(USART1));
-	      LL_USART_TransmitData8(USART1, (uint8_t)boot_log[i]);
+	      while (!LL_USART_IsActiveFlag_TXE(UART_DEBUG));
+	      LL_USART_TransmitData8(UART_DEBUG, (uint8_t)boot_log[i]);
 	  }
-	  while (!LL_USART_IsActiveFlag_TC(USART1));
+	  while (!LL_USART_IsActiveFlag_TC(UART_DEBUG));
 
-	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
-	  {
-	      while (!LL_USART_IsActiveFlag_TXE(USART2));
-	      LL_USART_TransmitData8(USART2, (uint8_t)boot_log[i]);
-	  }
-	  while (!LL_USART_IsActiveFlag_TC(USART2));
+//	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
+//	  {
+//	      while (!LL_USART_IsActiveFlag_TXE(UART_USB));
+//	      LL_USART_TransmitData8(UART_USB, (uint8_t)boot_log[i]);
+//	  }
+//	  while (!LL_USART_IsActiveFlag_TC(UART_USB));
   }
 
   //--> UART7 Init --> UART7 Init --> UART7 Init --> UART7 Init --> UART7 Init
@@ -420,17 +420,17 @@ Error_Handler();
 	  peripherals[12].state = PERIPH_STATE_INIT;
 	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
 	  {
-	      while (!LL_USART_IsActiveFlag_TXE(USART1));
-	      LL_USART_TransmitData8(USART1, (uint8_t)boot_log[i]);
+	      while (!LL_USART_IsActiveFlag_TXE(UART_DEBUG));
+	      LL_USART_TransmitData8(UART_DEBUG, (uint8_t)boot_log[i]);
 	  }
-	  while (!LL_USART_IsActiveFlag_TC(USART1));
+	  while (!LL_USART_IsActiveFlag_TC(UART_DEBUG));
 
-	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
-	  {
-	      while (!LL_USART_IsActiveFlag_TXE(USART2));
-	      LL_USART_TransmitData8(USART2, (uint8_t)boot_log[i]);
-	  }
-	  while (!LL_USART_IsActiveFlag_TC(USART2));
+//	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
+//	  {
+//	      while (!LL_USART_IsActiveFlag_TXE(UART_USB));
+//	      LL_USART_TransmitData8(UART_USB, (uint8_t)boot_log[i]);
+//	  }
+//	  while (!LL_USART_IsActiveFlag_TC(UART_USB));
   }
 
 #endif
@@ -441,32 +441,32 @@ Error_Handler();
 	  sprintf(boot_log, "[ ER ] System Hardware Preparing Fail!...\r\n[ ER ] Something wrong in Hardware Start-up\r\n");
 	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
 	  {
-	      while (!LL_USART_IsActiveFlag_TXE(USART1));
-	      LL_USART_TransmitData8(USART1, (uint8_t)boot_log[i]);
+	      while (!LL_USART_IsActiveFlag_TXE(UART_DEBUG));
+	      LL_USART_TransmitData8(UART_DEBUG, (uint8_t)boot_log[i]);
 	  }
-	  while (!LL_USART_IsActiveFlag_TC(USART1));
+	  while (!LL_USART_IsActiveFlag_TC(UART_DEBUG));
 
 	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
 	  {
-	      while (!LL_USART_IsActiveFlag_TXE(USART2));
-	      LL_USART_TransmitData8(USART2, (uint8_t)boot_log[i]);
+	      while (!LL_USART_IsActiveFlag_TXE(UART_USB));
+	      LL_USART_TransmitData8(UART_USB, (uint8_t)boot_log[i]);
 	  }
-	  while (!LL_USART_IsActiveFlag_TC(USART2));
+	  while (!LL_USART_IsActiveFlag_TC(UART_USB));
   }else{
 	  sprintf(boot_log, "[ OK ] System Hardware Preparing Done...\r\n");
 	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
 	  {
-	      while (!LL_USART_IsActiveFlag_TXE(USART1));
-	      LL_USART_TransmitData8(USART1, (uint8_t)boot_log[i]);
+	      while (!LL_USART_IsActiveFlag_TXE(UART_DEBUG));
+	      LL_USART_TransmitData8(UART_DEBUG, (uint8_t)boot_log[i]);
 	  }
-	  while (!LL_USART_IsActiveFlag_TC(USART1));
+	  while (!LL_USART_IsActiveFlag_TC(UART_DEBUG));
 
 	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
 	  {
-	      while (!LL_USART_IsActiveFlag_TXE(USART2));
-	      LL_USART_TransmitData8(USART2, (uint8_t)boot_log[i]);
+	      while (!LL_USART_IsActiveFlag_TXE(UART_USB));
+	      LL_USART_TransmitData8(UART_USB, (uint8_t)boot_log[i]);
 	  }
-	  while (!LL_USART_IsActiveFlag_TC(USART2));
+	  while (!LL_USART_IsActiveFlag_TC(UART_USB));
   }
 
   Mgmt_SystemStart();
@@ -1051,7 +1051,6 @@ static void MX_UART7_Init(void)
   /* USER CODE BEGIN WKUPType UART7 */
 
   /* USER CODE END WKUPType UART7 */
-
   LL_USART_Enable(UART7);
 
   /* Polling UART7 initialisation */

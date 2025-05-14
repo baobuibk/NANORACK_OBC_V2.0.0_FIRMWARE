@@ -6,6 +6,7 @@
  */
 
 #include "uart_driver_dma.h"
+#include "stdatomic.h"
 
 // Buffers USART1
 static uint8_t uart1_dma_rx_buffer[UART1_DMA_RX_BUFFER_SIZE];
@@ -67,6 +68,12 @@ static UART_DMA_Driver_t uart_dma_drivers[UART_DMA_DRIVER_COUNT] = {
 /*************************************************
  *                  HELPER                       *
  *************************************************/
+#ifndef SET
+#define SET 						    1U
+#endif
+#ifndef RESET
+#define RESET 						    0U
+#endif
 
 UART_DMA_Driver_t* UART_DMA_Driver_Get(USART_TypeDef *uart)
 {
@@ -84,6 +91,11 @@ UART_DMA_Driver_t* UART_DMA_Driver_Get(USART_TypeDef *uart)
 Std_ReturnType UART_DMA_Driver_Init(void)
 {
     // USART1 (index 0)
+    for (int i = 0; i < UART_DMA_DRIVER_COUNT; i++) {
+        LL_USART_Disable(uart_dma_drivers[i].uart);
+        LL_DMA_DisableStream(uart_dma_drivers[i].dma_rx_instance, uart_dma_drivers[i].dma_rx_channel);
+    }
+
     RingBuffer_Create(&uart_dma_drivers[0].rx_buffer, 1, "UART1_RX", uart1_rx_data, UART1_BUFFER_SIZE);
     RingBuffer_Create(&uart_dma_drivers[0].tx_buffer, 2, "UART1_TX", uart1_tx_data, UART1_BUFFER_SIZE);
     uart_dma_drivers[0].rxSemaphore = xSemaphoreCreateBinary();
@@ -96,12 +108,13 @@ Std_ReturnType UART_DMA_Driver_Init(void)
                             (uint32_t)uart_dma_drivers[0].dma_rx_buffer);
     LL_DMA_EnableIT_TC(uart_dma_drivers[0].dma_rx_instance, uart_dma_drivers[0].dma_rx_channel);
     LL_DMA_EnableIT_HT(uart_dma_drivers[0].dma_rx_instance, uart_dma_drivers[0].dma_rx_channel);
+    LL_DMA_EnableIT_TE(uart_dma_drivers[0].dma_rx_instance, uart_dma_drivers[0].dma_rx_channel);
 
     LL_USART_EnableDMAReq_RX(USART1);
     LL_DMA_EnableStream(uart_dma_drivers[0].dma_rx_instance, uart_dma_drivers[0].dma_rx_channel);
 
     LL_USART_EnableIT_IDLE(USART1);
-    LL_USART_EnableIT_RXNE(USART1);
+//    LL_USART_EnableIT_RXNE(USART1);
 
     // USART2 (index 1)
     RingBuffer_Create(&uart_dma_drivers[1].rx_buffer, 5, "UART2_RX", uart2_rx_data, UART2_BUFFER_SIZE);
@@ -116,12 +129,13 @@ Std_ReturnType UART_DMA_Driver_Init(void)
                             (uint32_t)uart_dma_drivers[1].dma_rx_buffer);
     LL_DMA_EnableIT_TC(uart_dma_drivers[1].dma_rx_instance, uart_dma_drivers[1].dma_rx_channel);
     LL_DMA_EnableIT_HT(uart_dma_drivers[1].dma_rx_instance, uart_dma_drivers[1].dma_rx_channel);
+    LL_DMA_EnableIT_TE(uart_dma_drivers[1].dma_rx_instance, uart_dma_drivers[1].dma_rx_channel);
 
     LL_USART_EnableDMAReq_RX(USART2);
     LL_DMA_EnableStream(uart_dma_drivers[1].dma_rx_instance, uart_dma_drivers[1].dma_rx_channel);
 
     LL_USART_EnableIT_IDLE(USART2);
-    LL_USART_EnableIT_RXNE(USART2);
+//    LL_USART_EnableIT_RXNE(USART2);
 
     // UART7 (index 2)
     RingBuffer_Create(&uart_dma_drivers[2].rx_buffer, 7, "UART7_RX", uart7_rx_data, UART7_BUFFER_SIZE);
@@ -136,13 +150,17 @@ Std_ReturnType UART_DMA_Driver_Init(void)
                             (uint32_t)uart_dma_drivers[2].dma_rx_buffer);
     LL_DMA_EnableIT_TC(uart_dma_drivers[2].dma_rx_instance, uart_dma_drivers[2].dma_rx_channel);
     LL_DMA_EnableIT_HT(uart_dma_drivers[2].dma_rx_instance, uart_dma_drivers[2].dma_rx_channel);
+    LL_DMA_EnableIT_TE(uart_dma_drivers[2].dma_rx_instance, uart_dma_drivers[2].dma_rx_channel);
 
     LL_USART_EnableDMAReq_RX(UART7);
     LL_DMA_EnableStream(uart_dma_drivers[2].dma_rx_instance, uart_dma_drivers[2].dma_rx_channel);
 
     LL_USART_EnableIT_IDLE(UART7);
-    LL_USART_EnableIT_RXNE(UART7);
+//    LL_USART_EnableIT_RXNE(UART7);
 
+    for (int i = 0; i < UART_DMA_DRIVER_COUNT; i++) {
+        LL_USART_Enable(uart_dma_drivers[i].uart);
+    }
     return E_OK;
 }
 
@@ -221,21 +239,21 @@ void UART_Driver_TX_ISR(USART_TypeDef *uart)
     if (driver == NULL)
         return;
 
-//    if (driver->uart->ISR & USART_ISR_FE) {
-//        driver->uart->ICR = USART_ICR_FECF;  // Clear Framing Error Flag
+    if (driver->uart->ISR & USART_ISR_FE) {
+        driver->uart->ICR = USART_ICR_FECF;  // Clear Framing Error Flag
+    }
+
+    if (driver->uart->ISR & USART_ISR_NE) {
+        driver->uart->ICR = USART_ICR_NECF;  // Clear Noise Error Flag
+    }
+
+//    if (driver->uart->ISR & USART_ISR_EOBF) {
+//        driver->uart->ICR = USART_ICR_EOBCF; // Clear End of Block Flag
 //    }
-//
-//    if (driver->uart->ISR & USART_ISR_NE) {
-//        driver->uart->ICR = USART_ICR_NECF;  // Clear Noise Error Flag
-//    }
-//
-////    if (driver->uart->ISR & USART_ISR_EOBF) {
-////        driver->uart->ICR = USART_ICR_EOBCF; // Clear End of Block Flag
-////    }
-//
-//    if (driver->uart->ISR & USART_ISR_CMF) {
-//        driver->uart->ICR = USART_ICR_CMCF;  // Clear Character Match Flag
-//    }
+
+    if (driver->uart->ISR & USART_ISR_CMF) {
+        driver->uart->ICR = USART_ICR_CMCF;  // Clear Character Match Flag
+    }
 
     if ((LL_USART_IsActiveFlag_TXE(uart) != RESET) &&
         (LL_USART_IsEnabledIT_TXE(uart) != RESET))
@@ -267,6 +285,18 @@ void UART_DMA_Rx_Check(USART_TypeDef *uart) {
     uint16_t remaining = LL_DMA_GetDataLength(driver->dma_rx_instance, driver->dma_rx_channel);
     pos = driver->dma_rx_buffer_size - remaining;
 
+//    char abc[60];
+//    snprintf(abc, sizeof(abc), "o:%d, p: %d, r: %d, f0: %d , f1: %d\r\n", old_pos, pos, remaining, driver->dma_rx_buffer[0], driver->dma_rx_buffer[1]);
+//    UART_Driver_Polling_SendString(USART1,  abc);
+//    if (!LL_DMA_IsEnabledStream(driver->dma_rx_instance, driver->dma_rx_channel)) {
+//        UART_Driver_Polling_SendString(USART1, "DMA stream disabled!\r\n");
+//        LL_DMA_EnableStream(driver->dma_rx_instance, driver->dma_rx_channel);
+//    }
+//    if (driver->uart->ISR & USART_ISR_ORE) {
+//        driver->uart->ICR = USART_ICR_ORECF;
+//        UART_Driver_Polling_SendString(USART1, "Overrun Error detected!\r\n");
+//    }
+
     if (pos != old_pos) {
         if (pos > old_pos) {
             for (size_t i = old_pos; i < pos; i++) {
@@ -282,10 +312,11 @@ void UART_DMA_Rx_Check(USART_TypeDef *uart) {
         }
         xSemaphoreGiveFromISR(driver->rxSemaphore, &xHigherPriorityTaskWoken);
         portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-    }
-    driver->old_dma_pos = pos;
-    if (driver->old_dma_pos == driver->dma_rx_buffer_size) {
-        driver->old_dma_pos = 0;
+
+        driver->old_dma_pos = pos;
+        if (driver->old_dma_pos == driver->dma_rx_buffer_size) {
+            driver->old_dma_pos = 0;
+        }
     }
 }
 

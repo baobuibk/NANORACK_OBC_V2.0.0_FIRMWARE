@@ -114,18 +114,18 @@ static const CliCommandBinding cliStaticBindings_internal[] = {
 	{ "System", 		"log_out", 		"Log Out", 												false, 	NULL, CMD_LogOut		 },
     { "System",         "pwd_change",   "Change user password: pwd_change <new_password>", 		true,   NULL, CMD_PwdChange    	 },
     { "System",         "dmesg",        "Print dmesg logs: dmesg [N]",                          true,   NULL, CMD_Dmesg,         },
-    { "Dev",        	"reset",       	"Reset MCU: reset",                                 	false, 	NULL, CMD_Reset,     	 },
+    { NULL,         	"reset",       	"Reset MCU: reset",                                 	false, 	NULL, CMD_Reset,     	 },
 
 	{ "Memory",         "ram_fill",     "Fill 200KB RAM_D2 with pattern data 1|2|3",    		true,   NULL, CMD_RamFill,       },
-	{ "Memory",         "ram_dump",     "Dump contents of 200KB RAM_D2",               			false,  NULL, CMD_RamDump,       },
-	{ "RP-CM4",         "state_tocm4",  "Get or reset toCM4 state: state_tocm4 <get|reset>",    true,   NULL, CMD_StateToCM4     },
+	{ NULL,             "ram_dump",     "Dump contents of 200KB RAM_D2",               			false,  NULL, CMD_RamDump,       },
+	{ NULL,             "state_tocm4",  "Get or reset toCM4 state: state_tocm4 <get|reset>",    true,   NULL, CMD_StateToCM4     },
 
-    { "Data", 			"collect_data", "Collect data: collect_data <type> <sample>", 			true,   NULL, CMD_CollectData 	 },
-    { "Data", 			"pull_data", 	"Pull data status: pull_data", 							false,  NULL, CMD_PullData 		 },
-    { "Data", 			"slavespi_rst", "Reset SPI Slave Device to initial state", 				false, 	NULL, CMD_SPISlaveRST 	 },
-    { "Data", 			"master_read",  "Read data via SPI6 Master: master_read <size>", 		true,   NULL, CMD_MasterRead 	 },
+    { NULL, 			"collect_data", "Collect data: collect_data <type> <sample>", 			true,   NULL, CMD_CollectData 	 },
+    { NULL, 			"pull_data", 	"Pull data status: pull_data", 							false,  NULL, CMD_PullData 		 },
+    { NULL, 			"slavespi_rst", "Reset SPI Slave Device to initial state", 				false, 	NULL, CMD_SPISlaveRST 	 },
+    { NULL, 			"master_read",  "Read data via SPI6 Master: master_read <size>", 		true,   NULL, CMD_MasterRead 	 },
 
-    { "Test", 			"test",  		"Test Command: test <arg>", 							true,   NULL, CMD_Test 	 		 },
+    { "Dev", 			"test",  		"Test Command: test <arg>", 							true,   NULL, CMD_Test 	 		 },
 };
 /*************************************************
  *                 External Declarations         *
@@ -1046,16 +1046,22 @@ static void CMD_PwdChange(EmbeddedCli *cli, char *args, void *context) {
 
 static void CMD_Dmesg(EmbeddedCli *cli, char *args, void *context) {
     const char *arg1 = embeddedCliGetToken(args, 1);
+    char buffer[64];
+    embeddedCliPrint(cli, "Dmesg - Logger Message:");
+
     if (arg1 == NULL) {
+        embeddedCliPrint(cli, "--> Oldest >>");
         Dmesg_GetLogs(cli);
+        embeddedCliPrint(cli, "--> Latest <<");
     } else {
         size_t N = (size_t)strtoul(arg1, NULL, 10);
+        snprintf(buffer, sizeof(buffer), "Latest %lu Logs:", (unsigned long)N);
+        embeddedCliPrint(cli, buffer);
         Dmesg_GetLatestN(N, cli);
     }
-    embeddedCliPrint(cli, "--------> Done <--------");
+
     embeddedCliPrint(cli, "");
 }
-
 static void CMD_Reset(EmbeddedCli *cli, char *args, void *context) {
 	NVIC_SystemReset();
     embeddedCliPrint(cli, "");

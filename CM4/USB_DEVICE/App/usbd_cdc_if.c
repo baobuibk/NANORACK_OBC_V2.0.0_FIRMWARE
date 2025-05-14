@@ -22,7 +22,7 @@
 #include "usbd_cdc_if.h"
 
 /* USER CODE BEGIN INCLUDE */
-
+#include "USB_CDC/cdc_driver.h"
 /* USER CODE END INCLUDE */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -31,7 +31,7 @@
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-
+static _Bool hostComPort_isOpen = false;
 /* USER CODE END PV */
 
 /** @addtogroup STM32_USB_OTG_DEVICE_LIBRARY
@@ -180,6 +180,9 @@ static int8_t CDC_DeInit_FS(void)
 static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
 {
   /* USER CODE BEGIN 5 */
+  USBD_SetupReqTypedef * req;
+  static uint8_t lineCoding[7] // 115200bps, 1stop, no parity, 8bit
+			    = { 0x00, 0xC2, 0x01, 0x00, 0x00, 0x00, 0x08 };
   switch(cmd)
   {
     case CDC_SEND_ENCAPSULATED_COMMAND:
@@ -220,15 +223,24 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
   /* 6      | bDataBits  |   1   | Number Data bits (5, 6, 7, 8 or 16).          */
   /*******************************************************************************/
     case CDC_SET_LINE_CODING:
-
+    	memcpy(lineCoding, pbuf, sizeof(lineCoding));
     break;
 
     case CDC_GET_LINE_CODING:
-
+    	memcpy(pbuf, lineCoding, sizeof(lineCoding));
     break;
 
     case CDC_SET_CONTROL_LINE_STATE:
-
+        req = (USBD_SetupReqTypedef *)pbuf;
+    	if((req->wValue & 0x0001) != 0)
+    	{
+    		hostComPort_isOpen = true;
+    	}
+    	else
+    	{
+    		hostComPort_isOpen = false;
+    	}
+    	USB_Check_Notify();
     break;
 
     case CDC_SEND_BREAK:
@@ -263,6 +275,15 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
   /* USER CODE BEGIN 6 */
   USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
   USBD_CDC_ReceivePacket(&hUsbDeviceFS);
+
+  uint32_t written = CDC_RX_RingBuffer_PutBuffer(Buf, *Len);
+  if (written != *Len) {
+      (void)CDC_SendString("CDC RX Buffer Full!!!\r\n", 24);
+  }
+  if (written) {
+      CDC_ISR_RxNotify();
+  }
+
   return (USBD_OK);
   /* USER CODE END 6 */
 }
@@ -316,7 +337,16 @@ static int8_t CDC_TransmitCplt_FS(uint8_t *Buf, uint32_t *Len, uint8_t epnum)
 }
 
 /* USER CODE BEGIN PRIVATE_FUNCTIONS_IMPLEMENTATION */
+_Bool CDC_ComPort_IsOpen()
+{
+	return(hostComPort_isOpen);
+}
 
+_Bool CDC_IsTxReady(void)
+{
+    USBD_CDC_HandleTypeDef *hcdc = (USBD_CDC_HandleTypeDef*)hUsbDeviceFS.pClassData;
+    return (hcdc->TxState == 0);
+}
 /* USER CODE END PRIVATE_FUNCTIONS_IMPLEMENTATION */
 
 /**

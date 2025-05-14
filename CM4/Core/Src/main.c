@@ -22,8 +22,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "OS4/scheduler.h"
-#include "Task4/scheduler_tasks.h"
+#include "Mgmt4/management4.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -120,12 +120,9 @@ int main(void)
   MX_USB_DEVICE_Init();
 
   /* USER CODE BEGIN 2 */
+  Mgmt_HardwareSystemPreparing();
 
-  SCH_Initialize();
-
-  SchedulerTasks_Create();
-
-  SCH_StartScheduler();
+  Mgmt_SystemStart();
 
   /* USER CODE END 2 */
 
@@ -133,7 +130,8 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	SCH_HandleScheduledTask();
+	  ;;
+	  // Should not go here
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

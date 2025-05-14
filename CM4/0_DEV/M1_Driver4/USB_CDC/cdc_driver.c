@@ -14,16 +14,12 @@
 //RX
 static RingBufElement cdcRxBuffer[CDC_RX_RING_BUFFER_SIZE];
 static s_RingBufferType cdcRxRingBuffer;
-static TaskHandle_t xCDCRxTaskHandle = NULL;
 //TX
 static RingBufElement cdcTxBuffer[CDC_TX_RING_BUFFER_SIZE];
 static s_RingBufferType cdcTxRingBuffer;
-static TaskHandle_t xCDCTxTaskHandle = NULL;
 
-static TaskHandle_t xUSBCheckTaskHandle = NULL;
-
-static _Bool CDC_TX_RingBuffer_Put(uint8_t data);
-static _Bool CDC_RX_RingBuffer_Put(uint8_t data);
+volatile uint8_t g_cdcRxReady = 0;
+volatile uint8_t g_usbCheckEvt = 0;
 
 /*************************************************
  *                 Function Define               *
@@ -81,65 +77,55 @@ _Bool CDC_RX_RingBuffer_Get(uint8_t* data)
     return RingBuffer_Get(&cdcRxRingBuffer, data);
 }
 /*************************************************/
-void CDC_TX_RegisterTask(TaskHandle_t taskHandle)
-{
-    xCDCTxTaskHandle = taskHandle;
-}
 
-void CDC_RX_RegisterTask(TaskHandle_t taskHandle)
+void CDC_ISR_RxNotify(void)
 {
-	xCDCRxTaskHandle = taskHandle;
-}
-
-void USB_Check_RegisterTask(TaskHandle_t taskHandle)
-{
-    xUSBCheckTaskHandle = taskHandle;
-}
-/*************************************************/
-void CDC_TX_Notify_toTrans(void)
-{
-    if(xCDCTxTaskHandle != NULL)
-    {
-        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-        vTaskNotifyGiveFromISR(xCDCTxTaskHandle, &xHigherPriorityTaskWoken);
-        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-    }
-}
-
-void CDC_RX_Notify_toRecv(void)
-{
-    if(xCDCRxTaskHandle != NULL)
-    {
-        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-        vTaskNotifyGiveFromISR(xCDCRxTaskHandle, &xHigherPriorityTaskWoken);
-        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-    }
+    g_cdcRxReady = 1;
 }
 
 void USB_Check_Notify(void)
 {
-    if (xUSBCheckTaskHandle != NULL)
-    {
-        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-        vTaskNotifyGiveFromISR(xUSBCheckTaskHandle, &xHigherPriorityTaskWoken);
-        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-    }
+    g_usbCheckEvt = 1;
 }
+
+uint8_t CDC_getRxReady(void)
+{
+    return g_cdcRxReady;
+}
+
+void CDC_setRxReady(uint8_t value)
+{
+    g_cdcRxReady = value;
+}
+
+uint8_t USB_checkUSB(void)
+{
+    return g_usbCheckEvt;
+}
+
+void USB_setCheckFlag(uint8_t value)
+{
+    g_usbCheckEvt = value;
+}
+
 
 /*************************************************
  *                    API Define                 *
  *************************************************/
-
-BaseType_t CDC_SendString(const char *pStr, unsigned short len)
+_Bool CDCTxBuffer_IsDataAvailable(void)
 {
-    CDC_TX_RingBuffer_PutBuffer((const uint8_t*)pStr, len);
-    CDC_TX_Notify_toTrans();
-    return pdTRUE;
+    return RingBuffer_IsDataAvailable(&cdcTxRingBuffer);
 }
 
-BaseType_t CDC_SendChar(char c)
+_Bool CDC_SendString(const char *pStr, uint32_t len)
 {
-    CDC_TX_RingBuffer_Put((uint8_t)c);
-    CDC_TX_Notify_toTrans();
-    return pdTRUE;
+    if (len == 0 || pStr == NULL)
+        return true;
+    uint32_t written = CDC_TX_RingBuffer_PutBuffer((const uint8_t *)pStr, len);
+    return (written == len) ? true : false;
+}
+
+_Bool CDC_SendChar(char c)
+{
+    return CDC_TX_RingBuffer_Put((uint8_t)c);
 }

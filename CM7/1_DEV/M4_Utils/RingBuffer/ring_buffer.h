@@ -23,8 +23,8 @@ typedef struct {
     char name[RINGBUFFER_NAME_MAX_LEN];          // Descriptive name of the ring buffer
     RingBufElement *buffer;                      // Pointer to the data array
     RingBufCtr max_size;                         // Maximum number of elements in the buffer
-    atomic_ushort head;                          // Write index (producer)
-    atomic_ushort tail;                          // Read index (consumer)
+    _Atomic unsigned short head;                          // Write index (producer)
+    _Atomic unsigned short tail;                          // Read index (consumer)
 } s_RingBufferType;
 
 //s_RingBufferType Glb_RingBuffers[TOTAL_RINGBUFFERS];

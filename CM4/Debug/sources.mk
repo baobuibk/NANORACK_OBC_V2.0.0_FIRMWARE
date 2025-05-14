@@ -24,8 +24,12 @@ OBJCOPY_BIN :=
 
 # Every subdirectory with source files must be described here
 SUBDIRS := \
+0_DEV/M0_App4/Mgmt4 \
 0_DEV/M0_App4/OS4 \
 0_DEV/M0_App4/Task4 \
+0_DEV/M1_Driver4/UART_DMA \
+0_DEV/M1_Driver4/USB_CDC \
+0_DEV/M4_Util4/RingBuffer \
 0_DEV/M4_Util4/Tick \
 Common/Src \
 Core/Src \

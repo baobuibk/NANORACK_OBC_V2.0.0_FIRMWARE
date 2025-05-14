@@ -36,7 +36,7 @@
 ../1_DEV/M2_System/CLI_Terminal/CLI_Command/cli_command.c:998:13:LogoutTimerCallback	16	static
 ../1_DEV/M2_System/CLI_Terminal/CLI_Command/cli_command.c:1001:13:CMD_LogOut	40	static
 ../1_DEV/M2_System/CLI_Terminal/CLI_Command/cli_command.c:1011:13:CMD_PwdChange	48	static
-../1_DEV/M2_System/CLI_Terminal/CLI_Command/cli_command.c:1047:13:CMD_Dmesg	32	static
-../1_DEV/M2_System/CLI_Terminal/CLI_Command/cli_command.c:1059:13:CMD_Reset	24	static
-../1_DEV/M2_System/CLI_Terminal/CLI_Command/cli_command.c:1071:26:getCliStaticBindings	4	static
-../1_DEV/M2_System/CLI_Terminal/CLI_Command/cli_command.c:1075:10:getCliStaticBindingCount	4	static
+../1_DEV/M2_System/CLI_Terminal/CLI_Command/cli_command.c:1047:13:CMD_Dmesg	96	static
+../1_DEV/M2_System/CLI_Terminal/CLI_Command/cli_command.c:1065:13:CMD_Reset	24	static
+../1_DEV/M2_System/CLI_Terminal/CLI_Command/cli_command.c:1077:26:getCliStaticBindings	4	static
+../1_DEV/M2_System/CLI_Terminal/CLI_Command/cli_command.c:1081:10:getCliStaticBindingCount	4	static

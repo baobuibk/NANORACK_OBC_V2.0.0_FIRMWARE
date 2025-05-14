@@ -183,6 +183,13 @@ void DMA1_Stream0_IRQHandler(void)
      LL_DMA_ClearFlag_TC0(DMA1);
      UART_DMA_Rx_Check(USART1);
   }
+
+  if (LL_DMA_IsEnabledIT_TE(DMA1, LL_DMA_STREAM_0) && LL_DMA_IsActiveFlag_TE0(DMA1))
+  {
+     LL_DMA_ClearFlag_TE0(DMA1);
+     LL_DMA_EnableStream(DMA1, LL_DMA_STREAM_0);
+  }
+
   /* USER CODE END DMA1_Stream0_IRQn 1 */
 }
 
@@ -203,6 +210,12 @@ void DMA1_Stream1_IRQHandler(void)
   {
      LL_DMA_ClearFlag_TC1(DMA1);
      UART_DMA_Rx_Check(USART2);
+  }
+
+  if (LL_DMA_IsEnabledIT_TE(DMA1, LL_DMA_STREAM_1) && LL_DMA_IsActiveFlag_TE1(DMA1))
+  {
+     LL_DMA_ClearFlag_TE1(DMA1);
+     LL_DMA_EnableStream(DMA1, LL_DMA_STREAM_1);
   }
   /* USER CODE END DMA1_Stream1_IRQn 1 */
 }
@@ -322,6 +335,12 @@ void DMA2_Stream1_IRQHandler(void)
   {
      LL_DMA_ClearFlag_TC1(DMA2);
      UART_DMA_Rx_Check(UART7);
+  }
+
+  if (LL_DMA_IsEnabledIT_TE(DMA2, LL_DMA_STREAM_1) && LL_DMA_IsActiveFlag_TE1(DMA2))
+  {
+     LL_DMA_ClearFlag_TE1(DMA2);
+     LL_DMA_EnableStream(DMA2, LL_DMA_STREAM_1);
   }
   /* USER CODE END DMA2_Stream1_IRQn 1 */
 }

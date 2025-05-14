@@ -29,7 +29,7 @@
 
 // Log source identifier (e.g., "OBC-STM32")
 #ifndef SYSLOG_SOURCE
-#define SYSLOG_SOURCE "OBC-STM32"
+#define SYSLOG_SOURCE "OBC"
 #endif
 
 // Number of UART outputs (logs can be sent to multiple UARTs)
@@ -84,6 +84,8 @@ typedef enum {
 void syslog_log(syslog_level_t level, const char *msg, int use_polling);
 
 void Sys_Boardcast(bool status, syslog_level_t level, const char *msg);
+
+void Sys_Debugcast(bool status, syslog_level_t level, const char *msg);
 /*---------------------------
  * --> List Macro:
  *---------------------------*/

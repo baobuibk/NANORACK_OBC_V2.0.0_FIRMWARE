@@ -37,6 +37,6 @@
 ../1_DEV/M2_System/CLI_Terminal/CLI_Command/cli_command.c:1001:13:CMD_LogOut	3
 ../1_DEV/M2_System/CLI_Terminal/CLI_Command/cli_command.c:1011:13:CMD_PwdChange	7
 ../1_DEV/M2_System/CLI_Terminal/CLI_Command/cli_command.c:1047:13:CMD_Dmesg	2
-../1_DEV/M2_System/CLI_Terminal/CLI_Command/cli_command.c:1059:13:CMD_Reset	0
-../1_DEV/M2_System/CLI_Terminal/CLI_Command/cli_command.c:1071:26:getCliStaticBindings	1
-../1_DEV/M2_System/CLI_Terminal/CLI_Command/cli_command.c:1075:10:getCliStaticBindingCount	1
+../1_DEV/M2_System/CLI_Terminal/CLI_Command/cli_command.c:1065:13:CMD_Reset	0
+../1_DEV/M2_System/CLI_Terminal/CLI_Command/cli_command.c:1077:26:getCliStaticBindings	1
+../1_DEV/M2_System/CLI_Terminal/CLI_Command/cli_command.c:1081:10:getCliStaticBindingCount	1

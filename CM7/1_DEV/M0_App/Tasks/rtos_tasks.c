@@ -104,7 +104,7 @@ void OBC_RootTask(void *pvParameters);
 
 void OBC_RootTask(void *pvParameters)
 {
-    Sys_Boardcast(E_OK, LOG_NOTICE, "Root task started");
+	Sys_Debugcast(E_OK, LOG_NOTICE, "Root task started");
     if (OBC_AppInit() != E_OK)
     {
         Sys_Boardcast(E_ERROR, LOG_ERROR, "!!! Application Initialization Failed");
@@ -221,7 +221,7 @@ Std_ReturnType OBC_AppInit(void)
 
     CREATE_TASK(SysLog_Task, 			"SysLog_Task", 		MIN_STACK_SIZE * 10, 	NULL, 									1, NULL);	// Syslog Queue from syslog_queue.c
 
-    CREATE_TASK(vSoft_RTC_Task, 		"Soft_RTC_Task", 	MIN_STACK_SIZE * 2, 	NULL, 									1, NULL);
+    CREATE_TASK(vSoft_RTC_Task, 		"Soft_RTC_Task", 	MIN_STACK_SIZE * 5, 	NULL, 									1, NULL);
 
     CREATE_TASK(UART_DEBUG_DMA_RX_Task, "DEBUG_RX_Task", 	MIN_STACK_SIZE * 20, 	(void*)UART_DMA_Driver_Get(UART_DEBUG), 1, NULL);
 
@@ -233,7 +233,7 @@ Std_ReturnType OBC_AppInit(void)
 
     CREATE_TASK(vTask2_handler, 		"vTask2", 			MIN_STACK_SIZE, 		NULL, 									1, NULL);
 
-    CREATE_TASK(vTask3_handler, 		"vTask3", 			MIN_STACK_SIZE, 		NULL, 									1, NULL);
+    CREATE_TASK(vTask3_handler, 		"vTask3", 			MIN_STACK_SIZE * 5, 	NULL, 									1, NULL);
 
     CREATE_TASK(UART_USB_DMA_RX_TASK, 	"UART_USB_RX_Task", MIN_STACK_SIZE * 20, 	(void*)UART_DMA_Driver_Get(UART_USB),	1, NULL);
 
@@ -253,8 +253,7 @@ Std_ReturnType OBC_AppInit(void)
  *************************************************/
 void vSoft_RTC_Task(void *pvParameters)
 {
-    static uint32_t countingSyncTime = 0;
-
+    static uint32_t countingSyncTime = 1;
 
     while(1)
     {
@@ -265,7 +264,7 @@ void vSoft_RTC_Task(void *pvParameters)
             countingSyncTime = 0;
             if(Utils_SoftTime_Sync() == E_OK)
             {
-                UART_Driver_SendString(UART_DEBUG, "\r\n[Sync Time!]\r\n");
+                SYSLOG_NOTICE("[Sync Time!]");
             }
         }
 
@@ -453,9 +452,9 @@ void vTask3_handler(void *pvParameters)
 	while (1)
 	{
 		char buffer[64];
-	    snprintf(buffer, sizeof(buffer), "30s Cycle Heartbeat: %d", counting++);
-		Dmesg_SafeWrite(buffer);
-		vTaskDelay(30000);
+	    snprintf(buffer, sizeof(buffer), "60s Cycle Heartbeat: %d", counting++);
+		SYSLOG_NOTICE(buffer);
+		vTaskDelay(60000);
 	}
 }
 

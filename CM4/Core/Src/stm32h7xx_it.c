@@ -24,6 +24,7 @@
 /* USER CODE BEGIN Includes */
 #include "OS4/scheduler.h"
 #include "Tick/tick.h"
+#include "UART_DMA/uart_dma_driver.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -237,6 +238,23 @@ void TIM4_IRQHandler(void)
 void DMA2_Stream0_IRQHandler(void)
 {
   /* USER CODE BEGIN DMA2_Stream0_IRQn 0 */
+  if (LL_DMA_IsEnabledIT_HT(DMA2, LL_DMA_STREAM_0) && LL_DMA_IsActiveFlag_HT0(DMA2))
+  {
+	  LL_DMA_ClearFlag_HT0(DMA2);
+	  UART_DMA_Rx_Check(USART6);
+  }
+
+  if (LL_DMA_IsEnabledIT_TC(DMA2, LL_DMA_STREAM_0) && LL_DMA_IsActiveFlag_TC0(DMA2))
+  {
+	  LL_DMA_ClearFlag_TC0(DMA2);
+	  UART_DMA_Rx_Check(USART6);
+  }
+
+  if (LL_DMA_IsEnabledIT_TE(DMA2, LL_DMA_STREAM_0) && LL_DMA_IsActiveFlag_TE0(DMA2))
+  {
+	  LL_DMA_ClearFlag_TE0(DMA2);
+	  LL_DMA_EnableStream(DMA2, LL_DMA_STREAM_0);
+  }
 
   /* USER CODE END DMA2_Stream0_IRQn 0 */
   /* USER CODE BEGIN DMA2_Stream0_IRQn 1 */
@@ -250,10 +268,14 @@ void DMA2_Stream0_IRQHandler(void)
 void USART6_IRQHandler(void)
 {
   /* USER CODE BEGIN USART6_IRQn 0 */
-
+  if (LL_USART_IsEnabledIT_IDLE(USART6) && LL_USART_IsActiveFlag_IDLE(USART6))
+  {
+	  LL_USART_ClearFlag_IDLE(USART6);
+	  UART_DMA_Rx_Check(USART6);
+  }
   /* USER CODE END USART6_IRQn 0 */
   /* USER CODE BEGIN USART6_IRQn 1 */
-
+  UART_Driver_TX_ISR(USART6);
   /* USER CODE END USART6_IRQn 1 */
 }
 
