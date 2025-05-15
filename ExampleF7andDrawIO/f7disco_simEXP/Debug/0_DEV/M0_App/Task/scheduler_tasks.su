@@ -1,0 +1,8 @@
+../Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_ll_gpio.h:881:22:LL_GPIO_SetOutputPin	16	static
+../Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_ll_gpio.h:910:22:LL_GPIO_ResetOutputPin	16	static
+../0_DEV/M0_App/Task/scheduler_tasks.c:54:13:BlinkLed_Task	8	static
+../0_DEV/M0_App/Task/scheduler_tasks.c:69:13:HelloWorld_Task	4	static
+../0_DEV/M0_App/Task/scheduler_tasks.c:77:13:CliProcess_Task	8	static
+../0_DEV/M0_App/Task/scheduler_tasks.c:86:13:MINProcess_Task	8	static
+../0_DEV/M0_App/Task/scheduler_tasks.c:91:6:HAL_UART_RxCpltCallback	16	static
+../0_DEV/M0_App/Task/scheduler_tasks.c:107:6:SchedulerTasks_Create	16	static

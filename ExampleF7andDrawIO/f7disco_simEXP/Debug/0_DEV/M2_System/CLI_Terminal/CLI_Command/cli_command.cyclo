@@ -1,0 +1,12 @@
+../0_DEV/M2_System/CLI_Terminal/CLI_Command/cli_command.c:74:17:UpdateCRC16_XMODEM	3
+../0_DEV/M2_System/CLI_Terminal/CLI_Command/cli_command.c:87:6:dump_buffer	9
+../0_DEV/M2_System/CLI_Terminal/CLI_Command/cli_command.c:118:13:CMD_ClearCLI	1
+../0_DEV/M2_System/CLI_Terminal/CLI_Command/cli_command.c:124:13:CMD_RtcSet	19
+../0_DEV/M2_System/CLI_Terminal/CLI_Command/cli_command.c:190:13:CMD_RtcGet	5
+../0_DEV/M2_System/CLI_Terminal/CLI_Command/cli_command.c:244:13:CMD_CollectData	6
+../0_DEV/M2_System/CLI_Terminal/CLI_Command/cli_command.c:276:13:CMD_QspiRead	6
+../0_DEV/M2_System/CLI_Terminal/CLI_Command/cli_command.c:311:13:CMD_DumpQspi	4
+../0_DEV/M2_System/CLI_Terminal/CLI_Command/cli_command.c:335:13:CMD_DumpChunk	8
+../0_DEV/M2_System/CLI_Terminal/CLI_Command/cli_command.c:378:13:CMD_DumpPreSpi	4
+../0_DEV/M2_System/CLI_Terminal/CLI_Command/cli_command.c:409:26:getCliStaticBindings	1
+../0_DEV/M2_System/CLI_Terminal/CLI_Command/cli_command.c:413:10:getCliStaticBindingCount	1

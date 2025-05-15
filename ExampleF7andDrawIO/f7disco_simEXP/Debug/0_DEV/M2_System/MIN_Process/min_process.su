@@ -1,0 +1,3 @@
+../0_DEV/M2_System/MIN_Process/min_process.c:16:6:MIN_Timeout_Handler	32	static
+../0_DEV/M2_System/MIN_Process/min_process.c:20:6:MIN_Process_Init	24	static
+../0_DEV/M2_System/MIN_Process/min_process.c:27:6:MIN_Processing	16	static

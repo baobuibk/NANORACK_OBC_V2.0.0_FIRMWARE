@@ -1,0 +1,3 @@
+../0_DEV/M2_System/CLI_Terminal/CLI_Setup/cli_setup.c:35:13:writeCharToCli	16	static
+../0_DEV/M2_System/CLI_Terminal/CLI_Setup/cli_setup.c:42:16:SystemCLI_Init	16	static
+../0_DEV/M2_System/CLI_Terminal/CLI_Setup/cli_setup.c:76:14:getCliPointer	4	static
