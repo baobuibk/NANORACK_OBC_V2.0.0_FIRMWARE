@@ -93,7 +93,7 @@ static const CliCommandBinding cliStaticBindings_internal[] = {
     { "Ultis",		 	"help",        	"Print list of commands [Firmware: 1]",             	false,  NULL, CMD_Help,			 },
     { "Ultis",			"cls",         	"Clears the console",                               	false,  NULL, CMD_ClearCLI,  	 },
     { "Time", 			"rtc_set",     	"Set RTC time: rtc_set <h> <m> <s> <DD> <MM> <YY>",   	true,  	NULL, CMD_RtcSet,    	 },
-    { "Time",         	"rtc_get",     	"Get RTC data. Usage: rtc_get <hard|soft|work|all>",  	true,  	NULL, CMD_RtcGet,    	 },
+    { "Time",         	"rtc_get",     	"Get RTC. Usage: rtc_get <hard|soft|work|epoch|all>",  	true,  	NULL, CMD_RtcGet,    	 },
     { "Time",         	"epoch_set",   	"Set RTC time by epoch: rtc_setepoch <epoch>",        	true,  	NULL, CMD_RtcSetEpoch, 	 },
     { NULL,         	"fram_write",  	"Write to FRAM: fram_write [address] [value]",        	true,  	NULL, CMD_FramWrite, 	 },
     { NULL,         	"fram_read",   	"Read from FRAM: fram_read [address]",                	true,  	NULL, CMD_FramRead,  	 },
@@ -595,7 +595,7 @@ static void CMD_RtcGet(EmbeddedCli *cli, char *args, void *context) {
     char buffer[100];
 
     if (mode == NULL) {
-        snprintf(buffer, sizeof(buffer), "Usage: rtc_get <hard|soft|work|all>");
+        snprintf(buffer, sizeof(buffer), "Usage: rtc_get <hard|soft|work|epoch|all>");
         embeddedCliPrint(cli, buffer);
         return;
     }
@@ -630,6 +630,10 @@ static void CMD_RtcGet(EmbeddedCli *cli, char *args, void *context) {
         snprintf(buffer, sizeof(buffer),
                         "--> Working Uptime: Time: %02d:%02d:%02d, Days: %d",
                         hours, minutes, seconds, (uint8_t)days);
+        embeddedCliPrint(cli, buffer);
+    }else if (strcmp(mode, "epoch") == 0) {
+        uint32_t epoch = Utils_GetEpoch();
+        snprintf(buffer, sizeof(buffer), "--> Epoch: %lu", (unsigned long)epoch);
         embeddedCliPrint(cli, buffer);
     } else if (strcmp(mode, "all") == 0) {
         s_DateTime currentTime;
@@ -666,7 +670,7 @@ static void CMD_RtcGet(EmbeddedCli *cli, char *args, void *context) {
         snprintf(buffer, sizeof(buffer), "--> Epoch: %lu", (unsigned long)epoch);
         embeddedCliPrint(cli, buffer);
     } else {
-        snprintf(buffer, sizeof(buffer), "Unknown mode. Use: rtc_get <hard|soft|work|all>");
+        snprintf(buffer, sizeof(buffer), "Unknown mode. Use: rtc_get <hard|soft|work|epoch|all>");
         embeddedCliPrint(cli, buffer);
     }
     embeddedCliPrint(cli, "");
@@ -693,6 +697,9 @@ static void CMD_RtcSetEpoch(EmbeddedCli *cli, char *args, void *context) {
 
     s_DateTime dt;
     EpochToDateTime(epoch - EPOCH_OFFSET_UNIX, &dt);
+    RV3129_HandleTypeDef *hrtc = RV3129_GetHandle();
+    RV3129_SetTime(hrtc, &dt);
+
     snprintf(buffer, sizeof(buffer),
              "--> RTC set to %02d:%02d:%02d, %02d/%02d/20%02d",
              dt.hour, dt.minute, dt.second, dt.day, dt.month, dt.year);

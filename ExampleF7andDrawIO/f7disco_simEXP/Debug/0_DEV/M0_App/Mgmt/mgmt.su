@@ -1,6 +1,0 @@
-../Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_ll_gpio.h:881:22:LL_GPIO_SetOutputPin	16	static
-../Drivers/STM32F7xx_HAL_Driver/Inc/stm32f7xx_ll_gpio.h:910:22:LL_GPIO_ResetOutputPin	16	static
-../0_DEV/M0_App/Mgmt/mgmt.c:32:6:Mgmt_SystemInitStepZero	40	static
-../0_DEV/M0_App/Mgmt/mgmt.c:47:6:Mgmt_SystemInitFinal	24	static
-../0_DEV/M0_App/Mgmt/mgmt.c:55:6:Mgmt_SystemStart	24	static
-../0_DEV/M0_App/Mgmt/mgmt.c:68:6:__Mgmt_TESTER	8	static
