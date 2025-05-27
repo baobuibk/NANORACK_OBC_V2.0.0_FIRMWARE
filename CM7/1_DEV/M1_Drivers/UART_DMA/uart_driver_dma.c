@@ -138,8 +138,8 @@ Std_ReturnType UART_DMA_Driver_Init(void)
 //    LL_USART_EnableIT_RXNE(USART2);
 
     // UART7 (index 2)
-    RingBuffer_Create(&uart_dma_drivers[2].rx_buffer, 7, "UART7_RX", uart7_rx_data, UART7_BUFFER_SIZE);
-    RingBuffer_Create(&uart_dma_drivers[2].tx_buffer, 8, "UART7_TX", uart7_tx_data, UART7_BUFFER_SIZE);
+    RingBuffer_Create(&uart_dma_drivers[2].rx_buffer, 11, "UART7_RX", uart7_rx_data, UART7_BUFFER_SIZE);
+    RingBuffer_Create(&uart_dma_drivers[2].tx_buffer, 12, "UART7_TX", uart7_tx_data, UART7_BUFFER_SIZE);
     uart_dma_drivers[2].rxSemaphore = xSemaphoreCreateBinary();
 
     LL_DMA_SetPeriphAddress(uart_dma_drivers[2].dma_rx_instance, uart_dma_drivers[2].dma_rx_channel,

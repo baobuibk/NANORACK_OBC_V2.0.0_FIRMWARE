@@ -414,11 +414,13 @@ void UART_DEBUG_DMA_RX_Task(void *pvParameters)
     }
 }
 
-
 void MIN_Process_Task(void *pvParameters)
 {
 	while(1){
-		MIN_Processing();
+        ForwardMode_t mode = ForwardMode_Get();
+        if (mode == FORWARD_MODE_NORMAL) {
+        	MIN_Processing();
+        }
 	    vTaskDelay(pdMS_TO_TICKS(1));
 	}
 }

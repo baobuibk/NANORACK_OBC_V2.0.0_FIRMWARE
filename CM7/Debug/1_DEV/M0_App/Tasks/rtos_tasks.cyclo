@@ -12,8 +12,8 @@
 ../1_DEV/M0_App/Tasks/rtos_tasks.c:296:6:UART_USB_DMA_RX_TASK	9
 ../1_DEV/M0_App/Tasks/rtos_tasks.c:339:6:UART_EXP_DMA_RX_Task	7
 ../1_DEV/M0_App/Tasks/rtos_tasks.c:380:6:UART_DEBUG_DMA_RX_Task	7
-../1_DEV/M0_App/Tasks/rtos_tasks.c:418:6:MIN_Process_Task	1
-../1_DEV/M0_App/Tasks/rtos_tasks.c:426:6:vTask1_handler	1
-../1_DEV/M0_App/Tasks/rtos_tasks.c:438:6:vTask2_handler	1
-../1_DEV/M0_App/Tasks/rtos_tasks.c:449:6:vTask3_handler	1
-../1_DEV/M0_App/Tasks/rtos_tasks.c:461:6:vWatchdogTask	2
+../1_DEV/M0_App/Tasks/rtos_tasks.c:418:6:MIN_Process_Task	2
+../1_DEV/M0_App/Tasks/rtos_tasks.c:429:6:vTask1_handler	1
+../1_DEV/M0_App/Tasks/rtos_tasks.c:441:6:vTask2_handler	1
+../1_DEV/M0_App/Tasks/rtos_tasks.c:452:6:vTask3_handler	1
+../1_DEV/M0_App/Tasks/rtos_tasks.c:464:6:vWatchdogTask	2
