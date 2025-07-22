@@ -20,7 +20,7 @@
 extern uint8_t _sdmesg_buffer;
 extern uint8_t _edmesg_buffer;
 
-#define DMESG_BUFFER_SIZE (96 * 1024) // 96KB
+#define DMESG_BUFFER_SIZE (32 * 1024) // 96KB
 //#define DMESG_BUFFER_SIZE 256
 
 static uint8_t *write_ptr = &_sdmesg_buffer;

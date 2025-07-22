@@ -17,15 +17,15 @@
 
 #define USBCDC_CLI_BUFFER_SIZE 2048
 static  CLI_UINT usbcdc_cliStaticBuffer[BYTES_TO_CLI_UINTS(USBCDC_CLI_BUFFER_SIZE)];
-#define UARTCM4_CLI_BUFFER_SIZE 2048
-static  CLI_UINT uartcm4_cliStaticBuffer[BYTES_TO_CLI_UINTS(UARTCM4_CLI_BUFFER_SIZE)];
+//#define UARTCM4_CLI_BUFFER_SIZE 2048
+//static  CLI_UINT uartcm4_cliStaticBuffer[BYTES_TO_CLI_UINTS(UARTCM4_CLI_BUFFER_SIZE)];
 
 /*************************************************
  *             ----------------------            *
  *************************************************/
 
 static EmbeddedCli *cli_usbcdc;
-static EmbeddedCli *cli_uartcm4;
+//static EmbeddedCli *cli_uartcm4;
 
 // Bool to disable the interrupts, if CLI is not yet ready.
 static _Bool cliIsReady = false;
@@ -39,10 +39,10 @@ static void writeCharToCli_USBCDC(EmbeddedCli *embeddedCli, char c) {
     UART_Driver_Write(UART_USB, c_to_send);
 }
 
-static void writeCharToCli_UARTCM4(EmbeddedCli *embeddedCli, char c) {
-    uint8_t c_to_send = c;
-    UART_Driver_Write(UART_DEBUG, c_to_send);
-}
+//static void writeCharToCli_UARTCM4(EmbeddedCli *embeddedCli, char c) {
+//    uint8_t c_to_send = c;
+//    UART_Driver_Write(UART_DEBUG, c_to_send);
+//}
 
 //Call before FREERTOS be initialized
 //Call After UART Driver Init (or Peripheral use CLI)
@@ -69,23 +69,23 @@ Std_ReturnType SystemCLI_Init() {
     cli_usbcdc->writeChar = writeCharToCli_USBCDC;
 
     // Initialize UART CM4 CLI
-    EmbeddedCliConfig *uartcm4_config = embeddedCliDefaultConfig();
-    uartcm4_config->cliBuffer = uartcm4_cliStaticBuffer;
-    uartcm4_config->cliBufferSize = UARTCM4_CLI_BUFFER_SIZE;
-    uartcm4_config->rxBufferSize = CLI_RX_BUFFER_SIZE;
-    uartcm4_config->cmdBufferSize = CLI_CMD_BUFFER_SIZE;
-    uartcm4_config->historyBufferSize = CLI_HISTORY_SIZE;
-    uartcm4_config->maxBindingCount = CLI_MAX_BINDING_COUNT;
-    uartcm4_config->enableAutoComplete = CLI_AUTO_COMPLETE;
-    uartcm4_config->invitation = CLI_INITATION_CM4;
-    uartcm4_config->staticBindings = getCliStaticBindings();
-    uartcm4_config->staticBindingCount = getCliStaticBindingCount();
-
-    cli_uartcm4 = embeddedCliNew(uartcm4_config);
-    if (cli_uartcm4 == NULL) {
-        return E_ERROR;
-    }
-    cli_uartcm4->writeChar = writeCharToCli_UARTCM4;
+//    EmbeddedCliConfig *uartcm4_config = embeddedCliDefaultConfig();
+//    uartcm4_config->cliBuffer = uartcm4_cliStaticBuffer;
+//    uartcm4_config->cliBufferSize = UARTCM4_CLI_BUFFER_SIZE;
+//    uartcm4_config->rxBufferSize = CLI_RX_BUFFER_SIZE;
+//    uartcm4_config->cmdBufferSize = CLI_CMD_BUFFER_SIZE;
+//    uartcm4_config->historyBufferSize = CLI_HISTORY_SIZE;
+//    uartcm4_config->maxBindingCount = CLI_MAX_BINDING_COUNT;
+//    uartcm4_config->enableAutoComplete = CLI_AUTO_COMPLETE;
+//    uartcm4_config->invitation = CLI_INITATION_CM4;
+//    uartcm4_config->staticBindings = getCliStaticBindings();
+//    uartcm4_config->staticBindingCount = getCliStaticBindingCount();
+//
+//    cli_uartcm4 = embeddedCliNew(uartcm4_config);
+//    if (cli_uartcm4 == NULL) {
+//        return E_ERROR;
+//    }
+//    cli_uartcm4->writeChar = writeCharToCli_UARTCM4;
 
     // Init the CLI with blank screen
 //    onClearCLI(cli, NULL, NULL);
@@ -104,7 +104,7 @@ EmbeddedCli *getUsbCdcCliPointer() {
     return cli_usbcdc;
 }
 
-EmbeddedCli *getUartCm4CliPointer() {
-    return cli_uartcm4;
-}
+//EmbeddedCli *getUartCm4CliPointer() {
+//    return cli_uartcm4;
+//}
 

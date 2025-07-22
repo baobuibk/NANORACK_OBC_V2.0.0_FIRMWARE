@@ -16,7 +16,7 @@
 #define CLI_HISTORY_SIZE 		128
 #define CLI_MAX_BINDING_COUNT 	32
 #define CLI_AUTO_COMPLETE 		1
-#define CLI_INITATION_CM4		"CM4-OBC@STM32:~ $ "
+//#define CLI_INITATION_CM4		"CM4-OBC@STM32:~ $ "
 #define CLI_INITATION_USB		"USB-OBC@STM32:~ $ "
 
 /**
@@ -35,6 +35,6 @@ Std_ReturnType SystemCLI_Init();
  * @return
  */
 EmbeddedCli *getUsbCdcCliPointer();
-EmbeddedCli *getUartCm4CliPointer();
+//EmbeddedCli *getUartCm4CliPointer();
 
 #endif /* M2_SYSTEM_CLI_TERMINAL_CLI_SETUP_CLI_SETUP_H_ */

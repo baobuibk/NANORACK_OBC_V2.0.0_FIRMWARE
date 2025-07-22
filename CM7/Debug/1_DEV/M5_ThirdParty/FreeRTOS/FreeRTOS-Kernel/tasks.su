@@ -5,6 +5,7 @@
 ../1_DEV/M5_ThirdParty/FreeRTOS/FreeRTOS-Kernel/tasks.c:1793:13:prvInitialiseNewTask	40	static,ignoring_inline_asm
 ../1_DEV/M5_ThirdParty/FreeRTOS/FreeRTOS-Kernel/tasks.c:2019:17:prvAddNewTaskToReadyList	24	static,ignoring_inline_asm
 ../1_DEV/M5_ThirdParty/FreeRTOS/FreeRTOS-Kernel/tasks.c:2191:10:vTaskDelete	32	static,ignoring_inline_asm
+../1_DEV/M5_ThirdParty/FreeRTOS/FreeRTOS-Kernel/tasks.c:2343:16:xTaskDelayUntil	48	static,ignoring_inline_asm
 ../1_DEV/M5_ThirdParty/FreeRTOS/FreeRTOS-Kernel/tasks.c:2435:10:vTaskDelay	24	static,ignoring_inline_asm
 ../1_DEV/M5_ThirdParty/FreeRTOS/FreeRTOS-Kernel/tasks.c:2485:16:eTaskGetState	48	static,ignoring_inline_asm
 ../1_DEV/M5_ThirdParty/FreeRTOS/FreeRTOS-Kernel/tasks.c:2617:17:uxTaskPriorityGet	24	static

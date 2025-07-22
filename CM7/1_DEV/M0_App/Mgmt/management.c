@@ -25,6 +25,9 @@
 #include "SPI_MasterOfEXP/spi_master.h"
 #include "shared_reg.h"
 
+#include "lwl.h"
+#include "log_manager.h"
+
 SystemStatus_t Mgmt_GetSystemStatus(void);
 
 Std_ReturnType Mgmt_HardwareSystemPreparing(void)
@@ -68,13 +71,28 @@ Std_ReturnType Mgmt_SystemInitStepZero(void)
 	system_status.init_state = INIT_STATE_STEP_ZERO;
 	Sys_Debugcast(E_OK, LOG_INFOR, "Step Zero: Pending...");
 
+	LWL_Init();
+
+	LogManager_Init();
+
+	LWL_TestLogs();
+
 	ret = Utils_SoftTime_Sync();
+
 	if(Utils_SoftTime_Sync() == E_OK){
 		Sys_Boardcast(E_OK,	LOG_NOTICE, "[Sync Time!]");
+
+	    s_DateTime now;
+	    Utils_GetRTC(&now);
+	    uint16_t full_year = 2000 + now.year;
+	    LWL_Log(OBC_STM32_BOOTING, now.day, now.month, full_year, now.hour, now.minute, now.second);
+
 	}else{
 		system_status.last_error = ret;
 		system_status.init_state = INIT_STATE_FAILED;
 	}
+
+
 
 	return ret;
 }

@@ -56,10 +56,15 @@
 //#include "inter_cpu_comm.h"
 #include "CLI_Terminal/CLI_Auth/simple_shield.h"
 #include "Dmesg/dmesg.h"
+
+#include "modfsp.h"
+#include "ScriptManager/script_manager.h"
 /*************************************************
  *                    Header                     *
  *************************************************/
 ShieldInstance_t auth_usb;
+
+MODFSP_Data_t cm4_protocol;
 
 static void writeChar_auth_USB(char c) {
     uint8_t c_to_send = c;
@@ -87,6 +92,7 @@ void vSoft_RTC_Task(void *pvParameters);
 void UART_DEBUG_DMA_RX_Task(void *pvParameters);
 void UART_EXP_DMA_RX_Task(void *pvParameters);
 void MIN_Process_Task(void *pvParameters);
+void MODFSP_Process_Task(void *pvParameters);
 void CLI_Handle_Task(void *pvParameters);
 void vTask1_handler(void *pvParameters);
 void vTask2_handler(void *pvParameters);
@@ -215,9 +221,16 @@ Std_ReturnType OBC_AppInit(void)
 	while (!LL_USART_IsActiveFlag_TC(USART2));
 
 
+	ScriptManager_Init();
+
+	MODFSP_Init(&cm4_protocol);
+
+
     CREATE_TASK(FS_Gatekeeper_Task, 	"FS_Gatekeeper", 	MIN_STACK_SIZE * 20, 	NULL, 									2, NULL);
 
     CREATE_TASK(MIN_Process_Task, 		"MIN_Process", 		MIN_STACK_SIZE * 20, 	NULL, 									1, NULL);
+
+    CREATE_TASK(MODFSP_Process_Task, 	"MODFSP_Process", 	MIN_STACK_SIZE * 20, 	NULL, 									1, NULL);
 
     CREATE_TASK(SysLog_Task, 			"SysLog_Task", 		MIN_STACK_SIZE * 10, 	NULL, 									1, NULL);	// Syslog Queue from syslog_queue.c
 
@@ -233,7 +246,9 @@ Std_ReturnType OBC_AppInit(void)
 
     CREATE_TASK(vTask2_handler, 		"vTask2", 			MIN_STACK_SIZE, 		NULL, 									1, NULL);
 
-    CREATE_TASK(vTask3_handler, 		"vTask3", 			MIN_STACK_SIZE * 5, 	NULL, 									1, NULL);
+    		CREATE_TASK(ScriptManager_Task, 		"vTaskx", 			MIN_STACK_SIZE * 5, 	NULL, 									1, NULL);
+    		CREATE_TASK(ScriptDLS_Task, 			"vTasky", 			MIN_STACK_SIZE * 5, 	NULL, 									1, NULL);
+    		CREATE_TASK(ScriptCAM_Task, 			"vTaskz", 			MIN_STACK_SIZE * 5, 	NULL, 									1, NULL);
 
     CREATE_TASK(UART_USB_DMA_RX_TASK, 	"UART_USB_RX_Task", MIN_STACK_SIZE * 20, 	(void*)UART_DMA_Driver_Get(UART_USB),	1, NULL);
 
@@ -277,7 +292,6 @@ void CLI_Handle_Task(void *pvParameters)
 	while (1)
 	{
     	ShieldAuthState_t auth_state;
-        embeddedCliProcess(getUartCm4CliPointer());
 
     	auth_state = Shield_GetState(&auth_usb);
     	if(auth_state == AUTH_ADMIN || auth_state == AUTH_USER){
@@ -289,7 +303,7 @@ void CLI_Handle_Task(void *pvParameters)
 //			embeddedCliProcess(getUartCm4CliPointer());
     	}
 
-		vTaskDelay(500);
+		vTaskDelay(100);
 	}
 }
 
@@ -298,6 +312,7 @@ void UART_USB_DMA_RX_TASK(void *pvParameters)
     UART_DMA_Driver_t *driver = (UART_DMA_Driver_t *)pvParameters;
     for (;;)
     {
+    		// Sửa port max delay
         if (xSemaphoreTake(driver->rxSemaphore, portMAX_DELAY) == pdTRUE)
         {
             int c;
@@ -331,7 +346,7 @@ void UART_USB_DMA_RX_TASK(void *pvParameters)
                 }
             }
         }
-
+        	// Đổi timeout của xtake semapphore -> trigger watchdog task (trigger bit)
         vTaskDelay(pdMS_TO_TICKS(1));
     }
 }
@@ -343,23 +358,36 @@ void UART_EXP_DMA_RX_Task(void *pvParameters)
     {
         if (xSemaphoreTake(driver->rxSemaphore, 0) == pdTRUE)
         {
-            int c;
-            while ((c = UART_DMA_Driver_Read(driver->uart)) != -1)
-            {
                 ForwardMode_t mode = ForwardMode_Get();
                 if (mode == FORWARD_MODE_UART) {
                     // Forward mode (CM4): UART7 RX -> UART_DEBUG
-                    UART_Driver_Write(UART_DEBUG, (uint8_t)c);
+                    int c;
+                    while ((c = UART_DMA_Driver_Read(driver->uart)) != -1)
+                    {
+						UART_Driver_Write(UART_DEBUG, (uint8_t)c);
+                    }
 //                    embeddedCliReceiveChar(getUartCm4CliPointer(), (char)c);
                 } else if (mode == FORWARD_MODE_USB) {
                     // Forward mode (USB): UART7 -> to CDC
-                    UART_Driver_Write(UART_USB, (uint8_t)c);
+                    int c;
+                    while ((c = UART_DMA_Driver_Read(driver->uart)) != -1)
+                    {
+						UART_Driver_Write(UART_USB, (uint8_t)c);
+                    }
                 } else if (mode == FORWARD_MODE_LISTEN_CM4) {
                     // Listen mode (CM4): UART7 RX -> UART_DEBUG
-                    UART_Driver_Write(UART_DEBUG, (uint8_t)c);
+                    int c;
+                    while ((c = UART_DMA_Driver_Read(driver->uart)) != -1)
+                    {
+						UART_Driver_Write(UART_DEBUG, (uint8_t)c);
+                    }
                 } else if (mode == FORWARD_MODE_LISTEN_USB) {
                     // Listen mode (USB):UART7 RX -> CDC
-                    UART_Driver_Write(UART_USB, (uint8_t)c);
+                    int c;
+                    while ((c = UART_DMA_Driver_Read(driver->uart)) != -1)
+                    {
+						UART_Driver_Write(UART_USB, (uint8_t)c);
+                    }
                 } else {
                     // NORMAL mode: Default processing (e.g., logging or ignoring data)
                 }
@@ -371,9 +399,9 @@ void UART_EXP_DMA_RX_Task(void *pvParameters)
 //                    }
 //                }
             }
-        }
         vTaskDelay(pdMS_TO_TICKS(1));
     }
+
 }
 
 
@@ -384,35 +412,50 @@ void UART_DEBUG_DMA_RX_Task(void *pvParameters)
     {
         if (xSemaphoreTake(driver->rxSemaphore, portMAX_DELAY) == pdTRUE)
         {
-            int c;
-            while ((c = UART_DMA_Driver_Read(driver->uart)) != -1)
-            {
+
                 ForwardMode_t mode = ForwardMode_Get();
                 if (mode == FORWARD_MODE_UART) {
                     // Forward mode: USART2 (rx) - UART7 (tx)
 //                    UART_Driver_Write(UART7, (uint8_t)c);
-                    UART_Driver_Write(UART_EXP, (uint8_t)c);
+                    int c;
+                    while ((c = UART_DMA_Driver_Read(driver->uart)) != -1)
+                    {
+						UART_Driver_Write(UART_EXP, (uint8_t)c);
+                    }
 
-                    if (ForwardMode_ProcessReceivedByte((uint8_t)c)) {
-                        embeddedCliPrint(getUartCm4CliPointer(), "Forward mode disabled due to 10 consecutive '\\'.");
-                    }
                 } else if (mode == FORWARD_MODE_LISTEN_CM4) {
-                    if (ForwardMode_ProcessReceivedByte((uint8_t)c)) {
-                        embeddedCliPrint(getUartCm4CliPointer(), "Forward mode disabled due to 10 consecutive '\\'.");
+                    int c;
+                    while ((c = UART_DMA_Driver_Read(driver->uart)) != -1)
+                    {
+                    	UART_Driver_Write(UART_DEBUG, (uint8_t)c);
                     }
-                    embeddedCliReceiveChar(getUartCm4CliPointer(), (char)c);
-                    embeddedCliProcess(getUartCm4CliPointer());
+
                 } else {
                     // Mode NORMAL: CLI
-                    embeddedCliReceiveChar(getUartCm4CliPointer(), (char)c);
-                    embeddedCliProcess(getUartCm4CliPointer());
+//                    embeddedCliReceiveChar(getUartCm4CliPointer(), (char)c);
+//                    embeddedCliProcess(getUartCm4CliPointer());
                 }
             }
-        }
-
         vTaskDelay(pdMS_TO_TICKS(1));
     }
+
 }
+
+void MODFSP_Process_Task(void *pvParameters)
+{
+	while(1){
+        ForwardMode_t mode = ForwardMode_Get();
+        if (mode == FORWARD_MODE_NORMAL) {
+            if (UART_DMA_Driver_IsDataAvailable(UART_DEBUG)) {
+            	MODFSP_Process(&cm4_protocol);
+            }else{
+            	MODFSP_Process(&cm4_protocol);
+            }
+        }
+	    vTaskDelay(pdMS_TO_TICKS(1));
+	}
+}
+
 
 void MIN_Process_Task(void *pvParameters)
 {

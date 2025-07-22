@@ -24,6 +24,7 @@
 #include "CLI_Terminal/CLI_Auth/simple_shield.h"
 #include "Dmesg/dmesg.h"
 
+#include "reinit.h"
 //#include "inter_cpu_comm.h"
 #include "utils.h"
 #include "FreeRTOS.h"
@@ -32,6 +33,11 @@
 #include "filesystem.h"
 #include "mode.h"
 #include "gpio_state.h"
+
+#include "ScriptManager/script_manager.h"
+#include "log_manager.h"
+#include "lwl.h"
+
 
 #define FRAM_USER_PWD_LEN_ADDR  0x0000
 #define FRAM_USER_PWD_ADDR      0x0001
@@ -73,8 +79,32 @@ static void CMD_SPISlaveRST(EmbeddedCli *cli, char *args, void *context);
 static void CMD_MasterRead(EmbeddedCli *cli, char *args, void *context);
 
 static void CMD_Dmesg(EmbeddedCli *cli, char *args, void *context);
-static void CMD_Test(EmbeddedCli *cli, char *args, void *context);
 
+/*************************************************
+ * Command Define "Dev"              *
+ *************************************************/
+static void CMD_DevTestConnection(EmbeddedCli *cli, char *args, void *context);
+static void CMD_DevSetTempProfile(EmbeddedCli *cli, char *args, void *context);
+static void CMD_DevStartTempProfile(EmbeddedCli *cli, char *args, void *context);
+static void CMD_DevStopTempProfile(EmbeddedCli *cli, char *args, void *context);
+static void CMD_DevSetOverrideTecProfile(EmbeddedCli *cli, char *args, void *context);
+static void CMD_DevStartOverrideTecProfile(EmbeddedCli *cli, char *args, void *context);
+static void CMD_DevStopOverrideTecProfile(EmbeddedCli *cli, char *args, void *context);
+static void CMD_DevSetSamplingProfile(EmbeddedCli *cli, char *args, void *context);
+static void CMD_DevSetLaserIntensity(EmbeddedCli *cli, char *args, void *context);
+static void CMD_DevSetPosition(EmbeddedCli *cli, char *args, void *context);
+static void CMD_DevStartSamplingCycle(EmbeddedCli *cli, char *args, void *context);
+static void CMD_DevGetInfoSample(EmbeddedCli *cli, char *args, void *context);
+static void CMD_DevGetChunk(EmbeddedCli *cli, char *args, void *context);
+static void CMD_DevSetExtLaserProfile(EmbeddedCli *cli, char *args, void *context);
+static void CMD_DevTurnOnExtLaser(EmbeddedCli *cli, char *args, void *context);
+static void CMD_DevTurnOffExtLaser(EmbeddedCli *cli, char *args, void *context);
+static void CMD_DevCustomCommand(EmbeddedCli *cli, char *args, void *context);
+
+static void CMD_DevScriptManager(EmbeddedCli *cli, char *args, void *context);
+static void CMD_DevEraseScript(EmbeddedCli *cli, char *args, void *context);
+static void CMD_DevLogManagerDebug(EmbeddedCli *cli, char *args, void *context);
+static void CMD_DevLogManagerLog(EmbeddedCli *cli, char *args, void *context);
 /*************************************************
  *                 Command  Array                *
  *************************************************/
@@ -125,7 +155,29 @@ static const CliCommandBinding cliStaticBindings_internal[] = {
     { NULL, 			"slavespi_rst", "Reset SPI Slave Device to initial state", 				false, 	NULL, CMD_SPISlaveRST 	 },
     { NULL, 			"master_read",  "Read data via SPI6 Master: master_read <size>", 		true,   NULL, CMD_MasterRead 	 },
 
-    { "Dev", 			"test",  		"Test Command: test <arg>", 							true,   NULL, CMD_Test 	 		 },
+	{ "Dev", "test_connection", 			"Send TEST_CONNECTION_CMD with a 32-bit value", 		true, 	NULL, CMD_DevTestConnection },
+	{ "Dev", "set_temp_profile", 			"set_temp_profile <ntc_index> <tec_pos> <heater_pos> <tec_vol> <heater_duty> <target_temp>",
+																									true, 	NULL, CMD_DevSetTempProfile },
+	{ "Dev", "start_temp_profile", 			"Send START_TEMP_PROFILE_CMD", 							false, 	NULL, CMD_DevStartTempProfile },
+	{ "Dev", "stop_temp_profile", 			"Send STOP_TEMP_PROFILE_CMD", 							false, 	NULL, CMD_DevStopTempProfile },
+	{ "Dev", "set_override_tec_profile", 	"set_override_tec_profile <tec_index> <tec_vol>", 		true, 	NULL, CMD_DevSetOverrideTecProfile },
+	{ "Dev", "start_override_tec_profile", 	"Send START_OVERRIDE_TEC_PROFILE_CMD", 					false, 	NULL, CMD_DevStartOverrideTecProfile },
+	{ "Dev", "stop_override_tec_profile", 	"Send STOP_OVERRIDE_TEC_PROFILE_CMD", 					false, 	NULL, CMD_DevStopOverrideTecProfile },
+	{ "Dev", "set_sampling_profile", 		"set_sampling_profile <pre> <in> <post> <sample_rate>", true, 	NULL, CMD_DevSetSamplingProfile },
+	{ "Dev", "set_laser_intensity", 		"set_laser_intensity <intensity>", 						true, 	NULL, CMD_DevSetLaserIntensity },
+	{ "Dev", "set_position", 				"set_position <position>", 								true, 	NULL, CMD_DevSetPosition },
+	{ "Dev", "start_sampling_cycle", 		"Send START_SAMPLING_CYCLE_CMD", 						false, 	NULL, CMD_DevStartSamplingCycle },
+	{ "Dev", "get_info_sample", 			"Send GET_INFO_SAMPLE_CMD", 							false, 	NULL, CMD_DevGetInfoSample },
+	{ "Dev", "get_chunk", 					"get_chunk <num_chunk>", 								true,	NULL, CMD_DevGetChunk },
+	{ "Dev", "set_ext_laser_profile", 		"set_ext_laser_profile <intensity>", 					true, 	NULL, CMD_DevSetExtLaserProfile },
+	{ "Dev", "turn_on_ext_laser", 			"turn_on_ext_laser <position>", 						true, 	NULL, CMD_DevTurnOnExtLaser },
+	{ "Dev", "turn_off_ext_laser", 			"Send TURN_OFF_EXT_LASER_CMD", 							false, 	NULL, CMD_DevTurnOffExtLaser },
+	{ "Dev", "custom_cmd", 					"send_custom_cmd <string>", 							true, 	NULL, CMD_DevCustomCommand },
+
+	{ "Dev", "script_manager", 				"-", 													false, 	NULL, CMD_DevScriptManager},
+	{ "Dev", "erase_script", 				"-", 													false, 	NULL, CMD_DevEraseScript},
+	{ "Dev", "lwl_debug", 					"-", 													false, 	NULL, CMD_DevLogManagerDebug},
+	{ "Dev", "lwl_log", 					"-", 													false, 	NULL, CMD_DevLogManagerLog},
 };
 /*************************************************
  *                 External Declarations         *
@@ -153,60 +205,6 @@ static uint16_t UpdateCRC16_XMODEM(uint16_t crc, uint8_t byte) {
     return crc;
 }
 
-static void CMD_Test(EmbeddedCli *cli, char *args, void *context) {
-    const char *arg1 = embeddedCliGetToken(args, 1);
-//    char buffer[100];
-
-    if (arg1 == NULL) {
-        embeddedCliPrint(cli, "Usage: test <arg>");
-        return;
-    }
-
-    int option = atoi(arg1);
-
-    switch (option){
-		case 0:
-			Min_Send_CONTROL_TEMP_CMD(30);
-			break;
-		case 1:
-			Min_Send_COLLECT_DATA(1024);
-			break;
-		case 2:
-			Min_Send_PRE_DATA(512);
-			break;
-		case 10:
-			Min_Send_PRE_CHUNK(0);
-			break;
-		case 11:
-			Min_Send_PRE_CHUNK(1);
-			break;
-		case 12:
-			Min_Send_PRE_CHUNK(2);
-			break;
-		case 13:
-			Min_Send_PRE_CHUNK(3);
-			break;
-		case 20:
-			Min_Send_SAMPLERATE_SET(0xABCD);
-			break;
-		case 21:
-			Min_Send_SAMPLERATE_GET();
-			break;
-		case 30:
-			Min_Send_COLLECT_PACKAGE();
-			break;
-
-
-		default:
-
-			break;
-    }
-
-//    snprintf(buffer, sizeof(buffer), "");
-//    embeddedCliPrint(cli, buffer);
-
-    embeddedCliPrint(cli, "");
-}
 
 static void CMD_RamFill(EmbeddedCli *cli, char *args, void *context) {
     const char *arg1 = embeddedCliGetToken(args, 1); // option (1, 2, 3)
@@ -765,7 +763,8 @@ static void CMD_ls(EmbeddedCli *cli, char *args, void *context) {
 }
 
 static void CMD_sd_lockin(EmbeddedCli *cli, char *args, void *context) {
-    SD_Lockin();
+	SD_Lockin();
+	SDMMC1_Init();
     embeddedCliPrint(cli, "SD filesystem locked-in");
 	Std_ReturnType ret = Link_SDFS_Driver();
 	if(ret != E_OK){
@@ -777,6 +776,7 @@ static void CMD_sd_lockin(EmbeddedCli *cli, char *args, void *context) {
 }
 
 static void CMD_sd_release(EmbeddedCli *cli, char *args, void *context) {
+	SDMMC1_DeInit();
     SD_Release();
     embeddedCliPrint(cli, "SD filesystem released");
     embeddedCliPrint(cli, "");
@@ -845,13 +845,13 @@ static void CMD_Cm4Rst(EmbeddedCli *cli, char *args, void *context) {
 }
 
 static void CMD_Cm4Dis(EmbeddedCli *cli, char *args, void *context) {
-    GPIO_SetLow(CM4_ENA_Port, CM4_ENA_Pin);
+    GPIO_SetHigh(CM4_ENA_Port, CM4_ENA_Pin);
     embeddedCliPrint(cli, "CM4 power disabled (enable driven low).");
     embeddedCliPrint(cli, "");
 }
 
 static void CMD_Cm4Ena(EmbeddedCli *cli, char *args, void *context) {
-    GPIO_SetHigh(CM4_ENA_Port, CM4_ENA_Pin);
+    GPIO_SetLow(CM4_ENA_Port, CM4_ENA_Pin);
     embeddedCliPrint(cli, "CM4 power enabled (enable driven high).");
     embeddedCliPrint(cli, "");
 }
@@ -1073,6 +1073,307 @@ static void CMD_Reset(EmbeddedCli *cli, char *args, void *context) {
 	NVIC_SystemReset();
     embeddedCliPrint(cli, "");
 }
+
+/*************************************************
+ * Command Function "Dev"            *
+ *************************************************/
+static void CMD_DevTestConnection(EmbeddedCli *cli, char *args, void *context)
+{
+    const char *arg1 = embeddedCliGetToken(args, 1);
+    char buffer[100];
+    if (arg1 == NULL) {
+        snprintf(buffer, sizeof(buffer), "Usage: test_connection <value(32bit)>");
+        embeddedCliPrint(cli, buffer);
+        return;
+    }
+    uint32_t value = (uint32_t)strtoul(arg1, NULL, 0);
+    MIN_Send_TEST_CONNECTION_CMD(value);
+    snprintf(buffer, sizeof(buffer), "Sent TEST_CONNECTION_CMD with value: %lu", (unsigned long)value);
+    embeddedCliPrint(cli, buffer);
+    embeddedCliPrint(cli, "");
+}
+
+static void CMD_DevSetTempProfile(EmbeddedCli *cli, char *args, void *context)
+{
+    char buffer[256];
+    const char *arg1 = embeddedCliGetToken(args, 1);
+    const char *arg2 = embeddedCliGetToken(args, 2);
+    const char *arg3 = embeddedCliGetToken(args, 3);
+    const char *arg4 = embeddedCliGetToken(args, 4);
+    const char *arg5 = embeddedCliGetToken(args, 5);
+    const char *arg6 = embeddedCliGetToken(args, 6);
+
+    if (!arg1 || !arg2 || !arg3 || !arg4 || !arg5 || !arg6) {
+        snprintf(buffer, sizeof(buffer), "Usage: set_temp_profile <ntc_index> <tec_pos> <heater_pos> <tec_vol> <heater_duty> <target_temp>");
+        embeddedCliPrint(cli, buffer);
+        return;
+    }
+
+    uint8_t ntc_index         = (uint8_t)strtoul(arg1, NULL, 0);
+    uint8_t tec_positions     = (uint8_t)strtoul(arg2, NULL, 0);
+    uint8_t heater_positions  = (uint8_t)strtoul(arg3, NULL, 0);
+    uint16_t tec_vol          = (uint16_t)strtoul(arg4, NULL, 0);
+    uint8_t heater_duty_cycle = (uint8_t)strtoul(arg5, NULL, 0);
+    uint16_t target_temp      = (uint16_t)strtoul(arg6, NULL, 0);
+
+    MIN_Send_SET_TEMP_PROFILE_CMD(ntc_index, tec_positions, heater_positions, tec_vol, heater_duty_cycle, target_temp);
+    snprintf(buffer, sizeof(buffer), "Sent SET_TEMP_PROFILE_CMD with params: %u, %u, %u, %u, %u, %u",
+             ntc_index, tec_positions, heater_positions, tec_vol, heater_duty_cycle, target_temp);
+    embeddedCliPrint(cli, buffer);
+    embeddedCliPrint(cli, "");
+}
+
+static void CMD_DevStartTempProfile(EmbeddedCli *cli, char *args, void *context)
+{
+    (void)args;
+    (void)context;
+    MIN_Send_START_TEMP_PROFILE_CMD();
+    embeddedCliPrint(cli, "Sent START_TEMP_PROFILE_CMD");
+    embeddedCliPrint(cli, "");
+}
+
+static void CMD_DevStopTempProfile(EmbeddedCli *cli, char *args, void *context)
+{
+    (void)args;
+    (void)context;
+    MIN_Send_STOP_TEMP_PROFILE_CMD();
+    embeddedCliPrint(cli, "Sent STOP_TEMP_PROFILE_CMD");
+    embeddedCliPrint(cli, "");
+}
+
+static void CMD_DevSetOverrideTecProfile(EmbeddedCli *cli, char *args, void *context)
+{
+    char buffer[100];
+    const char *arg1 = embeddedCliGetToken(args, 1);
+    const char *arg2 = embeddedCliGetToken(args, 2);
+
+    if (!arg1 || !arg2) {
+        snprintf(buffer, sizeof(buffer), "Usage: set_override_tec_profile <tec_index> <tec_vol>");
+        embeddedCliPrint(cli, buffer);
+        return;
+    }
+
+    uint8_t ovr_tec_index = (uint8_t)strtoul(arg1, NULL, 0);
+    uint16_t ovr_tec_vol  = (uint16_t)strtoul(arg2, NULL, 0);
+
+    MIN_Send_SET_OVERRIDE_TEC_PROFILE_CMD(ovr_tec_index, ovr_tec_vol);
+    snprintf(buffer, sizeof(buffer), "Sent SET_OVERRIDE_TEC_PROFILE_CMD with params: %u, %u",
+             ovr_tec_index, ovr_tec_vol);
+    embeddedCliPrint(cli, buffer);
+    embeddedCliPrint(cli, "");
+}
+
+static void CMD_DevStartOverrideTecProfile(EmbeddedCli *cli, char *args, void *context)
+{
+    (void)args;
+    (void)context;
+    MIN_Send_START_OVERRIDE_TEC_PROFILE_CMD();
+    embeddedCliPrint(cli, "Sent START_OVERRIDE_TEC_PROFILE_CMD");
+    embeddedCliPrint(cli, "");
+}
+
+static void CMD_DevStopOverrideTecProfile(EmbeddedCli *cli, char *args, void *context)
+{
+    (void)args;
+    (void)context;
+    MIN_Send_STOP_OVERRIDE_TEC_PROFILE_CMD();
+    embeddedCliPrint(cli, "Sent STOP_OVERRIDE_TEC_PROFILE_CMD");
+    embeddedCliPrint(cli, "");
+}
+
+static void CMD_DevSetSamplingProfile(EmbeddedCli *cli, char *args, void *context)
+{
+    char buffer[128];
+    const char *arg1 = embeddedCliGetToken(args, 1);
+    const char *arg2 = embeddedCliGetToken(args, 2);
+    const char *arg3 = embeddedCliGetToken(args, 3);
+    const char *arg4 = embeddedCliGetToken(args, 4);
+
+    if (!arg1 || !arg2 || !arg3 || !arg4) {
+        snprintf(buffer, sizeof(buffer), "Usage: set_sampling_profile <pre> <in> <post> <sample_rate>");
+        embeddedCliPrint(cli, buffer);
+        return;
+    }
+
+    uint32_t pre         = (uint32_t)strtoul(arg1, NULL, 0);
+    uint32_t in          = (uint32_t)strtoul(arg2, NULL, 0);
+    uint32_t post        = (uint32_t)strtoul(arg3, NULL, 0);
+    uint16_t sample_rate = (uint16_t)strtoul(arg4, NULL, 0);
+
+    MIN_Send_SET_PDA_PROFILE_CMD(pre, in, post, sample_rate);
+    snprintf(buffer, sizeof(buffer), "Sent SET_SAMPLING_PROFILE_CMD with params: pre=%lu, in=%lu, post=%lu, sample_rate=%u",
+             (unsigned long)pre, (unsigned long)in, (unsigned long)post, sample_rate);
+    embeddedCliPrint(cli, buffer);
+    embeddedCliPrint(cli, "");
+}
+
+static void CMD_DevSetLaserIntensity(EmbeddedCli *cli, char *args, void *context)
+{
+    char buffer[100];
+    const char *arg1 = embeddedCliGetToken(args, 1);
+    if (!arg1) {
+        snprintf(buffer, sizeof(buffer), "Usage: set_laser_intensity <intensity>");
+        embeddedCliPrint(cli, buffer);
+        return;
+    }
+    uint8_t intensity = (uint8_t)strtoul(arg1, NULL, 0);
+    MIN_Send_SET_LASER_INTENSITY_CMD(intensity);
+    snprintf(buffer, sizeof(buffer), "Sent SET_LASER_INTENSITY_CMD with intensity: %u", intensity);
+    embeddedCliPrint(cli, buffer);
+    embeddedCliPrint(cli, "");
+}
+
+static void CMD_DevSetPosition(EmbeddedCli *cli, char *args, void *context)
+{
+    char buffer[100];
+    const char *arg1 = embeddedCliGetToken(args, 1);
+    if (!arg1) {
+        snprintf(buffer, sizeof(buffer), "Usage: set_position <position>");
+        embeddedCliPrint(cli, buffer);
+        return;
+    }
+    uint8_t position = (uint8_t)strtoul(arg1, NULL, 0);
+    MIN_Send_SET_POSITION_CMD(position);
+    snprintf(buffer, sizeof(buffer), "Sent SET_POSITION_CMD with position: %u", position);
+    embeddedCliPrint(cli, buffer);
+    embeddedCliPrint(cli, "");
+}
+
+static void CMD_DevStartSamplingCycle(EmbeddedCli *cli, char *args, void *context)
+{
+    (void)args;
+    (void)context;
+    MIN_Send_START_SAMPLE_CYCLE_CMD();
+    embeddedCliPrint(cli, "Sent START_SAMPLING_CYCLE_CMD");
+    embeddedCliPrint(cli, "");
+}
+
+static void CMD_DevGetInfoSample(EmbeddedCli *cli, char *args, void *context)
+{
+    (void)args;
+    (void)context;
+    MIN_Send_GET_INFO_SAMPLE_CMD();
+    embeddedCliPrint(cli, "Sent GET_INFO_SAMPLE_CMD");
+    embeddedCliPrint(cli, "");
+}
+
+static void CMD_DevGetChunk(EmbeddedCli *cli, char *args, void *context)
+{
+    char buffer[100];
+    const char *arg1 = embeddedCliGetToken(args, 1);
+    if (!arg1) {
+        snprintf(buffer, sizeof(buffer), "Usage: get_chunk <num_chunk>");
+        embeddedCliPrint(cli, buffer);
+        return;
+    }
+    uint8_t noChunk = (uint8_t)strtoul(arg1, NULL, 0);
+    MIN_Send_GET_CHUNK_CMD(noChunk);
+    snprintf(buffer, sizeof(buffer), "Sent GET_CHUNK_CMD for chunk: %u", noChunk);
+    embeddedCliPrint(cli, buffer);
+    embeddedCliPrint(cli, "");
+}
+
+static void CMD_DevSetExtLaserProfile(EmbeddedCli *cli, char *args, void *context)
+{
+    char buffer[100];
+    const char *arg1 = embeddedCliGetToken(args, 1);
+    if (!arg1) {
+        snprintf(buffer, sizeof(buffer), "Usage: set_ext_laser_profile <intensity>");
+        embeddedCliPrint(cli, buffer);
+        return;
+    }
+    uint8_t intensity = (uint8_t)strtoul(arg1, NULL, 0);
+    MIN_Send_SET_EXT_LASER_INTENSITY_CMD(intensity);
+    snprintf(buffer, sizeof(buffer), "Sent SET_EXT_LASER_PROFILE_CMD with intensity: %u", intensity);
+    embeddedCliPrint(cli, buffer);
+    embeddedCliPrint(cli, "");
+}
+
+static void CMD_DevTurnOnExtLaser(EmbeddedCli *cli, char *args, void *context)
+{
+    char buffer[100];
+    const char *arg1 = embeddedCliGetToken(args, 1);
+    if (!arg1) {
+        snprintf(buffer, sizeof(buffer), "Usage: turn_on_ext_laser <position>");
+        embeddedCliPrint(cli, buffer);
+        return;
+    }
+    uint8_t position = (uint8_t)strtoul(arg1, NULL, 0);
+    MIN_Send_TURN_ON_EXT_LASER_CMD(position);
+    snprintf(buffer, sizeof(buffer), "Sent TURN_ON_EXT_LASER_CMD for position: %u", position);
+    embeddedCliPrint(cli, buffer);
+    embeddedCliPrint(cli, "");
+}
+
+static void CMD_DevTurnOffExtLaser(EmbeddedCli *cli, char *args, void *context)
+{
+    (void)args;
+    (void)context;
+    MIN_Send_TURN_OFF_EXT_LASER_CMD();
+    embeddedCliPrint(cli, "Sent TURN_OFF_EXT_LASER_CMD");
+    embeddedCliPrint(cli, "");
+}
+
+static void CMD_DevCustomCommand(EmbeddedCli *cli, char *args, void *context)
+{
+    char buffer[100];
+    if (args == NULL || *args == '\0') {
+        snprintf(buffer, sizeof(buffer), "Usage: custom_cmd <string>");
+        embeddedCliPrint(cli, buffer);
+        return;
+    }
+    MIN_Send_CUSTOM_COMMAND_CMD(args, strlen(args));
+    snprintf(buffer, sizeof(buffer), "Sent CUSTOM_COMMAND with string: \"%s\"", args);
+    embeddedCliPrint(cli, buffer);
+    embeddedCliPrint(cli, "");
+}
+
+
+static void CMD_DevScriptManager(EmbeddedCli *cli, char *args, void *context)
+{
+	UserActivityTrigger();
+    ScriptManager_PrintStatus();
+
+    embeddedCliPrint(cli, "");
+}
+
+static void CMD_DevEraseScript(EmbeddedCli *cli, char *args, void *context)
+{
+	ScriptManager_EraseAllScriptsFromFRAM();
+
+    embeddedCliPrint(cli, "");
+}
+
+static void CMD_DevLogManagerDebug(EmbeddedCli *cli, char *args, void *context)
+{
+
+	for (LogSource_TypeDef source = 0; source < LOG_SOURCE_COUNT; source++) {
+		LogManager_DebugInfo(source);
+		LogManager_DumpBuffer(source, LOG_BUFFER_LEFT);
+		LogManager_DumpBuffer(source, LOG_BUFFER_RIGHT);
+	}
+
+    embeddedCliPrint(cli, "");
+}
+
+
+static void CMD_DevLogManagerLog(EmbeddedCli *cli, char *args, void *context)
+{
+    s_DateTime now;
+    Utils_GetRTC(&now);
+
+    LWL_Log(OBC_STM32_LOGTEST, now.day, now.month, now.year, now.hour, now.minute, now.second);
+
+    char log_msg[64];
+    snprintf(log_msg, sizeof(log_msg),
+             "Time logged: %02d/%02d/20%02d %02d:%02d:%02d\r\n",
+             now.day, now.month, now.year,
+             now.hour, now.minute, now.second);
+
+    embeddedCliPrint(cli, log_msg);
+    embeddedCliPrint(cli, "");
+}
+
 
 /*************************************************
  *                  End CMD List                 *

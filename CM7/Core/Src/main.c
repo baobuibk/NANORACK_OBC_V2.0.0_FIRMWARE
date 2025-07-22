@@ -94,6 +94,14 @@ void SDMMC1_ReInit(void) {
 	MX_SDMMC1_MMC_Init();
 }
 
+void SDMMC1_DeInit(void) {
+	HAL_MMC_DeInit(&hmmc1);
+}
+
+void SDMMC1_Init(void) {
+	MX_SDMMC1_MMC_Init();
+}
+
 static PeriphDescriptor_t peripherals[] = {
     {0,  "GPIO",   		PERIPH_STATE_UNINIT, 0, Sys_ERROR, MX_GPIO_Init,        	NULL},
     {1,  "MDMA",   		PERIPH_STATE_UNINIT, 0, Sys_ERROR, MX_MDMA_Init,        	NULL},
@@ -905,7 +913,7 @@ static void MX_SPI6_Init(void)
   SPI_InitStruct.ClockPolarity = LL_SPI_POLARITY_LOW;
   SPI_InitStruct.ClockPhase = LL_SPI_PHASE_1EDGE;
   SPI_InitStruct.NSS = LL_SPI_NSS_SOFT;
-  SPI_InitStruct.BaudRate = LL_SPI_BAUDRATEPRESCALER_DIV4;
+  SPI_InitStruct.BaudRate = LL_SPI_BAUDRATEPRESCALER_DIV32;
   SPI_InitStruct.BitOrder = LL_SPI_MSB_FIRST;
   SPI_InitStruct.CRCCalculation = LL_SPI_CRCCALCULATION_DISABLE;
   SPI_InitStruct.CRCPoly = 0x0;

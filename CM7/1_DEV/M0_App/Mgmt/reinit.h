@@ -10,5 +10,7 @@
 
 void I2C_ReInit(I2C_TypeDef *I2Cx);
 void SDMMC1_ReInit(void);
+void SDMMC1_DeInit(void);
+void SDMMC1_Init(void);
 
 #endif /* M0_APP_MGMT_REINIT_H_ */

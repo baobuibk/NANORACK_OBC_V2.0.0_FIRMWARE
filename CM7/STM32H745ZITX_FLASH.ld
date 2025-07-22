@@ -196,7 +196,7 @@ SECTIONS
   {
 	    . = ALIGN(4);
 	    _sdmesg_buffer = .;    /* startpoint buffer */
-	    . = . + 0x18000;     /* 96KB = 0x18000 bytes */
+	    . = . + 0x8000;     /* 32KB = 0x8000 bytes */
 	    _edmesg_buffer = .;    /* endpoint buffer */
   } >DTCMRAM
 
@@ -204,8 +204,17 @@ SECTIONS
   {
     . = ALIGN(4);
     _scustom_data = .;        /* startpoint custom_data */
-    . = . + 0x32000;          /* 200KB = 0x32000 bytes (200 * 1024) */
+    . = . + 0x8000;          /* 32KB = 0x8000 bytes (20 * 1024) */
     _ecustom_data = .;        /* endpoint custom_data */
+  } >RAM_D2	
+
+  .log_data (NOLOAD) :
+  {
+    . = ALIGN(4);
+    _slog_data = .;          /* Start of log data */
+    *(.log_data)             /* Any variables placed in .log_data */
+    . = . + 0x14000;         /* 80KB = 0x14000 bytes */
+    _elog_data = .;          /* End of log data */
   } >RAM_D2
 
   .shared_mem (NOLOAD) :
