@@ -3,7 +3,7 @@
 ../1_DEV/M5_ThirdParty/LWL/log_manager.c:52:6:LogManager_Init	1
 ../1_DEV/M5_ThirdParty/LWL/log_manager.c:64:6:LogManager_Write_OBC	1
 ../1_DEV/M5_ThirdParty/LWL/log_manager.c:68:6:LogManager_Write_EXP	1
-../1_DEV/M5_ThirdParty/LWL/log_manager.c:72:6:LogManager_Process	4
-../1_DEV/M5_ThirdParty/LWL/log_manager.c:90:28:LogManager_SendLogData	1
-../1_DEV/M5_ThirdParty/LWL/log_manager.c:109:6:LogManager_DebugInfo	5
-../1_DEV/M5_ThirdParty/LWL/log_manager.c:124:6:LogManager_DumpBuffer	8
+../1_DEV/M5_ThirdParty/LWL/log_manager.c:72:6:LogManager_Process	5
+../1_DEV/M5_ThirdParty/LWL/log_manager.c:92:28:LogManager_SendLogData	1
+../1_DEV/M5_ThirdParty/LWL/log_manager.c:112:6:LogManager_DebugInfo	5
+../1_DEV/M5_ThirdParty/LWL/log_manager.c:127:6:LogManager_DumpBuffer	8

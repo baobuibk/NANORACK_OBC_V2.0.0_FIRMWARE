@@ -38,6 +38,7 @@
 #include "log_manager.h"
 #include "lwl.h"
 
+#include "AliveCM4/alive_cm4.h"
 
 #define FRAM_USER_PWD_LEN_ADDR  0x0000
 #define FRAM_USER_PWD_ADDR      0x0001
@@ -105,6 +106,7 @@ static void CMD_DevScriptManager(EmbeddedCli *cli, char *args, void *context);
 static void CMD_DevEraseScript(EmbeddedCli *cli, char *args, void *context);
 static void CMD_DevLogManagerDebug(EmbeddedCli *cli, char *args, void *context);
 static void CMD_DevLogManagerLog(EmbeddedCli *cli, char *args, void *context);
+static void CMD_DevCM4KeepAliveStatus(EmbeddedCli *cli, char *args, void *context);
 /*************************************************
  *                 Command  Array                *
  *************************************************/
@@ -178,6 +180,8 @@ static const CliCommandBinding cliStaticBindings_internal[] = {
 	{ "Dev", "erase_script", 				"-", 													false, 	NULL, CMD_DevEraseScript},
 	{ "Dev", "lwl_debug", 					"-", 													false, 	NULL, CMD_DevLogManagerDebug},
 	{ "Dev", "lwl_log", 					"-", 													false, 	NULL, CMD_DevLogManagerLog},
+	{ "Dev", "alivecm4_log", 				"-", 													false, 	NULL, CMD_DevCM4KeepAliveStatus},
+
 };
 /*************************************************
  *                 External Declarations         *
@@ -934,9 +938,9 @@ void callback_countdown(void *context) {
 }
 
 static void CMD_AliveCheck(EmbeddedCli *cli, char *args, void *context) {
-	Utils_Cronjob_SetEvery(EVERY_SECOND, 10, 0, callback_every, cli, 0);
-	Utils_Cronjob_SetMoment(10, 20, 30, 0, callback_moment, cli, 1);
-	Utils_Cronjob_SetCountdown(20, 0, callback_countdown, cli, 2);
+//	Utils_Cronjob_SetEvery(EVERY_SECOND, 10, 0, callback_every, cli, 0);
+//	Utils_Cronjob_SetMoment(10, 20, 30, 0, callback_moment, cli, 1);
+//	Utils_Cronjob_SetCountdown(20, 0, callback_countdown, cli, 2);
 
     embeddedCliPrint(cli, "Hello from OBC-STM32. Status: OK");
     embeddedCliPrint(cli, "Sparrow call Eagle. Code: OK");
@@ -945,8 +949,8 @@ static void CMD_AliveCheck(EmbeddedCli *cli, char *args, void *context) {
 }
 
 static void CMD_RtosCheck(EmbeddedCli *cli, char *args, void *context) {
-    TaskStatus_t taskStatusArray[20];
-    UBaseType_t arraySize = 20;
+    TaskStatus_t taskStatusArray[22];
+    UBaseType_t arraySize = 22;
     UBaseType_t totalTasks;
     char buffer[256];
 
@@ -1373,6 +1377,16 @@ static void CMD_DevLogManagerLog(EmbeddedCli *cli, char *args, void *context)
     embeddedCliPrint(cli, log_msg);
     embeddedCliPrint(cli, "");
 }
+
+static void CMD_DevCM4KeepAliveStatus(EmbeddedCli *cli, char *args, void *context)
+{
+    char status[64];
+    snprintf(status, sizeof(status), "CM4 Miss Count: %u / %d\r\n",
+             CM4_GetMissCount(), MAX_RETRY_COUNT);
+    embeddedCliPrint(cli, status);
+    embeddedCliPrint(cli, "");
+}
+
 
 
 /*************************************************

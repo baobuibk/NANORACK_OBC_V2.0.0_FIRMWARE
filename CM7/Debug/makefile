@@ -48,6 +48,7 @@ RM := rm -rf
 -include 1_DEV/M2_System/CLI_Terminal/CLI_Setup/subdir.mk
 -include 1_DEV/M2_System/CLI_Terminal/CLI_Command/subdir.mk
 -include 1_DEV/M2_System/CLI_Terminal/CLI_Auth/subdir.mk
+-include 1_DEV/M2_System/AliveCM4/subdir.mk
 -include 1_DEV/M1_Drivers/UART_DMA/subdir.mk
 -include 1_DEV/M1_Drivers/UART/subdir.mk
 -include 1_DEV/M1_Drivers/Shared_REG/subdir.mk

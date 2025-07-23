@@ -59,6 +59,10 @@
 
 #include "modfsp.h"
 #include "ScriptManager/script_manager.h"
+
+#include "log_manager.h"
+#include "AliveCM4/alive_cm4.h"
+
 /*************************************************
  *                    Header                     *
  *************************************************/
@@ -101,7 +105,40 @@ void vUART_bufferTest(void *pvParameters);
 //void vUSBCheck_Task(void *argument);
 //void CDC_TX_Task(void *pvParameters);
 void UART_USB_DMA_RX_TASK(void *pvParameters);
-void vWatchdogTask(void *pvParameters);
+void LogManager_Task(void *pvParameters);
+
+void WatchdogPulseTask(void *pvParameters);
+void WatchdogMonitorTask(void *pvParameters);
+void ExpMonitorTask(void *pvParameters);
+
+//Task-kick
+
+typedef struct {
+    const char *name;
+    uint8_t alive;
+} TaskHeartbeat_t;
+
+#define TASK_COUNT 3
+TaskHeartbeat_t taskHeartbeats[TASK_COUNT] = {
+    {"MIN", 0},
+    {"MODFSP", 0},
+    {"LOG", 0}
+};
+
+volatile uint8_t watchdog_allow_pulse = 1;
+
+void Task_Kick(const char *taskName) {
+    for (int i = 0; i < TASK_COUNT; i++) {
+        if (strcmp(taskHeartbeats[i].name, taskName) == 0) {
+            taskHeartbeats[i].alive = 1;
+            break;
+        }
+    }
+}
+
+#define CM4_PIN_PORT            CM4OUT_STMIN_D1_GPIO_Port
+#define CM4_PIN                 CM4OUT_STMIN_D1_Pin
+#define MONITOR_DEBOUNCE_MS     100
 
 /*************************************************
  *               	Root Task	                 *
@@ -246,13 +283,20 @@ Std_ReturnType OBC_AppInit(void)
 
     CREATE_TASK(vTask2_handler, 		"vTask2", 			MIN_STACK_SIZE, 		NULL, 									1, NULL);
 
-    		CREATE_TASK(ScriptManager_Task, 		"vTaskx", 			MIN_STACK_SIZE * 5, 	NULL, 									1, NULL);
-    		CREATE_TASK(ScriptDLS_Task, 			"vTasky", 			MIN_STACK_SIZE * 5, 	NULL, 									1, NULL);
-    		CREATE_TASK(ScriptCAM_Task, 			"vTaskz", 			MIN_STACK_SIZE * 5, 	NULL, 									1, NULL);
+    		CREATE_TASK(ScriptManager_Task, 		"vTaskx", 			MIN_STACK_SIZE * 20, 	NULL, 									1, NULL);
+    		CREATE_TASK(ScriptDLS_Task, 			"vTasky", 			MIN_STACK_SIZE * 20, 	NULL, 									1, NULL);
+    		CREATE_TASK(ScriptCAM_Task, 			"vTaskz", 			MIN_STACK_SIZE * 20, 	NULL, 									1, NULL);
 
     CREATE_TASK(UART_USB_DMA_RX_TASK, 	"UART_USB_RX_Task", MIN_STACK_SIZE * 20, 	(void*)UART_DMA_Driver_Get(UART_USB),	1, NULL);
 
-    CREATE_TASK(vWatchdogTask, 			"Watchdog_Task", 	MIN_STACK_SIZE, 		NULL, 									1, NULL);
+    		CREATE_TASK(LogManager_Task, 			"LogManager", 		MIN_STACK_SIZE * 5, 		NULL, 								1, NULL);
+
+    CREATE_TASK(WatchdogMonitorTask, 	"WatchdogMonitorTask", 	MIN_STACK_SIZE * 2, 		NULL, 									1, NULL);
+    CREATE_TASK(WatchdogPulseTask, 		"WatchdogPulseTask", 	MIN_STACK_SIZE * 2, 		NULL, 									1, NULL);
+
+    CREATE_TASK(CM4_KeepAliveTask, 		"CM4_KeepAlive", 		MIN_STACK_SIZE * 5, 		NULL, 									1, NULL);
+
+    CREATE_TASK(ExpMonitorTask, 		"ExpMonitorTask", 		MIN_STACK_SIZE * 2, 		NULL, 									1, NULL);
 
     vTaskDelay(pdMS_TO_TICKS(1));
 
@@ -444,6 +488,7 @@ void UART_DEBUG_DMA_RX_Task(void *pvParameters)
 void MODFSP_Process_Task(void *pvParameters)
 {
 	while(1){
+		Task_Kick("MODFSP");
         ForwardMode_t mode = ForwardMode_Get();
         if (mode == FORWARD_MODE_NORMAL) {
             if (UART_DMA_Driver_IsDataAvailable(UART_DEBUG)) {
@@ -460,6 +505,7 @@ void MODFSP_Process_Task(void *pvParameters)
 void MIN_Process_Task(void *pvParameters)
 {
 	while(1){
+		Task_Kick("MIN");
         ForwardMode_t mode = ForwardMode_Get();
         if (mode == FORWARD_MODE_NORMAL) {
         	MIN_Processing();
@@ -501,21 +547,90 @@ void vTask3_handler(void *pvParameters)
 		SYSLOG_NOTICE(buffer);
 		vTaskDelay(60000);
 	}
-}
+}\
 
-void vWatchdogTask(void *pvParameters)
+void LogManager_Task(void *pvParameters)
 {
     for (;;) {
-        Watchdog_Device_Update();
+    	Task_Kick("LOG");
+    	LogManager_Process();
+        vTaskDelay(100);
+    }
+}
 
-        if(Watchdog_Device_GetState() == WATCHDOG_STATE_HIGH)
-        {
-            vTaskDelay(pdMS_TO_TICKS(HIGH_PERIOD));
+void WatchdogMonitorTask(void *pvParameters)
+{
+    for (;;) {
+        int allAlive = 1;
+        for (int i = 0; i < TASK_COUNT; i++) {
+            if (taskHeartbeats[i].alive == 0) {
+                allAlive = 0;
+                SYSLOG_WARN("Missed heartbeat");
+            }
         }
-        else
-        {
+
+        if (allAlive) {
+            watchdog_allow_pulse = 1;
+        } else {
+            watchdog_allow_pulse = 0;
+        }
+
+        for (int i = 0; i < TASK_COUNT; i++) {
+            taskHeartbeats[i].alive = 0;
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(500));
+    }
+}
+
+
+void WatchdogPulseTask(void *pvParameters)
+{
+    for (;;) {
+        if (watchdog_allow_pulse) {
+            Watchdog_Device_Update();
+        }
+
+        if (Watchdog_Device_GetState() == WATCHDOG_STATE_HIGH) {
+            vTaskDelay(pdMS_TO_TICKS(HIGH_PERIOD));
+        } else {
             vTaskDelay(pdMS_TO_TICKS(LOW_PERIOD));
         }
+    }
+}
+
+void ExpMonitorTask(void *pvParameters) {
+    uint8_t lastLow = GPIO_IsInLow(CM4_PIN_PORT, CM4_PIN);
+    uint32_t lastChangeTime = xTaskGetTickCount();
+
+    for (;;) {
+        if (!ExpMonitor_IsEnabled()) {
+            vTaskDelay(pdMS_TO_TICKS(100));
+            continue;
+        }
+
+        uint8_t isLow = GPIO_IsInLow(CM4_PIN_PORT, CM4_PIN);
+        uint32_t now = xTaskGetTickCount();
+
+        if (isLow != lastLow) {
+            lastLow = isLow;
+            lastChangeTime = now;
+        } else {
+            uint32_t elapsedMs = (now - lastChangeTime) * portTICK_PERIOD_MS;
+            if (isLow && elapsedMs >= MONITOR_DEBOUNCE_MS) {
+                // Low > 100 ms: reset EXP  UART-forward
+            	MIN_Send_PLEASE_RESET_CMD();
+                ForwardMode_Set(FORWARD_MODE_UART);
+                ExpMonitor_SetEnabled(0);
+            }
+            else if (!isLow && elapsedMs >= MONITOR_DEBOUNCE_MS) {
+                // High > 100 ms: NORMAL mode
+                ForwardMode_Set(FORWARD_MODE_NORMAL);
+                ExpMonitor_SetEnabled(0);
+            }
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
 }
 

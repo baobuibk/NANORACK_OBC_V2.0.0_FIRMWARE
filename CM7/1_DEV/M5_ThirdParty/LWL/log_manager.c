@@ -81,25 +81,28 @@ void LogManager_Process(void) {
             LogManager_SendLogData((LogSource_TypeDef)i, buffer_to_send, length_to_send);
 
             // Clear the buffer that was just sent and reset the flag
-            memset(buffer_to_send, 0, channel->buffer_size);
-            channel->transfer_ready_flag = false;
+            if (LogManager_SendLogData((LogSource_TypeDef)i, buffer_to_send, length_to_send)) {
+                memset(buffer_to_send, 0, channel->buffer_size);
+                channel->transfer_ready_flag = false;
+            }
         }
     }
 }
 
-__attribute__((weak)) void LogManager_SendLogData(LogSource_TypeDef source, uint8_t *current_buffer_to_send, uint32_t data_length) {
+__attribute__((weak)) bool LogManager_SendLogData(LogSource_TypeDef source, uint8_t *current_buffer_to_send, uint32_t data_length) {
     #ifdef LOG_MANAGER_DEBUG
     const char* source_name = (source == LOG_SOURCE_OBC) ? "OBC" : "EXP";
     printf("LogManager_SendLogData: Simulating send for %s. Length: %lu bytes.\n", source_name, data_length);
     #endif
-    // User implements the actual data transmission logic here.
-    // For example, you might have different UARTs or SPI channels for OBC and EXP logs.
-    // if (source == LOG_SOURCE_OBC) {
-    //     HAL_UART_Transmit(&huart_obc, current_buffer_to_send, data_length, 100);
-    // } else if (source == LOG_SOURCE_EXP) {
-    //     HAL_UART_Transmit(&huart_exp, current_buffer_to_send, data_length, 100);
-    // }
+
+    // Mặc định giả lập là gửi thành công
+    return true;
+
+    // Thực tế bạn sẽ viết như sau:
+    // if (HAL_UART_Transmit(...) == HAL_OK) return true;
+    // else return false;
 }
+
 
 
 // --- Debugging API Implementation ---

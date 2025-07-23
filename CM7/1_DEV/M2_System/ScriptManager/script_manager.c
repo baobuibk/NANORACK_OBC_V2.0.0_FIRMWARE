@@ -34,7 +34,7 @@ static volatile uint8_t g_user_activity_detected = 0;
 static uint8_t frames_received = 0;
 static ScriptManager_t g_script_manager;
 
-
+static volatile uint8_t expMonitorFlag = 0;
 /*************************************************
  *               PRIVATE FUNCTIONS               *
  *************************************************/
@@ -785,11 +785,11 @@ void ScriptManager_HandleMODFSPFrame(uint8_t frame_id, const uint8_t* data, uint
         	break;
 
         case UPDATE_OBC_CMD:
-
+        	ScriptManager_HandleUpdateOBC(data, length);
         	break;
 
         case UPDATE_EXP_CMD:
-
+        	ScriptManager_HandleUpdateEXP(data, length);
         	break;
 
 
@@ -893,6 +893,31 @@ void ScriptManager_HandleRunExperiment(const uint8_t* data, uint32_t length)
         frames_received = 0;
     }
 }
+
+void ScriptManager_HandleUpdateOBC(const uint8_t* data, uint32_t length)
+{
+	MODFSP_Send(&cm4_protocol, UPDATE_OBC_ACK, NULL, 0);
+    BScript_Log("[ScriptManager] Received UPDATE_OBC frame");
+    vTaskDelay(200);
+    NVIC_SystemReset();
+}
+
+void ScriptManager_HandleUpdateEXP(const uint8_t* data, uint32_t length)
+{
+	MODFSP_Send(&cm4_protocol, UPDATE_EXP_ACK, NULL, 0);
+    BScript_Log("[ScriptManager] Received UPDATE_EXP frame");
+    ExpMonitor_SetEnabled(1);
+}
+
+uint8_t ExpMonitor_SetEnabled(uint8_t enable) {
+    expMonitorFlag = (enable != 0) ? 1 : 0;
+    return expMonitorFlag;
+}
+
+uint8_t ExpMonitor_IsEnabled(void) {
+    return expMonitorFlag;
+}
+
 
 /*************************************************
  *                 TASK FUNCTIONS                *

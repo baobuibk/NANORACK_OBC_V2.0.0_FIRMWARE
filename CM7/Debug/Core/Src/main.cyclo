@@ -73,7 +73,7 @@
 ../Core/Src/main.c:1278:13:MX_BDMA_Init	1
 ../Core/Src/main.c:1298:13:MX_DMA_Init	1
 ../Core/Src/main.c:1327:13:MX_MDMA_Init	3
-../Core/Src/main.c:1375:13:MX_GPIO_Init	1
-../Core/Src/main.c:1503:6:MPU_Config	1
-../Core/Src/main.c:1538:6:HAL_TIM_PeriodElapsedCallback	2
-../Core/Src/main.c:1556:6:Error_Handler	1
+../Core/Src/main.c:1374:13:MX_GPIO_Init	1
+../Core/Src/main.c:1498:6:MPU_Config	1
+../Core/Src/main.c:1533:6:HAL_TIM_PeriodElapsedCallback	2
+../Core/Src/main.c:1551:6:Error_Handler	1

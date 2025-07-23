@@ -36,6 +36,7 @@ SUBDIRS := \
 1_DEV/M1_Drivers/Shared_REG \
 1_DEV/M1_Drivers/UART \
 1_DEV/M1_Drivers/UART_DMA \
+1_DEV/M2_System/AliveCM4 \
 1_DEV/M2_System/CLI_Terminal/CLI_Auth \
 1_DEV/M2_System/CLI_Terminal/CLI_Command \
 1_DEV/M2_System/CLI_Terminal/CLI_Setup \

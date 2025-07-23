@@ -10,6 +10,7 @@
 "./1_DEV/M1_Drivers/Shared_REG/shared_reg.o"
 "./1_DEV/M1_Drivers/UART/uart_driver.o"
 "./1_DEV/M1_Drivers/UART_DMA/uart_driver_dma.o"
+"./1_DEV/M2_System/AliveCM4/alive_cm4.o"
 "./1_DEV/M2_System/CLI_Terminal/CLI_Auth/simple_shield.o"
 "./1_DEV/M2_System/CLI_Terminal/CLI_Command/cli_command.o"
 "./1_DEV/M2_System/CLI_Terminal/CLI_Setup/cli_setup.o"

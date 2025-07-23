@@ -152,6 +152,8 @@ void ScriptManager_GetStatistics(uint32_t* dls_runs, uint32_t* cam_runs, uint32_
 void ScriptManager_PrintStatus(void);
 
 /* MODFSP Frame Handlers */
+void ScriptManager_HandleUpdateOBC(const uint8_t* data, uint32_t length);
+void ScriptManager_HandleUpdateEXP(const uint8_t* data, uint32_t length);
 void ScriptManager_HandleRunExperiment(const uint8_t* data, uint32_t length);
 void ScriptManager_HandleSyncTime(const uint8_t* data, uint32_t length);
 void ScriptManager_HandleInitFrame(const uint8_t* data, uint32_t length);
@@ -169,4 +171,6 @@ void ScriptManager_AdvanceSchedule(TimePointSchedule_t* schedule, const char* ro
 _Bool ScriptManager_EraseAllScriptsFromFRAM(void);
 uint8_t UserActivityDetected(void);
 void UserActivityTrigger(void);
+uint8_t ExpMonitor_IsEnabled(void);
+uint8_t ExpMonitor_SetEnabled(uint8_t enable);
 #endif // SCRIPT_MANAGER_H

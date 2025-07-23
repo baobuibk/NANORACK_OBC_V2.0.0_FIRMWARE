@@ -54,7 +54,7 @@ void LogManager_Process(void);
  * @param buffer_to_send Pointer to the data buffer to send.
  * @param data_length The length of the data to send.
  */
-void LogManager_SendLogData(LogSource_TypeDef source, uint8_t *buffer_to_send, uint32_t data_length);
+_Bool LogManager_SendLogData(LogSource_TypeDef source, uint8_t *buffer_to_send, uint32_t data_length);
 
 
 // --- Debugging API (Optional) ---

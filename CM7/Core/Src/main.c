@@ -913,7 +913,7 @@ static void MX_SPI6_Init(void)
   SPI_InitStruct.ClockPolarity = LL_SPI_POLARITY_LOW;
   SPI_InitStruct.ClockPhase = LL_SPI_PHASE_1EDGE;
   SPI_InitStruct.NSS = LL_SPI_NSS_SOFT;
-  SPI_InitStruct.BaudRate = LL_SPI_BAUDRATEPRESCALER_DIV32;
+  SPI_InitStruct.BaudRate = LL_SPI_BAUDRATEPRESCALER_DIV4;
   SPI_InitStruct.BitOrder = LL_SPI_MSB_FIRST;
   SPI_InitStruct.CRCCalculation = LL_SPI_CRCCALCULATION_DISABLE;
   SPI_InitStruct.CRCPoly = 0x0;
@@ -1356,7 +1356,7 @@ static void MX_MDMA_Init(void)
   /* Configure post request address and data masks */
   if (HAL_MDMA_ConfigPostRequestMask(&hmdma_mdma_channel0_sdmmc1_end_data_0, 0, 0) != HAL_OK)
   {
-    return;
+	return;
   }
 
   /* MDMA interrupt initialization */
@@ -1364,7 +1364,6 @@ static void MX_MDMA_Init(void)
   HAL_NVIC_SetPriority(MDMA_IRQn, 7, 0);
   HAL_NVIC_EnableIRQ(MDMA_IRQn);
   peripherals[1].errorCode = Sys_OK;
-
 }
 
 /**
@@ -1389,13 +1388,13 @@ static void MX_GPIO_Init(void)
   LL_AHB4_GRP1_EnableClock(LL_AHB4_GRP1_PERIPH_GPIOG);
 
   /**/
-  LL_GPIO_SetOutputPin(GPIOE, SPI4_FLASH_CS_Pin|SPI4_FRAM_CS_Pin|MCU_SDMMC_SEL_Pin);
+  LL_GPIO_SetOutputPin(GPIOE, SPI4_FLASH_CS_Pin|SPI4_FRAM_CS_Pin|OBCOUT_EXPIN_READDONE_Pin|MCU_SDMMC_SEL_Pin);
 
   /**/
   LL_GPIO_SetOutputPin(SPI6_EXP_CS_GPIO_Port, SPI6_EXP_CS_Pin);
 
   /**/
-  LL_GPIO_SetOutputPin(GPIOF, I2C4SCL_BUSY_STATE_Pin|I2C4SDA_READYSEND_STATE_Pin);
+  LL_GPIO_SetOutputPin(GPIOF, STMOUT_CM4IN_SCL_Pin|STMOUT_CM4IN_SDA_Pin);
 
   /**/
   LL_GPIO_SetOutputPin(MCU_IO_RESET_CM4_GPIO_Port, MCU_IO_RESET_CM4_Pin);
@@ -1407,17 +1406,13 @@ static void MX_GPIO_Init(void)
   LL_GPIO_ResetOutputPin(Bootloader_DETECT_DOWN_GPIO_Port, Bootloader_DETECT_DOWN_Pin);
 
   /**/
-  LL_GPIO_ResetOutputPin(GPIOE, MCU_IO_IRQ_CM4_D1_Pin|MCU_IO_IRQ_CM4_D0_Pin);
-
-  /**/
   LL_GPIO_ResetOutputPin(GPIOD, MCU_IO_DEBUG_LED0_Pin|MCU_IO_DEBUG_LED1_Pin|MCU_DETECT_SD_Pin|MCU_WD_DONE_Pin);
 
   /**/
   LL_GPIO_ResetOutputPin(GPIOG, Bootloader_DETECT_UPG6_Pin|MCU_IO_GLOBAL_EN_CM4_Pin);
 
   /**/
-  GPIO_InitStruct.Pin = SPI4_FLASH_CS_Pin|SPI4_FRAM_CS_Pin|MCU_IO_IRQ_CM4_D1_Pin|MCU_IO_IRQ_CM4_D0_Pin
-                          |MCU_SDMMC_SEL_Pin;
+  GPIO_InitStruct.Pin = SPI4_FLASH_CS_Pin|SPI4_FRAM_CS_Pin|OBCOUT_EXPIN_READDONE_Pin|MCU_SDMMC_SEL_Pin;
   GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
   GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
   GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
@@ -1447,7 +1442,7 @@ static void MX_GPIO_Init(void)
   LL_GPIO_Init(Bootloader_DETECT_DOWN_GPIO_Port, &GPIO_InitStruct);
 
   /**/
-  GPIO_InitStruct.Pin = I2C4SCL_BUSY_STATE_Pin|I2C4SDA_READYSEND_STATE_Pin;
+  GPIO_InitStruct.Pin = STMOUT_CM4IN_SCL_Pin|STMOUT_CM4IN_SDA_Pin;
   GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
   GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
   GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
@@ -1455,7 +1450,7 @@ static void MX_GPIO_Init(void)
   LL_GPIO_Init(GPIOF, &GPIO_InitStruct);
 
   /**/
-  GPIO_InitStruct.Pin = MCU_IO_IRQ_EXP_D1_Pin|MCU_IO_IRQ_EXP_D0_Pin;
+  GPIO_InitStruct.Pin = CM4OUT_STMIN_D1_Pin|CM4OUT_STMIN_D0_Pin|EXPOUT_OBCIN_DATAREADY_Pin;
   GPIO_InitStruct.Mode = LL_GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
   LL_GPIO_Init(GPIOE, &GPIO_InitStruct);
@@ -1484,7 +1479,7 @@ static void MX_GPIO_Init(void)
   LL_GPIO_Init(GPIOG, &GPIO_InitStruct);
 
   /**/
-  GPIO_InitStruct.Pin = MCU_I2C1_SCL_Pin|MCU_I2C1_SDA_Pin;
+  GPIO_InitStruct.Pin = EXPOUT_OBCIN_LOGTRIGGER_Pin|EXPOUT_OBCIN_MINBUSY_Pin;
   GPIO_InitStruct.Mode = LL_GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
   LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
