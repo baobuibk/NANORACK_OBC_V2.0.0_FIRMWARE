@@ -1,9 +1,0 @@
-../1_DEV/M5_ThirdParty/LWL/log_manager.c:17:13:LogManager_InitChannel	24	static
-../1_DEV/M5_ThirdParty/LWL/log_manager.c:31:13:LogManager_Write_Internal	32	static
-../1_DEV/M5_ThirdParty/LWL/log_manager.c:54:6:LogManager_Init	16	static
-../1_DEV/M5_ThirdParty/LWL/log_manager.c:66:6:LogManager_Write_OBC	16	static
-../1_DEV/M5_ThirdParty/LWL/log_manager.c:70:6:LogManager_Write_EXP	16	static
-../1_DEV/M5_ThirdParty/LWL/log_manager.c:74:6:LogManager_Process	24	static
-../1_DEV/M5_ThirdParty/LWL/log_manager.c:95:6:LogManager_SendLogData	128	static
-../1_DEV/M5_ThirdParty/LWL/log_manager.c:127:6:LogManager_DebugInfo	24	static
-../1_DEV/M5_ThirdParty/LWL/log_manager.c:142:6:LogManager_DumpBuffer	176	static
