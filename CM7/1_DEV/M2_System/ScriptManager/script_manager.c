@@ -515,6 +515,8 @@ void ScriptManager_Init(void)
 {
     memset(&g_script_manager, 0, sizeof(ScriptManager_t));
 
+
+
     // Create synchronization objects
     g_script_manager.execution_mutex = xSemaphoreCreateMutex();
     g_script_manager.dls_semaphore = xSemaphoreCreateBinary();
@@ -1279,9 +1281,9 @@ void LogFetching_Task(void *pvParameters)
                 }
             }
 
-            if (LL_GPIO_IsInputPinSet(EXP_LOG_TRIGGER_GPIO_PORT, EXP_LOG_TRIGGER_GPIO_PIN)) {
+            if (!LL_GPIO_IsInputPinSet(EXP_LOG_TRIGGER_GPIO_PORT, EXP_LOG_TRIGGER_GPIO_PIN)) {
                 vTaskDelay(pdMS_TO_TICKS(100));
-                if (LL_GPIO_IsInputPinSet(EXP_LOG_TRIGGER_GPIO_PORT, EXP_LOG_TRIGGER_GPIO_PIN)) {
+                if (!LL_GPIO_IsInputPinSet(EXP_LOG_TRIGGER_GPIO_PORT, EXP_LOG_TRIGGER_GPIO_PIN)) {
                     BScript_Log("[LogFetching] Stable EXP trigger detected. Initiating special transfer.");
 
                     char base_filename[48];
@@ -1291,7 +1293,7 @@ void LogFetching_Task(void *pvParameters)
                     snprintf(base_filename, sizeof(base_filename), "exp_log_20%02d%02d%02d_%02d%02d%02d",
                              rtc.year, rtc.month, rtc.day, rtc.hour, rtc.minute, rtc.second);
 
-                    SimpleDataTransfer_ExecuteTransfer(DATA_TYPE_CHUNK, 0, base_filename);
+                    SimpleDataTransfer_ExecuteTransfer(DATA_TYPE_LOG, 0, base_filename);
 
                     xSemaphoreGive(g_script_manager.execution_mutex);
                     continue;
@@ -1726,7 +1728,7 @@ static StepExecResult ScriptManager_ExecuteDLSStep(Step* step)
             BScript_Log("[ScriptDLS] ->SET_DLS_INTERVAL: Reached step with interval %u seconds (using time points instead)", interval);
             BScript_Log("[ScriptDLS] Now, OBC shall set EXP Working RTC");
 
-            uint8_t resp_info[2];
+            uint8_t resp_info[5];
             uint8_t resp_len = 0;
 
             if(MIN_Send_SET_WORKING_RTC_CMD_WithData(resp_info, &resp_len)){
@@ -1808,9 +1810,9 @@ static StepExecResult ScriptManager_ExecuteDLSStep(Step* step)
             uint8_t resp_len = 0;
 
             if(MIN_Send_START_SAMPLE_CYCLE_CMD_WithData(resp_info, &resp_len)){
-            	BScript_Log("[ScriptDLS] SET_POSITION received: %u bytes", resp_len);
+            	BScript_Log("[ScriptDLS] START_SAMPLING_CYCLE received: %u bytes", resp_len);
             }else {
-                BScript_Log("[ScriptDLS] Failed to SET_POSITION");
+                BScript_Log("[ScriptDLS] Failed to START_SAMPLING_CYCLE");
                 return STEP_EXEC_ERROR;
             }
 
@@ -1862,6 +1864,7 @@ static StepExecResult ScriptManager_ExecuteDLSStep(Step* step)
             }
 
             uint16_t total_chunk = ((uint16_t)resp_info[0] << 8) | resp_info[1];
+//            uint8_t total_chunk = resp_info[0];
 
             if(total_chunk > 256){
             	BScript_Log("[ScriptDLS] Wrong total chunk: %u (> 256)", total_chunk);
@@ -1887,8 +1890,7 @@ static StepExecResult ScriptManager_ExecuteDLSStep(Step* step)
                 result = SimpleDataTransfer_ExecuteTransfer(DATA_TYPE_CHUNK, chunk_id, base_filename);
                 // Check result and return appropriate step result
                 if (result == SIMPLE_TRANSFER_SUCCESS) {
-                    BScript_Log("[ScriptDLS] ->GET_SAMPLE: Data acquisition completed successfully");
-                    return STEP_EXEC_SUCCESS;
+                    BScript_Log("[ScriptDLS] ->GET_SAMPLE: Data acquisition chunk: %u completed successfully", chunk_id);
                 } else {
                     BScript_Log("[ScriptDLS] ->GET_SAMPLE: Data acquisition failed: %s",
                                SimpleDataTransfer_GetResultString(result));
@@ -2002,8 +2004,8 @@ static StepExecResult ScriptManager_ExecuteCAMStep(Step* step)
             uint8_t payload[1];
             payload[0] = camPosition;
 
-            if (!MODFSP_Send(&cm4_protocol, MODFSP_TYPE_SET_CAM_POSITION_CMD,
-                             payload, sizeof(payload))) {
+            if (MODFSP_Send(&cm4_protocol, MODFSP_TYPE_SET_CAM_POSITION_CMD,
+                             payload, sizeof(payload)) != MODFSP_OK) {
                 BScript_Log("[ScriptCAM] Master set camera position failed");
             }
 
@@ -2012,8 +2014,8 @@ static StepExecResult ScriptManager_ExecuteCAMStep(Step* step)
 
         case TAKE_IMG_WITH_TIMEOUT: { // take_img_with_timeout
             BScript_Log("[ScriptCAM] ->TAKE_IMG: Take image with timeout");
-            if (!MODFSP_Send(&cm4_protocol, MODFSP_TYPE_TAKE_IMAGE_CMD,
-                             NULL, 0)) {
+            if (MODFSP_Send(&cm4_protocol, MODFSP_TYPE_TAKE_IMAGE_CMD,
+                             NULL, 0) != MODFSP_OK) {
                 BScript_Log("[ScriptCAM] Master take image failed");
 
             }

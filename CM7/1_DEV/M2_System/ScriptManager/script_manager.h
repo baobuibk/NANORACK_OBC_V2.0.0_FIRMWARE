@@ -175,6 +175,7 @@ _Bool ScriptManager_IsTimeToRunSchedule(TimePointSchedule_t* schedule);
 void ScriptManager_PrintTimePoints(TimePointSchedule_t* schedule, const char* routine_name);
 void ScriptManager_AdvanceSchedule(TimePointSchedule_t* schedule, const char* routine_name);
 
+void ScriptManager_EnableLogFetching(bool enable);
 
 _Bool ScriptManager_EraseAllScriptsFromFRAM(void);
 uint8_t UserActivityDetected(void);

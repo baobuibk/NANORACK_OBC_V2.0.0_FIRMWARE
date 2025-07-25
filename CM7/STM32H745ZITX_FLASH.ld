@@ -192,6 +192,20 @@ SECTIONS
     . = ALIGN(8);
   } >RAM_D1
   
+  .ram_data_transfer(NOLOAD) :
+  {
+    . = ALIGN(4);
+    /* Giữ lại toàn bộ dữ liệu của các input section .ram_data_bridge */
+    KEEP(*(.ram_data_transfer))
+    /* Nếu bạn có thêm các section con như .ram_data_bridge.* thì: */
+    KEEP(*(.ram_data_transfer*))
+    . = ALIGN(4);
+    _sram_data_transfer = .;
+    . = . + 0x8000;
+    _eram_data_transfer = .;
+    . = ALIGN(4);
+  } >RAM_D1  
+  
   .dmesg_buffer (NOLOAD) :
   {
 	    . = ALIGN(4);

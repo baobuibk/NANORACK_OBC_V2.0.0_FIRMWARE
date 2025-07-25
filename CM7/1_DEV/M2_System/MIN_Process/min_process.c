@@ -588,7 +588,6 @@ _Bool MIN_Send_SET_WORKING_RTC_CMD_WithData(uint8_t* response_data, uint8_t* res
 
     if (xSemaphoreTake(responseSemaphore, pdMS_TO_TICKS(1000)) == pdTRUE) {
         SYSLOG_NOTICE("Response OK - SET_WORKING_RTC_CMD");
-
         if (response_data && response_len) {
             return MIN_GetLastResponseData(response_data, response_len, 100);
         }

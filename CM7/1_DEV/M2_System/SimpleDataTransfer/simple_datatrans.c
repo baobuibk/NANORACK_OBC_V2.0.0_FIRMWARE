@@ -40,6 +40,8 @@
 
 
 __attribute__((section(".ram_data_bridge"), aligned(4))) uint8_t g_simple_ram_d3_buffer[DATA_CHUNK_SIZE];
+__attribute__((section(".ram_data_transfer"), aligned(4))) uint8_t g_transfer_ram_d1_buffer[DATA_CHUNK_SIZE];
+
 
 extern MODFSP_Data_t cm4_protocol;
 
@@ -68,6 +70,8 @@ Std_ReturnType SimpleDataTransfer_Init(void)
 {
     // Clear RAM D3 buffer
     memset(g_simple_ram_d3_buffer, 0, DATA_CHUNK_SIZE);
+    memset(g_transfer_ram_d1_buffer, 0, DATA_CHUNK_SIZE);
+
     LL_GPIO_ResetOutputPin(READDONE_PIN_PORT, READDONE_PIN);
     // Reset statistics
     g_successful_transfers = 0;
@@ -173,8 +177,10 @@ static SimpleTransferResult_t ExecuteSingleTransfer(SimpleDataType_t data_type,
     bool crc_check_needed = (data_type != DATA_TYPE_LOG);
 
     do {
+        LL_GPIO_ResetOutputPin(READDONE_PIN_PORT, READDONE_PIN);
+
         // Step 0: Send get chunk
-    	BScript_Log("[SimpleDataTransfer] Step 0: Try to sending command %u...", chunk_id);
+    	BScript_Log("[SimpleDataTransfer] Step 0: Try to sending command - chunk %u...", chunk_id);
         uint8_t chunk_response[1];
         uint8_t chunk_response_len = 0;
 		switch (data_type) {
@@ -216,18 +222,37 @@ static SimpleTransferResult_t ExecuteSingleTransfer(SimpleDataType_t data_type,
             return SIMPLE_TRANSFER_ERROR_DATAREADY_TIMEOUT;
         }
 
+        vTaskDelay(200);
+
         // Step 2: Read data from slave via SPI DMA
         BScript_Log("[SimpleDataTransfer] Step 2: Reading %u bytes from slave (attempt %u)...",
                    DATA_CHUNK_SIZE, retry_count + 1);
+
+//        return SIMPLE_TRANSFER_SUCCESS;
+//
+
+//        vTaskDelay(10000);
+
+        SPI_MasterDevice_t *device = SPI_MasterDevice_GetHandle();
+        if (!device->is_initialized) {
+            BScript_Log("[SimpleDataTransfer] SPI Master Device not initialized");
+            return SIMPLE_TRANSFER_ERROR_SPI_READ_FAILED;
+        }
 
         if (SPI_MasterDevice_ReadDMA((uint32_t)g_simple_ram_d3_buffer, DATA_CHUNK_SIZE) != E_OK) {
             BScript_Log("[SimpleDataTransfer] SPI read failed");
             return SIMPLE_TRANSFER_ERROR_SPI_READ_FAILED;
         }
 
+        memcpy(g_transfer_ram_d1_buffer, g_simple_ram_d3_buffer, DATA_CHUNK_SIZE);
+
+//        vTaskDelay(30000);
+
         // Step 2.5: Handshake: Signal READDONE high and wait for DATAREADY to go low
         BScript_Log("[SimpleDataTransfer] Step 2.5: Signaling READDONE and waiting for DATAREADY low...");
         LL_GPIO_SetOutputPin(READDONE_PIN_PORT, READDONE_PIN);
+
+        vTaskDelay(200);
 
         TickType_t handshake_start_time = xTaskGetTickCount();
         TickType_t handshake_timeout_ticks = pdMS_TO_TICKS(TRANSFER_TIMEOUT_MS);
@@ -273,8 +298,18 @@ static SimpleTransferResult_t ExecuteSingleTransfer(SimpleDataType_t data_type,
                 continue;
             }
 
+            BScript_Log("[SimpleDataTransfer] First 8 bytes of buffer:");
+            for (int i = 0; i < 8; i++) {
+                BScript_Log("Byte %02d: 0x%02X", i, g_transfer_ram_d1_buffer[i]);
+            }
+
+            BScript_Log("[SimpleDataTransfer] Last 8 bytes of buffer:");
+            for (int i = DATA_CHUNK_SIZE - 8; i < DATA_CHUNK_SIZE; i++) {
+                BScript_Log("Byte %02d: 0x%02X", i, g_transfer_ram_d1_buffer[i]);
+            }
+
             expected_crc = (crc_response[0] << 8) | crc_response[1];
-            calculated_crc = SimpleDataTransfer_CalculateCRC16(g_simple_ram_d3_buffer, DATA_CHUNK_SIZE);
+            calculated_crc = SimpleDataTransfer_CalculateCRC16(g_transfer_ram_d1_buffer, DATA_CHUNK_SIZE);
 
             if (expected_crc != calculated_crc) {
                 BScript_Log("[SimpleDataTransfer] CRC mismatch - Expected: 0x%04X, Calculated: 0x%04X",
@@ -300,13 +335,14 @@ static SimpleTransferResult_t ExecuteSingleTransfer(SimpleDataType_t data_type,
 
     } while (retry_count < MAX_CRC_RETRY_COUNT);
 
+    BScript_Log("[SimpleDataTransfer] Filesystem try to write file...");
     // Step 4: Save data to file
-    Std_ReturnType fs_result = FS_Write_Direct(filename, g_simple_ram_d3_buffer, DATA_CHUNK_SIZE);
+    Std_ReturnType fs_result = FS_Write_Direct(filename, g_transfer_ram_d1_buffer, DATA_CHUNK_SIZE);
     if (fs_result == E_BUSY) {
         // Filesystem busy, wait a bit and retry once
         BScript_Log("[SimpleDataTransfer] Filesystem busy, retrying...");
         BScript_Delayms(10);
-        fs_result = FS_Write_Direct(filename, g_simple_ram_d3_buffer, DATA_CHUNK_SIZE);
+        fs_result = FS_Write_Direct(filename, g_transfer_ram_d1_buffer, DATA_CHUNK_SIZE);
     }
 
     if (fs_result != E_OK) {
@@ -319,7 +355,7 @@ static SimpleTransferResult_t ExecuteSingleTransfer(SimpleDataType_t data_type,
     do {
 		// Step 5: Send data to master via SPI slave
 		BScript_Log("[SimpleDataTransfer] Step 5: Sending data to master...");
-		if (SPI_SlaveDevice_ResetDMA((uint32_t)g_simple_ram_d3_buffer, DATA_CHUNK_SIZE) != E_OK) {
+		if (SPI_SlaveDevice_ResetDMA((uint32_t)g_transfer_ram_d1_buffer, DATA_CHUNK_SIZE) != E_OK) {
 			BScript_Log("[SimpleDataTransfer] SPI slave setup failed");
 			return SIMPLE_TRANSFER_ERROR_MASTER_TRIGGER_FAILED;
 		}
@@ -337,8 +373,8 @@ static SimpleTransferResult_t ExecuteSingleTransfer(SimpleDataType_t data_type,
 			uint16_t crc_for_master = crc_check_needed ? calculated_crc : 0;
 			trigger_data[2] = (uint8_t)((crc_for_master >> 8) & 0xFF);
 			trigger_data[3] = (uint8_t)(crc_for_master & 0xFF);
-			if (!MODFSP_Send(&cm4_protocol, MODFSP_TYPE_CHUNK_CMD,
-							 trigger_data, sizeof(trigger_data))) {
+			if (MODFSP_Send(&cm4_protocol, MODFSP_TYPE_CHUNK_CMD,
+							 trigger_data, sizeof(trigger_data)) != MODFSP_OK) {
 			  BScript_Log("[SimpleDataTransfer] Master trigger failed");
 			  return SIMPLE_TRANSFER_ERROR_MASTER_TRIGGER_FAILED;
 			}
@@ -350,8 +386,8 @@ static SimpleTransferResult_t ExecuteSingleTransfer(SimpleDataType_t data_type,
 			uint16_t crc_for_master = crc_check_needed ? calculated_crc : 0;
 			trigger_data[0] = (uint8_t)((crc_for_master >> 8) & 0xFF);
 			trigger_data[1] = (uint8_t)(crc_for_master & 0xFF);
-			if (!MODFSP_Send(&cm4_protocol, MODFSP_TYPE_CURRENT_CMD,
-							 trigger_data, sizeof(trigger_data))) {
+			if (MODFSP_Send(&cm4_protocol, MODFSP_TYPE_CURRENT_CMD,
+							 trigger_data, sizeof(trigger_data)) != MODFSP_OK) {
 			  BScript_Log("[SimpleDataTransfer] Master trigger failed");
 			  return SIMPLE_TRANSFER_ERROR_MASTER_TRIGGER_FAILED;
 			}
@@ -361,7 +397,7 @@ static SimpleTransferResult_t ExecuteSingleTransfer(SimpleDataType_t data_type,
 		  case DATA_TYPE_LOG: {
 			uint8_t trigger_data[1];
 			trigger_data[0] = 0;
-			if (!MODFSP_Send(&cm4_protocol, MODFSP_TYPE_LOG_CMD, trigger_data, sizeof(trigger_data))) {
+			if (MODFSP_Send(&cm4_protocol, MODFSP_TYPE_LOG_CMD, trigger_data, sizeof(trigger_data)) != MODFSP_OK) {
 			  BScript_Log("[SimpleDataTransfer] Master trigger failed");
 			  return SIMPLE_TRANSFER_ERROR_MASTER_TRIGGER_FAILED;
 			}
@@ -441,7 +477,7 @@ SimpleTransferResult_t SimpleDataTransfer_ExecuteLogTransfer(const char* base_fi
         g_master_ack_success = false;
 
         uint8_t trigger_data[1] = {0xFF};
-        if (!MODFSP_Send(&cm4_protocol, MODFSP_TYPE_LOG_CMD, trigger_data, sizeof(trigger_data))) {
+        if (MODFSP_Send(&cm4_protocol, MODFSP_TYPE_LOG_CMD, trigger_data, sizeof(trigger_data)) != MODFSP_OK) {
             BScript_Log("[SimpleDataTransfer] Master trigger failed");
             return SIMPLE_TRANSFER_ERROR_MASTER_TRIGGER_FAILED;
         }
@@ -560,7 +596,8 @@ const char* SimpleDataTransfer_GetResultString(SimpleTransferResult_t result)
 {
     switch (result) {
         case SIMPLE_TRANSFER_SUCCESS: return "SUCCESS";
-        case SIMPLE_TRANSFER_ERROR_DATAREADY_TIMEOUT: return "MINBUSY_TIMEOUT";
+        case SIMPLE_TRANSFER_ERROR_DATAREADY_TIMEOUT: return "DATAREADY_TIMEOUT";
+        case SIMPLE_TRANSFER_ERROR_MINBUSY_TIMEOUT: return "MINBUSY_TIMEOUT";
         case SIMPLE_TRANSFER_ERROR_SPI_READ_FAILED: return "SPI_READ_FAILED";
         case SIMPLE_TRANSFER_ERROR_CRC_MISMATCH: return "CRC_MISMATCH";
         case SIMPLE_TRANSFER_ERROR_FILE_SAVE_FAILED: return "FILE_SAVE_FAILED";

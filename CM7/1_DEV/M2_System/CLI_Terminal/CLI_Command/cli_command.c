@@ -42,6 +42,8 @@
 
 #include "SimpleDataTransfer/simple_datatrans.h"
 
+#include "modfsp.h"
+
 #define FRAM_USER_PWD_LEN_ADDR  0x0000
 #define FRAM_USER_PWD_ADDR      0x0001
 extern ShieldInstance_t auth_uart;
@@ -115,6 +117,8 @@ static void CMD_DevEraseScript(EmbeddedCli *cli, char *args, void *context);
 static void CMD_DevLogManagerDebug(EmbeddedCli *cli, char *args, void *context);
 static void CMD_DevLogManagerLog(EmbeddedCli *cli, char *args, void *context);
 static void CMD_DevCM4KeepAliveStatus(EmbeddedCli *cli, char *args, void *context);
+
+static void CMD_Testcase(EmbeddedCli *cli, char *args, void *context);
 /*************************************************
  *                 Command  Array                *
  *************************************************/
@@ -198,6 +202,9 @@ static const CliCommandBinding cliStaticBindings_internal[] = {
 	{ NULL, "lwl_log", 						"-", 													false, 	NULL, CMD_DevLogManagerLog},
 	{ NULL, "alivecm4_log", 				"-", 													false, 	NULL, CMD_DevCM4KeepAliveStatus},
 
+	{ NULL, "testcase", 					"Run step-by-step testcase: testcase <mode>", 			true, 	NULL, CMD_Testcase },
+
+
 };
 /*************************************************
  *                 External Declarations         *
@@ -210,6 +217,7 @@ extern uint32_t _scustom_data;
 extern uint32_t _ecustom_data;
 
 extern uint8_t g_simple_ram_d3_buffer[DATA_CHUNK_SIZE];
+extern MODFSP_Data_t cm4_protocol;
 
 #define RAM_D2_200KB_START ((uint8_t*)&_scustom_data)
 #define RAM_D3_START ((uint8_t*)0x38000000)
@@ -492,6 +500,9 @@ static void CMD_PullData(EmbeddedCli *cli, char *args, void *context) {
     embeddedCliPrint(cli, "");
 }
 
+#define READDONE_PIN_PORT				OBCOUT_EXPIN_READDONE_GPIO_Port
+#define READDONE_PIN					OBCOUT_EXPIN_READDONE_Pin
+
 static void CMD_MasterRead(EmbeddedCli *cli, char *args, void *context) {
     const char *arg1 = embeddedCliGetToken(args, 1); // size
     char buffer[100];
@@ -524,6 +535,9 @@ static void CMD_MasterRead(EmbeddedCli *cli, char *args, void *context) {
     }
 
     Std_ReturnType ret = SPI_MasterDevice_ReadDMA((uint32_t)g_simple_ram_d3_buffer, size);
+
+    LL_GPIO_SetOutputPin(READDONE_PIN_PORT, READDONE_PIN);
+
     if (ret == E_OK) {
         uint16_t crc = 0x0000;
         for (uint32_t i = 0; i < size; i++) {
@@ -542,6 +556,10 @@ static void CMD_MasterRead(EmbeddedCli *cli, char *args, void *context) {
 
 static void CMD_ClearCLI(EmbeddedCli *cli, char *args, void *context) {
     char buffer[10];
+
+    LL_GPIO_ResetOutputPin(READDONE_PIN_PORT, READDONE_PIN);
+
+
     snprintf(buffer, sizeof(buffer), "\33[2J");
     embeddedCliPrint(cli, buffer);
 }
@@ -841,7 +859,7 @@ static void CMD_vim(EmbeddedCli *cli, char *args, void *context) {
         return;
     }
 
-    if (FS_Request_Write(filename, (uint8_t*)content, content_len) == E_OK) {
+    if (FS_Write_Direct(filename, (uint8_t*)content, content_len) == E_OK) {
         snprintf(buffer, sizeof(buffer), "Content written to %s", filename);
         embeddedCliPrint(cli, buffer);
     } else {
@@ -1560,6 +1578,82 @@ static void CMD_DevCM4KeepAliveStatus(EmbeddedCli *cli, char *args, void *contex
              CM4_GetMissCount(), MAX_RETRY_COUNT);
     embeddedCliPrint(cli, status);
     embeddedCliPrint(cli, "");
+}
+
+
+
+static uint8_t current_step = 0;
+static int mode = -1;
+
+static void CMD_Testcase(EmbeddedCli *cli, char *args, void *context)
+{
+    if (args != NULL && strlen(args) > 0) {
+        const char *arg1 = embeddedCliGetToken(args, 1);
+
+        if (arg1 == NULL) {
+            embeddedCliPrint(cli, "Usage: testcase <mode|reset>");
+            return;
+        }
+
+        if (strcmp(arg1, "reset") == 0) {
+            mode = -1;
+            current_step = 0;
+            embeddedCliPrint(cli, "Testcase state reset.");
+            return;
+        }
+        mode = atoi(arg1);
+        if(current_step == 0){
+            char msg[64];
+            snprintf(msg, sizeof(msg), "Start Testcase Mode %d", mode);
+            embeddedCliPrint(cli, msg);
+        }
+    }
+
+    if (mode == 0) {
+        switch (current_step) {
+            case 0:
+                embeddedCliPrint(cli, "-> Step 1: set_sampling_profile 100000 100 4000 100");
+                CMD_DevSetSamplingProfile(cli, " 100000 100 4000 100", context);
+                break;
+            case 1:
+                embeddedCliPrint(cli, "-> Step 2: set_position 1");
+                CMD_DevSetPosition(cli, " 1", context);
+                break;
+            case 2:
+                embeddedCliPrint(cli, "-> Step 3: set_laser_intensity 50");
+                CMD_DevSetLaserIntensity(cli, " 50", context);
+                break;
+            case 3:
+                embeddedCliPrint(cli, "-> Step 4: start_sampling_cycle");
+                CMD_DevStartSamplingCycle(cli, "", context);
+                break;
+            case 4:
+                embeddedCliPrint(cli, "-> Step 5: get_chunk 0");
+                CMD_DevGetChunk(cli, " 0", context);
+                break;
+            default:
+                embeddedCliPrint(cli, "[v] Testcase 0 completed.");
+                mode = -1;
+                current_step = 0;
+                return;
+        }
+        current_step++;
+    } else if (mode == 2){
+		uint8_t trigger_data[4];
+		trigger_data[0] = (uint8_t)((0x11 >> 8) & 0xFF);
+		trigger_data[1] = (uint8_t)(0x22 & 0xFF);
+		trigger_data[2] = (uint8_t)((0x33 >> 8) & 0xFF);
+		trigger_data[3] = (uint8_t)(0x44 & 0xFF);
+		if (MODFSP_Send(&cm4_protocol, 0x21,
+						 trigger_data, sizeof(trigger_data)) != MODFSP_OK) {
+			embeddedCliPrint(cli, "Send to CM4 Fail!");
+		}
+		embeddedCliPrint(cli, "Send to CM4 OK!");
+    }
+
+    else{
+        embeddedCliPrint(cli, "Unsupported mode. Only '0' is implemented.");
+    }
 }
 
 
