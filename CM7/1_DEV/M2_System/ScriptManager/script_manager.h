@@ -41,6 +41,12 @@
 #define SCRIPT_ACK_DLS        	0xA1
 #define SCRIPT_ACK_CAM        	0xA2
 
+#define MODFSP_TYPE_GET_STM32RTC 	0x40
+#define MODFSP_TYPE_RESP_STM32RTC	0x41
+
+#define MODFSP_TYPE_SET_CAM_POSITION_CMD 0x50
+#define MODFSP_TYPE_TAKE_IMAGE_CMD		 0x51
+
 
 // Time Point Configuration
 #define MAX_TIME_POINTS         288    // Maximum points for 5-minute intervals in 24 hours
@@ -143,7 +149,8 @@ void ScriptManager_HandleMODFSPFrame(uint8_t frame_id, const uint8_t* data, uint
 void ScriptManager_Task(void *pvParameters);
 void ScriptDLS_Task(void *pvParameters);
 void ScriptCAM_Task(void *pvParameters);
-
+void LogFetching_Task(void *pvParameters);
+void SDLockRelease_Task(void *pvParameters);
 /* Status and Information */
 ScriptExecState_t ScriptManager_GetScriptState(ScriptType_t type);
 uint32_t ScriptManager_GetNextRunTime(ScriptType_t type);
@@ -160,6 +167,7 @@ void ScriptManager_HandleInitFrame(const uint8_t* data, uint32_t length);
 void ScriptManager_HandleDLSFrame(const uint8_t* data, uint32_t length);
 void ScriptManager_HandleCAMFrame(const uint8_t* data, uint32_t length);
 void ScriptManager_HandleHaltFrame(const uint8_t* data, uint32_t length);
+void ScriptManager_HandleCM4GetRTC (const uint8_t* data, uint32_t length);
 
 /* Time Point Functions */
 _Bool ScriptManager_GenerateTimePoints(TimePointSchedule_t* schedule, uint32_t start_daily_time, uint32_t interval_sec);
@@ -173,4 +181,5 @@ uint8_t UserActivityDetected(void);
 void UserActivityTrigger(void);
 uint8_t ExpMonitor_IsEnabled(void);
 uint8_t ExpMonitor_SetEnabled(uint8_t enable);
+void SDScheduler_Configure(uint32_t release_time_raw, uint32_t lockin_time_raw);
 #endif // SCRIPT_MANAGER_H

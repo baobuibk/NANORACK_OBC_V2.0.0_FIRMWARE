@@ -19,6 +19,7 @@
 "./1_DEV/M2_System/FileSystem/filesystem.o"
 "./1_DEV/M2_System/MIN_Process/min_process.o"
 "./1_DEV/M2_System/ScriptManager/script_manager.o"
+"./1_DEV/M2_System/SimpleDataTransfer/simple_datatrans.o"
 "./1_DEV/M2_System/SysLog/syslog.o"
 "./1_DEV/M2_System/SysLog_Queue/syslog_queue.o"
 "./1_DEV/M2_System/SystemManager/sys_manager.o"

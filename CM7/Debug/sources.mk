@@ -45,6 +45,7 @@ SUBDIRS := \
 1_DEV/M2_System/FileSystem \
 1_DEV/M2_System/MIN_Process \
 1_DEV/M2_System/ScriptManager \
+1_DEV/M2_System/SimpleDataTransfer \
 1_DEV/M2_System/SysLog \
 1_DEV/M2_System/SysLog_Queue \
 1_DEV/M2_System/SystemManager \

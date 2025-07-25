@@ -216,6 +216,20 @@ SECTIONS
     . = . + 0x14000;         /* 80KB = 0x14000 bytes */
     _elog_data = .;          /* End of log data */
   } >RAM_D2
+  
+  .ram_data_bridge (NOLOAD) :
+  {
+    . = ALIGN(4);
+    /* Giữ lại toàn bộ dữ liệu của các input section .ram_data_bridge */
+    KEEP(*(.ram_data_bridge))
+    /* Nếu bạn có thêm các section con như .ram_data_bridge.* thì: */
+    KEEP(*(.ram_data_bridge*))
+    . = ALIGN(4);
+    _sram_data_bridge = .;
+    . = . + 0x8000;
+    _eram_data_bridge = .;
+    . = ALIGN(4);
+  } >RAM_D3
 
   .shared_mem (NOLOAD) :
   {

@@ -40,6 +40,7 @@ RM := rm -rf
 -include 1_DEV/M2_System/SystemManager/subdir.mk
 -include 1_DEV/M2_System/SysLog_Queue/subdir.mk
 -include 1_DEV/M2_System/SysLog/subdir.mk
+-include 1_DEV/M2_System/SimpleDataTransfer/subdir.mk
 -include 1_DEV/M2_System/ScriptManager/subdir.mk
 -include 1_DEV/M2_System/MIN_Process/subdir.mk
 -include 1_DEV/M2_System/FileSystem/subdir.mk

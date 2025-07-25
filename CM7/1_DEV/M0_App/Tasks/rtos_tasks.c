@@ -262,9 +262,6 @@ Std_ReturnType OBC_AppInit(void)
 
 	MODFSP_Init(&cm4_protocol);
 
-
-    CREATE_TASK(FS_Gatekeeper_Task, 	"FS_Gatekeeper", 	MIN_STACK_SIZE * 20, 	NULL, 									2, NULL);
-
     CREATE_TASK(MIN_Process_Task, 		"MIN_Process", 		MIN_STACK_SIZE * 20, 	NULL, 									1, NULL);
 
     CREATE_TASK(MODFSP_Process_Task, 	"MODFSP_Process", 	MIN_STACK_SIZE * 20, 	NULL, 									1, NULL);
@@ -294,9 +291,13 @@ Std_ReturnType OBC_AppInit(void)
     CREATE_TASK(WatchdogMonitorTask, 	"WatchdogMonitorTask", 	MIN_STACK_SIZE * 2, 		NULL, 									1, NULL);
     CREATE_TASK(WatchdogPulseTask, 		"WatchdogPulseTask", 	MIN_STACK_SIZE * 2, 		NULL, 									1, NULL);
 
-    CREATE_TASK(CM4_KeepAliveTask, 		"CM4_KeepAlive", 		MIN_STACK_SIZE * 5, 		NULL, 									1, NULL);
+//    CREATE_TASK(CM4_KeepAliveTask, 		"CM4_KeepAlive", 		MIN_STACK_SIZE * 5, 		NULL, 									1, NULL);
+
+    CREATE_TASK(LogFetching_Task, 		"LogFetching_Task", 	MIN_STACK_SIZE * 10, 		NULL, 									1, NULL);
 
     CREATE_TASK(ExpMonitorTask, 		"ExpMonitorTask", 		MIN_STACK_SIZE * 2, 		NULL, 									1, NULL);
+
+    CREATE_TASK(SDLockRelease_Task, 	"SDLockRelease_Task", 	MIN_STACK_SIZE * 5, 		NULL, 									1, NULL);
 
     vTaskDelay(pdMS_TO_TICKS(1));
 
@@ -547,13 +548,13 @@ void vTask3_handler(void *pvParameters)
 		SYSLOG_NOTICE(buffer);
 		vTaskDelay(60000);
 	}
-}\
+}
 
 void LogManager_Task(void *pvParameters)
 {
     for (;;) {
     	Task_Kick("LOG");
-    	LogManager_Process();
+//    	LogManager_Process();
         vTaskDelay(100);
     }
 }
