@@ -107,7 +107,8 @@ bool LogManager_SendLogData(LogSource_TypeDef source, uint8_t *current_buffer_to
     SimpleTransferResult_t result = SimpleDataTransfer_ExecuteLogTransfer(
         base_filename,
         current_buffer_to_send,
-        data_length
+        data_length,
+		rtc.year, rtc.month, rtc.day, rtc.hour, rtc.minute, rtc.second
     );
 
     if (result == SIMPLE_TRANSFER_SUCCESS) {

@@ -119,6 +119,7 @@ static void CMD_DevLogManagerLog(EmbeddedCli *cli, char *args, void *context);
 static void CMD_DevCM4KeepAliveStatus(EmbeddedCli *cli, char *args, void *context);
 
 static void CMD_Testcase(EmbeddedCli *cli, char *args, void *context);
+static void CMD_FormatSD(EmbeddedCli *cli, char *args, void *context);
 /*************************************************
  *                 Command  Array                *
  *************************************************/
@@ -142,6 +143,7 @@ static const CliCommandBinding cliStaticBindings_internal[] = {
     { NULL,         	"fram_write",  	"Write to FRAM: fram_write [address] [value]",        	true,  	NULL, CMD_FramWrite, 	 },
     { NULL,         	"fram_read",   	"Read from FRAM: fram_read [address]",                	true,  	NULL, CMD_FramRead,  	 },
 	{ "FileSystem", 	"ls", 			"List files in filesystem", 							false, 	NULL, CMD_ls 			 },
+	{ "FileSystem", 	"format_sd", 	"Format SD card filesystem (delete all)", 				false, 	NULL, CMD_FormatSD 	     },
 	{ "FileSystem", 	"sd_lockin", 	"Lock SD filesystem", 									false, 	NULL, CMD_sd_lockin  	 },
     { "FileSystem", 	"sd_release", 	"Release SD filesystem", 								false, 	NULL, CMD_sd_release 	 },
     { "FileSystem", 	"vim_bypass", 	"Write no queue: vim_bypass <filename> \"content\"", 	true, 	NULL, CMD_vim_bypass 	 },
@@ -1654,6 +1656,19 @@ static void CMD_Testcase(EmbeddedCli *cli, char *args, void *context)
     else{
         embeddedCliPrint(cli, "Unsupported mode. Only '0' is implemented.");
     }
+}
+
+
+static void CMD_FormatSD(EmbeddedCli *cli, char *args, void *context) {
+    Std_ReturnType ret = PerformCleanup();
+    if (ret == E_OK) {
+        embeddedCliPrint(cli, "Filesystem formatted successfully.");
+    } else if (ret == E_BUSY) {
+        embeddedCliPrint(cli, "Filesystem busy. Try again later.");
+    } else {
+        embeddedCliPrint(cli, "Filesystem format failed.");
+    }
+    embeddedCliPrint(cli, "");
 }
 
 

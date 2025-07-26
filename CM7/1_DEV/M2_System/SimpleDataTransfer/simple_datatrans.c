@@ -52,16 +52,36 @@ static uint32_t g_crc_errors = 0;
 static volatile bool g_master_ack_received = false;
 static volatile bool g_master_ack_success = false;
 
+static volatile bool fatfs_ok = true;
+
 /*************************************************
  *              PRIVATE FUNCTIONS                *
  *************************************************/
 static SimpleTransferResult_t ExecuteSingleTransfer(SimpleDataType_t data_type,
                                                    uint16_t chunk_id,
-                                                   const char* base_filename);
+                                                   const char* base_filename,
+                                                   uint8_t year,
+                                                   uint8_t month,
+                                                   uint8_t day,
+                                                   uint8_t hour,
+                                                   uint8_t minute,
+                                                   uint8_t second);
 
 /*************************************************
  *              PUBLIC FUNCTIONS                 *
  *************************************************/
+
+
+void SimpleDataTransfer_SetFatfsOk(bool status)
+{
+    fatfs_ok = status;
+}
+
+bool SimpleDataTransfer_IsFatfsOk(void)
+{
+    return fatfs_ok;
+}
+
 
 /**
  * @brief Initialize Simple Data Transfer system
@@ -91,7 +111,13 @@ Std_ReturnType SimpleDataTransfer_Init(void)
  */
 SimpleTransferResult_t SimpleDataTransfer_ExecuteTransfer(SimpleDataType_t data_type,
 														 uint16_t chunk_id,
-                                                         const char* base_filename)
+                                                         const char* base_filename,
+                                                         uint8_t year,
+                                                         uint8_t month,
+                                                         uint8_t day,
+                                                         uint8_t hour,
+                                                         uint8_t minute,
+                                                         uint8_t second)
 {
     if (!base_filename || data_type > DATA_TYPE_LOG) {
         return SIMPLE_TRANSFER_ERROR_INVALID_PARAMS;
@@ -101,12 +127,12 @@ SimpleTransferResult_t SimpleDataTransfer_ExecuteTransfer(SimpleDataType_t data_
                 SimpleDataTransfer_GetTypeString(data_type), chunk_id);
 
 
-    SimpleTransferResult_t result = ExecuteSingleTransfer(data_type, chunk_id, base_filename);
+    SimpleTransferResult_t result = ExecuteSingleTransfer(data_type, chunk_id, base_filename, year, month, day, hour, minute, second);
 
 
     if (result == SIMPLE_TRANSFER_SUCCESS) {
         g_successful_transfers++;
-        BScript_Log("[SimpleDataTransfer] Transfer completed successfully");
+        BScript_Log("[SimpleDataTransfer] Overall result this step: Completed");
     } else {
         g_failed_transfers++;
         BScript_Log("[SimpleDataTransfer] Transfer failed: %s",
@@ -119,43 +145,56 @@ SimpleTransferResult_t SimpleDataTransfer_ExecuteTransfer(SimpleDataType_t data_
 /**
  * @brief Transfer multiple chunks (BLOCKING)
  */
-SimpleTransferResult_t SimpleDataTransfer_ExecuteMultipleChunks(SimpleDataType_t data_type,
-                                                               uint16_t total_chunks,
-                                                               const char* base_filename)
+//SimpleTransferResult_t SimpleDataTransfer_ExecuteMultipleChunks(SimpleDataType_t data_type,
+//                                                               uint16_t total_chunks,
+//                                                               const char* base_filename)
+//{
+//    if (!base_filename || data_type > DATA_TYPE_LOG || total_chunks == 0 || total_chunks > 256) {
+//        return SIMPLE_TRANSFER_ERROR_INVALID_PARAMS;
+//    }
+//
+//    // For CURRENT and LOG, force single chunk
+//    if (data_type != DATA_TYPE_CHUNK) {
+//        total_chunks = 1;
+//    }
+//
+//    BScript_Log("[SimpleDataTransfer] Starting %s transfer - %u chunks",
+//                SimpleDataTransfer_GetTypeString(data_type), total_chunks);
+//
+//    for (uint16_t chunk_id = 0; chunk_id < total_chunks; chunk_id++) {
+//        SimpleTransferResult_t result = ExecuteSingleTransfer(data_type, chunk_id, base_filename);
+//
+//        if (result != SIMPLE_TRANSFER_SUCCESS) {
+//            BScript_Log("[SimpleDataTransfer] Failed at chunk %u/%u: %s",
+//                       chunk_id + 1, total_chunks, SimpleDataTransfer_GetResultString(result));
+//            g_failed_transfers++;
+//            return result;
+//        }
+//
+//        g_successful_transfers++;
+//        BScript_Log("[SimpleDataTransfer] Chunk %u/%u completed", chunk_id + 1, total_chunks);
+//
+//        // Small delay between chunks to prevent overwhelming the system
+//        if (total_chunks > 1 && chunk_id < (total_chunks - 1)) {
+//            BScript_Delayms(10);
+//        }
+//    }
+//
+//    BScript_Log("[SimpleDataTransfer] All %u chunks transferred successfully", total_chunks);
+//    return SIMPLE_TRANSFER_SUCCESS;
+//}
+
+uint32_t CRC_HW_Calculation(const uint8_t *data_buffer, uint32_t length)
 {
-    if (!base_filename || data_type > DATA_TYPE_LOG || total_chunks == 0 || total_chunks > 256) {
-        return SIMPLE_TRANSFER_ERROR_INVALID_PARAMS;
+    if (length == 0) return 0;
+
+    CRC->CR = CRC_CR_RESET;
+
+    for (uint32_t i = 0; i < length; i++) {
+        CRC->DR = data_buffer[i];
     }
 
-    // For CURRENT and LOG, force single chunk
-    if (data_type != DATA_TYPE_CHUNK) {
-        total_chunks = 1;
-    }
-
-    BScript_Log("[SimpleDataTransfer] Starting %s transfer - %u chunks",
-                SimpleDataTransfer_GetTypeString(data_type), total_chunks);
-
-    for (uint16_t chunk_id = 0; chunk_id < total_chunks; chunk_id++) {
-        SimpleTransferResult_t result = ExecuteSingleTransfer(data_type, chunk_id, base_filename);
-
-        if (result != SIMPLE_TRANSFER_SUCCESS) {
-            BScript_Log("[SimpleDataTransfer] Failed at chunk %u/%u: %s",
-                       chunk_id + 1, total_chunks, SimpleDataTransfer_GetResultString(result));
-            g_failed_transfers++;
-            return result;
-        }
-
-        g_successful_transfers++;
-        BScript_Log("[SimpleDataTransfer] Chunk %u/%u completed", chunk_id + 1, total_chunks);
-
-        // Small delay between chunks to prevent overwhelming the system
-        if (total_chunks > 1 && chunk_id < (total_chunks - 1)) {
-            BScript_Delayms(200);
-        }
-    }
-
-    BScript_Log("[SimpleDataTransfer] All %u chunks transferred successfully", total_chunks);
-    return SIMPLE_TRANSFER_SUCCESS;
+    return CRC->DR;
 }
 
 /**
@@ -163,11 +202,17 @@ SimpleTransferResult_t SimpleDataTransfer_ExecuteMultipleChunks(SimpleDataType_t
  */
 static SimpleTransferResult_t ExecuteSingleTransfer(SimpleDataType_t data_type,
                                                    uint16_t chunk_id,
-                                                   const char* base_filename)
+                                                   const char* base_filename,
+                                                   uint8_t year,
+                                                   uint8_t month,
+                                                   uint8_t day,
+                                                   uint8_t hour,
+                                                   uint8_t minute,
+                                                   uint8_t second)
 {
     char filename[64];
-    uint16_t expected_crc = 0;
-    uint16_t calculated_crc = 0;
+    uint32_t expected_crc = 0;
+    uint32_t calculated_crc = 0;
 
     // Generate filename
     SimpleDataTransfer_GenerateFilename(data_type, base_filename, chunk_id, filename);
@@ -194,7 +239,7 @@ static SimpleTransferResult_t ExecuteSingleTransfer(SimpleDataType_t data_type,
 		  }
 
 		  case DATA_TYPE_CURRENT: {
-				if (!MIN_Send_GET_LASER_CURRENT_CRC_CMD_WithData(chunk_response, &chunk_response_len)) {
+				if (!MIN_Send_GET_LASER_CURRENT_DATA_CMD_WithData(chunk_response, &chunk_response_len)) {
 					BScript_Log("[SimpleDataTransfer] Failed to Send get-current from slave");
 					retry_count++;
 					continue;
@@ -219,10 +264,11 @@ static SimpleTransferResult_t ExecuteSingleTransfer(SimpleDataType_t data_type,
         BScript_Log("[SimpleDataTransfer] Step 1: Waiting for Data ready...");
         if (SimpleDataTransfer_WaitDataReady(TRANSFER_TIMEOUT_MS) != E_OK) {
             BScript_Log("[SimpleDataTransfer] DATAREADY timeout");
-            return SIMPLE_TRANSFER_ERROR_DATAREADY_TIMEOUT;
+			retry_count++;
+			continue;
         }
 
-        vTaskDelay(200);
+//        vTaskDelay(10);
 
         // Step 2: Read data from slave via SPI DMA
         BScript_Log("[SimpleDataTransfer] Step 2: Reading %u bytes from slave (attempt %u)...",
@@ -241,7 +287,8 @@ static SimpleTransferResult_t ExecuteSingleTransfer(SimpleDataType_t data_type,
 
         if (SPI_MasterDevice_ReadDMA((uint32_t)g_simple_ram_d3_buffer, DATA_CHUNK_SIZE) != E_OK) {
             BScript_Log("[SimpleDataTransfer] SPI read failed");
-            return SIMPLE_TRANSFER_ERROR_SPI_READ_FAILED;
+			retry_count++;
+			continue;
         }
 
         memcpy(g_transfer_ram_d1_buffer, g_simple_ram_d3_buffer, DATA_CHUNK_SIZE);
@@ -252,16 +299,17 @@ static SimpleTransferResult_t ExecuteSingleTransfer(SimpleDataType_t data_type,
         BScript_Log("[SimpleDataTransfer] Step 2.5: Signaling READDONE and waiting for DATAREADY low...");
         LL_GPIO_SetOutputPin(READDONE_PIN_PORT, READDONE_PIN);
 
-        vTaskDelay(200);
+//        vTaskDelay(200);
 
         TickType_t handshake_start_time = xTaskGetTickCount();
         TickType_t handshake_timeout_ticks = pdMS_TO_TICKS(TRANSFER_TIMEOUT_MS);
 
-        while (LL_GPIO_IsInputPinSet(DATAREADY_PIN_PORT, DATAREADY_PIN)) {
+        while (!LL_GPIO_IsInputPinSet(DATAREADY_PIN_PORT, DATAREADY_PIN)) {
             if ((xTaskGetTickCount() - handshake_start_time) >= handshake_timeout_ticks) {
                 BScript_Log("[SimpleDataTransfer] Timeout waiting for DATAREADY to go low after READDONE");
                 LL_GPIO_ResetOutputPin(READDONE_PIN_PORT, READDONE_PIN); // Reset pin on timeout
-                return SIMPLE_TRANSFER_ERROR_DATAREADY_TIMEOUT; // Re-use timeout error
+				retry_count++;
+				continue;
             }
             BScript_Delayms(1); // Yield to other tasks
         }
@@ -275,7 +323,7 @@ static SimpleTransferResult_t ExecuteSingleTransfer(SimpleDataType_t data_type,
             BScript_Log("[SimpleDataTransfer] Step 3: Verifying CRC...");
 
             // Get CRC from slave
-            uint8_t crc_response[2];
+            uint8_t crc_response[4];
             uint8_t crc_response_len = 0;
 
             if(data_type == DATA_TYPE_CHUNK){
@@ -292,27 +340,38 @@ static SimpleTransferResult_t ExecuteSingleTransfer(SimpleDataType_t data_type,
 				}
             }
 
-            if (crc_response_len != 2 ) {
+            if (crc_response_len != 4 ) {
                 BScript_Log("[SimpleDataTransfer] Invalid CRC response length");
                 retry_count++;
                 continue;
             }
 
-            BScript_Log("[SimpleDataTransfer] First 8 bytes of buffer:");
-            for (int i = 0; i < 8; i++) {
-                BScript_Log("Byte %02d: 0x%02X", i, g_transfer_ram_d1_buffer[i]);
-            }
+//            BScript_Log("[SimpleDataTransfer] First 8 bytes of buffer:");
+//            for (int i = 0; i < 8; i++) {
+//                BScript_Log("Byte %02d: 0x%02X", i, g_transfer_ram_d1_buffer[i]);
+//            }
+//
+//            BScript_Log("[SimpleDataTransfer] Last 8 bytes of buffer:");
+//            for (int i = DATA_CHUNK_SIZE - 8; i < DATA_CHUNK_SIZE; i++) {
+//                BScript_Log("Byte %02d: 0x%02X", i, g_transfer_ram_d1_buffer[i]);
+//            }
 
-            BScript_Log("[SimpleDataTransfer] Last 8 bytes of buffer:");
-            for (int i = DATA_CHUNK_SIZE - 8; i < DATA_CHUNK_SIZE; i++) {
-                BScript_Log("Byte %02d: 0x%02X", i, g_transfer_ram_d1_buffer[i]);
-            }
+//            expected_crc = (crc_response[0] << 8) | crc_response[1];
+//            calculated_crc = SimpleDataTransfer_CalculateCRC16(g_transfer_ram_d1_buffer, DATA_CHUNK_SIZE);
+//            expected_crc = 0x0000;
+//            calculated_crc = 0x0000;
+//            SimpleDataTransfer_CalculateCRC16
+            expected_crc = ((uint32_t)crc_response[0] << 24) |
+                           ((uint32_t)crc_response[1] << 16) |
+                           ((uint32_t)crc_response[2] << 8)  |
+                           ((uint32_t)crc_response[3]);
 
-            expected_crc = (crc_response[0] << 8) | crc_response[1];
-            calculated_crc = SimpleDataTransfer_CalculateCRC16(g_transfer_ram_d1_buffer, DATA_CHUNK_SIZE);
+            calculated_crc = CRC_HW_Calculation(g_transfer_ram_d1_buffer, DATA_CHUNK_SIZE);
+
+            BScript_Log("[SimpleDataTransfer] CRC32 ->>>>> Calculated: 0x%08X", calculated_crc);
 
             if (expected_crc != calculated_crc) {
-                BScript_Log("[SimpleDataTransfer] CRC mismatch - Expected: 0x%04X, Calculated: 0x%04X",
+                BScript_Log("[SimpleDataTransfer] CRC mismatch - Expected: 0x%08X, Calculated: 0x%08X",
                            expected_crc, calculated_crc);
                 g_crc_errors++;
                 retry_count++;
@@ -325,31 +384,40 @@ static SimpleTransferResult_t ExecuteSingleTransfer(SimpleDataType_t data_type,
                 }
 
                 BScript_Log("[SimpleDataTransfer] Max CRC retries exceeded");
-                return SIMPLE_TRANSFER_ERROR_CRC_MISMATCH;
+				retry_count++;
+				continue;
             }
 
-            BScript_Log("[SimpleDataTransfer] CRC verified: 0x%04X", calculated_crc);
+            BScript_Log("[SimpleDataTransfer] CRC verified: 0x%08X", calculated_crc);
         }
 
         break; // Success or no CRC check needed
 
     } while (retry_count < MAX_CRC_RETRY_COUNT);
 
-    BScript_Log("[SimpleDataTransfer] Filesystem try to write file...");
-    // Step 4: Save data to file
-    Std_ReturnType fs_result = FS_Write_Direct(filename, g_transfer_ram_d1_buffer, DATA_CHUNK_SIZE);
-    if (fs_result == E_BUSY) {
-        // Filesystem busy, wait a bit and retry once
-        BScript_Log("[SimpleDataTransfer] Filesystem busy, retrying...");
-        BScript_Delayms(10);
-        fs_result = FS_Write_Direct(filename, g_transfer_ram_d1_buffer, DATA_CHUNK_SIZE);
+    if(SimpleDataTransfer_IsFatfsOk()){
+    	BScript_Log("[SimpleDataTransfer] Filesystem try to write file...");
+		// Step 4: Save data to file
+		Std_ReturnType fs_result = FS_Write_Direct(filename, g_transfer_ram_d1_buffer, DATA_CHUNK_SIZE);
+		if (fs_result == E_BUSY) {
+			// Filesystem busy, wait a bit and retry once
+			BScript_Log("[SimpleDataTransfer] Filesystem busy, retrying...");
+			BScript_Delayms(10);
+			fs_result = FS_Write_Direct(filename, g_transfer_ram_d1_buffer, DATA_CHUNK_SIZE);
+		}
+
+		if (fs_result != E_OK) {
+			BScript_Log("[SimpleDataTransfer] File save failed: %s",
+					   (fs_result == E_BUSY) ? "Filesystem busy" : "Write error");
+
+			SimpleDataTransfer_SetFatfsOk(false);
+
+			return SIMPLE_TRANSFER_ERROR_FILE_SAVE_FAILED;
+		}
+    }else{
+    	BScript_Log("[SimpleDataTransfer] Bypass Filesystem write file !!!...");
     }
 
-    if (fs_result != E_OK) {
-        BScript_Log("[SimpleDataTransfer] File save failed: %s",
-                   (fs_result == E_BUSY) ? "Filesystem busy" : "Write error");
-        return SIMPLE_TRANSFER_ERROR_FILE_SAVE_FAILED;
-    }
 
     uint8_t master_retry = 0;
     do {
@@ -357,7 +425,8 @@ static SimpleTransferResult_t ExecuteSingleTransfer(SimpleDataType_t data_type,
 		BScript_Log("[SimpleDataTransfer] Step 5: Sending data to master...");
 		if (SPI_SlaveDevice_ResetDMA((uint32_t)g_transfer_ram_d1_buffer, DATA_CHUNK_SIZE) != E_OK) {
 			BScript_Log("[SimpleDataTransfer] SPI slave setup failed");
-			return SIMPLE_TRANSFER_ERROR_MASTER_TRIGGER_FAILED;
+		    master_retry++;
+			continue;
 		}
 
 		// Step 6: Trigger master to read data
@@ -367,39 +436,69 @@ static SimpleTransferResult_t ExecuteSingleTransfer(SimpleDataType_t data_type,
 
 		switch (data_type) {
 		  case DATA_TYPE_CHUNK: {
-			uint8_t trigger_data[4];
+			uint8_t trigger_data[12];
 			trigger_data[0] = (uint8_t)((chunk_id >> 8) & 0xFF);
 			trigger_data[1] = (uint8_t)(chunk_id & 0xFF);
-			uint16_t crc_for_master = crc_check_needed ? calculated_crc : 0;
-			trigger_data[2] = (uint8_t)((crc_for_master >> 8) & 0xFF);
-			trigger_data[3] = (uint8_t)(crc_for_master & 0xFF);
+			uint32_t crc_for_master = crc_check_needed ? calculated_crc : 0;
+			trigger_data[2] = (uint8_t)((crc_for_master >> 24) & 0xFF);
+			trigger_data[3] = (uint8_t)((crc_for_master >> 16) & 0xFF);
+			trigger_data[4] = (uint8_t)((crc_for_master >>  8) & 0xFF);
+			trigger_data[5] = (uint8_t)(crc_for_master         & 0xFF);
+
+			trigger_data[6] = year;
+			trigger_data[7] = month;
+			trigger_data[8] = day;
+			trigger_data[9] = hour;
+			trigger_data[10] = minute;
+			trigger_data[11] = second;
+
 			if (MODFSP_Send(&cm4_protocol, MODFSP_TYPE_CHUNK_CMD,
 							 trigger_data, sizeof(trigger_data)) != MODFSP_OK) {
 			  BScript_Log("[SimpleDataTransfer] Master trigger failed");
-			  return SIMPLE_TRANSFER_ERROR_MASTER_TRIGGER_FAILED;
+			    master_retry++;
+				continue;
 			}
 			break;
 		  }
 
 		  case DATA_TYPE_CURRENT: {
-			uint8_t trigger_data[2];
-			uint16_t crc_for_master = crc_check_needed ? calculated_crc : 0;
-			trigger_data[0] = (uint8_t)((crc_for_master >> 8) & 0xFF);
-			trigger_data[1] = (uint8_t)(crc_for_master & 0xFF);
+			uint8_t trigger_data[10];
+			uint32_t crc_for_master = crc_check_needed ? calculated_crc : 0;
+			trigger_data[0] = (uint8_t)((crc_for_master >> 24) & 0xFF);
+			trigger_data[1] = (uint8_t)((crc_for_master >> 16) & 0xFF);
+			trigger_data[2] = (uint8_t)((crc_for_master >> 8)  & 0xFF);
+			trigger_data[3] = (uint8_t)(crc_for_master         & 0xFF);
+
+			trigger_data[4] = year;
+			trigger_data[5] = month;
+			trigger_data[6] = day;
+			trigger_data[7] = hour;
+			trigger_data[8] = minute;
+			trigger_data[9] = second;
+
 			if (MODFSP_Send(&cm4_protocol, MODFSP_TYPE_CURRENT_CMD,
 							 trigger_data, sizeof(trigger_data)) != MODFSP_OK) {
 			  BScript_Log("[SimpleDataTransfer] Master trigger failed");
-			  return SIMPLE_TRANSFER_ERROR_MASTER_TRIGGER_FAILED;
+			    master_retry++;
+				continue;
 			}
 			break;
 		  }
 
 		  case DATA_TYPE_LOG: {
-			uint8_t trigger_data[1];
+			uint8_t trigger_data[7];
 			trigger_data[0] = 0;
+			trigger_data[1] = year;
+			trigger_data[2] = month;
+			trigger_data[3] = day;
+			trigger_data[4] = hour;
+			trigger_data[5] = minute;
+			trigger_data[6] = second;
+
 			if (MODFSP_Send(&cm4_protocol, MODFSP_TYPE_LOG_CMD, trigger_data, sizeof(trigger_data)) != MODFSP_OK) {
 			  BScript_Log("[SimpleDataTransfer] Master trigger failed");
-			  return SIMPLE_TRANSFER_ERROR_MASTER_TRIGGER_FAILED;
+			    master_retry++;
+				continue;
 			}
 			break;
 		  }
@@ -417,9 +516,10 @@ static SimpleTransferResult_t ExecuteSingleTransfer(SimpleDataType_t data_type,
 		while (!g_master_ack_received) {
 			if ((xTaskGetTickCount() - start_time) >= timeout_ticks) {
 				BScript_Log("[SimpleDataTransfer] Master acknowledgment timeout");
-				return SIMPLE_TRANSFER_ERROR_MASTER_ACK_TIMEOUT;
+			    master_retry++;
+				continue;
 			}
-			BScript_Delayms(10);
+			BScript_Delayms(2);
 		}
 
         if (g_master_ack_success) {
@@ -439,7 +539,12 @@ static SimpleTransferResult_t ExecuteSingleTransfer(SimpleDataType_t data_type,
     return SIMPLE_TRANSFER_ERROR_MASTER_ACK_TIMEOUT;
 }
 
-SimpleTransferResult_t SimpleDataTransfer_ExecuteLogTransfer(const char* base_filename, uint8_t* log_data_ptr, uint32_t log_data_size)
+SimpleTransferResult_t SimpleDataTransfer_ExecuteLogTransfer(const char* base_filename, uint8_t* log_data_ptr, uint32_t log_data_size,                                                           uint8_t year,
+        uint8_t month,
+        uint8_t day,
+        uint8_t hour,
+        uint8_t minute,
+        uint8_t second)
 {
     char filename[64];
 
@@ -450,19 +555,27 @@ SimpleTransferResult_t SimpleDataTransfer_ExecuteLogTransfer(const char* base_fi
 
     SimpleDataTransfer_GenerateFilename(DATA_TYPE_LOG, base_filename,0 , filename);
 
-    BScript_Log("[SimpleDataTransfer] Saving log to %s...", filename);
-    Std_ReturnType fs_result = FS_Write_Direct(filename, log_data_ptr, log_data_size);
-    if (fs_result == E_BUSY) {
-        BScript_Log("[SimpleDataTransfer] Filesystem busy, retrying...");
-        BScript_Delayms(10);
-        fs_result = FS_Write_Direct(filename, log_data_ptr, log_data_size);
+	if(SimpleDataTransfer_IsFatfsOk()){
+		BScript_Log("[SimpleDataTransfer] Saving log to %s...", filename);
+		Std_ReturnType fs_result = FS_Write_Direct(filename, log_data_ptr, log_data_size);
+		if (fs_result == E_BUSY) {
+			BScript_Log("[SimpleDataTransfer] Filesystem busy, retrying...");
+			BScript_Delayms(10);
+			fs_result = FS_Write_Direct(filename, log_data_ptr, log_data_size);
+		}
+
+		if (fs_result != E_OK) {
+			BScript_Log("[SimpleDataTransfer] File save failed: %s",
+						  (fs_result == E_BUSY) ? "Filesystem busy" : "Write error");
+			SimpleDataTransfer_SetFatfsOk(false);
+
+			return SIMPLE_TRANSFER_ERROR_FILE_SAVE_FAILED;
+		}
+
+    }else{
+     	BScript_Log("[SimpleDataTransfer] Bypass Filesystem write file !!!...");
     }
 
-    if (fs_result != E_OK) {
-        BScript_Log("[SimpleDataTransfer] File save failed: %s",
-                      (fs_result == E_BUSY) ? "Filesystem busy" : "Write error");
-        return SIMPLE_TRANSFER_ERROR_FILE_SAVE_FAILED;
-    }
 
     uint8_t master_retry = 0;
     do {
@@ -476,7 +589,16 @@ SimpleTransferResult_t SimpleDataTransfer_ExecuteLogTransfer(const char* base_fi
         g_master_ack_received = false;
         g_master_ack_success = false;
 
-        uint8_t trigger_data[1] = {0xFF};
+        uint8_t trigger_data[7] = {0};
+
+        trigger_data[0] = 0xFF;
+		trigger_data[1] = year;
+		trigger_data[2] = month;
+		trigger_data[3] = day;
+		trigger_data[4] = hour;
+		trigger_data[5] = minute;
+		trigger_data[6] = second;
+
         if (MODFSP_Send(&cm4_protocol, MODFSP_TYPE_LOG_CMD, trigger_data, sizeof(trigger_data)) != MODFSP_OK) {
             BScript_Log("[SimpleDataTransfer] Master trigger failed");
             return SIMPLE_TRANSFER_ERROR_MASTER_TRIGGER_FAILED;
@@ -535,7 +657,7 @@ Std_ReturnType SimpleDataTransfer_WaitDataReady(uint32_t timeout_ms)
         if ((xTaskGetTickCount() - start_time) >= timeout_ticks) {
             return E_TIMEOUT;
         }
-        BScript_Delayms(10);
+        BScript_Delayms(1);
     }
 
     return E_OK;
@@ -576,7 +698,7 @@ void SimpleDataTransfer_GenerateFilename(SimpleDataType_t data_type,
     switch (data_type) {
         case DATA_TYPE_CHUNK:
             extension = ".dat";
-            snprintf(output_filename, 64, "%s_chunk%u%s", base_filename, chunk_id, extension);
+            snprintf(output_filename, 64, "%s%s", base_filename, extension);
             break;
         case DATA_TYPE_CURRENT:
             extension = ".cdat";

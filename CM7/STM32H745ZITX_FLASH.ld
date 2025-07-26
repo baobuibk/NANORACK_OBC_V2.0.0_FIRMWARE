@@ -201,7 +201,7 @@ SECTIONS
     KEEP(*(.ram_data_transfer*))
     . = ALIGN(4);
     _sram_data_transfer = .;
-    . = . + 0x8000;
+    . = . + 0x1000;
     _eram_data_transfer = .;
     . = ALIGN(4);
   } >RAM_D1  
@@ -240,7 +240,7 @@ SECTIONS
     KEEP(*(.ram_data_bridge*))
     . = ALIGN(4);
     _sram_data_bridge = .;
-    . = . + 0x8000;
+    . = . + 0x1000;
     _eram_data_bridge = .;
     . = ALIGN(4);
   } >RAM_D3

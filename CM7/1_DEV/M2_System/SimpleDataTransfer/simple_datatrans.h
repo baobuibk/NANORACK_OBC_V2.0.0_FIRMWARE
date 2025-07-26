@@ -16,9 +16,9 @@
 /*************************************************
  *                 DEFINITIONS                   *
  *************************************************/
-#define DATA_CHUNK_SIZE         (16 * 1024)    // 16KB per chunk
+#define DATA_CHUNK_SIZE         (32 * 1024)    // 32KB per chunk
 #define RAM_D3_BASE_ADDR        0x38000000      // RAM D3 base address
-#define MAX_CRC_RETRY_COUNT     3               // Maximum CRC retry attempts
+#define MAX_CRC_RETRY_COUNT     2               // Maximum CRC retry attempts
 #define MAX_MASTER_RETRIES  	3
 #define TRANSFER_TIMEOUT_MS     3000            // 3 second timeout
 
@@ -59,7 +59,14 @@ Std_ReturnType SimpleDataTransfer_Init(void);
  */
 SimpleTransferResult_t SimpleDataTransfer_ExecuteTransfer(SimpleDataType_t data_type,
                                                          uint16_t chunk_id,
-                                                         const char* base_filename);
+                                                         const char* base_filename,
+                                                         uint8_t year,
+                                                         uint8_t month,
+                                                         uint8_t day,
+                                                         uint8_t hour,
+                                                         uint8_t minute,
+                                                         uint8_t second
+														 );
 
 /**
  * @brief Transfer multiple chunks (BLOCKING CALL)
@@ -68,9 +75,9 @@ SimpleTransferResult_t SimpleDataTransfer_ExecuteTransfer(SimpleDataType_t data_
  * @param base_filename Base filename
  * @return Transfer result (fails on first chunk failure)
  */
-SimpleTransferResult_t SimpleDataTransfer_ExecuteMultipleChunks(SimpleDataType_t data_type,
-                                                               uint16_t total_chunks,
-                                                               const char* base_filename);
+//SimpleTransferResult_t SimpleDataTransfer_ExecuteMultipleChunks(SimpleDataType_t data_type,
+//                                                               uint16_t total_chunks,
+//                                                               const char* base_filename);
 
 /**
  * @brief Get string representation of transfer result
@@ -147,6 +154,15 @@ void SimpleDataTransfer_GenerateFilename(SimpleDataType_t data_type,
                                         uint16_t chunk_id,
                                         char* output_filename);
 
-SimpleTransferResult_t SimpleDataTransfer_ExecuteLogTransfer(const char* base_filename, uint8_t* log_data_ptr, uint32_t log_data_size);
+SimpleTransferResult_t SimpleDataTransfer_ExecuteLogTransfer(const char* base_filename, uint8_t* log_data_ptr, uint32_t log_data_size,                                                          uint8_t year,
+        uint8_t month,
+        uint8_t day,
+        uint8_t hour,
+        uint8_t minute,
+        uint8_t second);
+
+bool SimpleDataTransfer_IsFatfsOk(void);
+void SimpleDataTransfer_SetFatfsOk(bool status);
+
 
 #endif /* M2_SYSTEM_SIMPLEDATATRANSFER_SIMPLE_DATATRANS_H_ */

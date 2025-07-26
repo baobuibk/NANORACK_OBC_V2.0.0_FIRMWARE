@@ -49,6 +49,7 @@ static ScriptManager_t g_script_manager;
 static volatile uint8_t expMonitorFlag = 0;
 static volatile bool g_log_fetching_enabled = false;
 
+
 #define EXP_LOG_TRIGGER_GPIO_PORT 	EXPOUT_OBCIN_LOGTRIGGER_GPIO_Port
 #define EXP_LOG_TRIGGER_GPIO_PIN	EXPOUT_OBCIN_LOGTRIGGER_Pin
 
@@ -458,6 +459,7 @@ static void ScriptManager_ResetContext(ScriptType_t type)
     context->state = SCRIPT_EXEC_IDLE;
     context->current_step = 0;
     context->retry_count = 0;
+    SimpleDataTransfer_SetFatfsOk(true);
     context->first_run = true;
 }
 
@@ -1129,6 +1131,7 @@ void ScriptDLS_Task(void *pvParameters)
                 context->state = SCRIPT_EXEC_RUNNING;
                 context->current_step = 0;
                 context->retry_count = 0;
+                SimpleDataTransfer_SetFatfsOk(true);
 
                 // Execute all steps in the DLS routine
                 while (context->current_step < storage->parsed_script.total_steps &&
@@ -1282,7 +1285,7 @@ void LogFetching_Task(void *pvParameters)
             }
 
             if (!LL_GPIO_IsInputPinSet(EXP_LOG_TRIGGER_GPIO_PORT, EXP_LOG_TRIGGER_GPIO_PIN)) {
-                vTaskDelay(pdMS_TO_TICKS(100));
+                vTaskDelay(pdMS_TO_TICKS(50));
                 if (!LL_GPIO_IsInputPinSet(EXP_LOG_TRIGGER_GPIO_PORT, EXP_LOG_TRIGGER_GPIO_PIN)) {
                     BScript_Log("[LogFetching] Stable EXP trigger detected. Initiating special transfer.");
 
@@ -1293,7 +1296,7 @@ void LogFetching_Task(void *pvParameters)
                     snprintf(base_filename, sizeof(base_filename), "exp_log_20%02d%02d%02d_%02d%02d%02d",
                              rtc.year, rtc.month, rtc.day, rtc.hour, rtc.minute, rtc.second);
 
-                    SimpleDataTransfer_ExecuteTransfer(DATA_TYPE_LOG, 0, base_filename);
+                    SimpleDataTransfer_ExecuteTransfer(DATA_TYPE_LOG, 0, base_filename, rtc.year, rtc.month, rtc.day, rtc.hour, rtc.minute, rtc.second);
 
                     xSemaphoreGive(g_script_manager.execution_mutex);
                     continue;
@@ -1830,7 +1833,7 @@ static StepExecResult ScriptManager_ExecuteDLSStep(Step* step)
                 TickType_t now = xTaskGetTickCount();
 
                 if ((now - handshake_start_time) >= overall_timeout_ticks) {
-                    BScript_Log("[ScriptDLS] Timeout: MINBUSY is not LOW in 100ms or HIGH to long %lu ms", (unsigned long)overall_timeout_ticks);
+                    BScript_Log("[ScriptDLS] Timeout: MINBUSY is not LOW in 50ms or HIGH to long %lu ms", (unsigned long)overall_timeout_ticks);
                     return SIMPLE_TRANSFER_ERROR_MINBUSY_TIMEOUT;
                 }
 
@@ -1839,8 +1842,8 @@ static StepExecResult ScriptManager_ExecuteDLSStep(Step* step)
                     if (!minbusy_low_started) {
                         minbusy_low_start_time = now;
                         minbusy_low_started = true;
-                    } else if ((now - minbusy_low_start_time) >= pdMS_TO_TICKS(100)) {
-                        BScript_Log("[ScriptDLS] MINBUSY LOW 100ms, next step.");
+                    } else if ((now - minbusy_low_start_time) >= pdMS_TO_TICKS(50)) {
+                        BScript_Log("[ScriptDLS] MINBUSY LOW 50ms, next step.");
                         break;
                     }
                 } else {
@@ -1873,7 +1876,8 @@ static StepExecResult ScriptManager_ExecuteDLSStep(Step* step)
 
             BScript_Log("[ScriptDLS] Got total chunk: %u (> 256)", total_chunk);
 
-            char base_filename[32];
+            char base_filename[48];
+
             s_DateTime rtc;
             Utils_GetRTC(&rtc);
             const char* type_prefix = "";
@@ -1887,7 +1891,7 @@ static StepExecResult ScriptManager_ExecuteDLSStep(Step* step)
                 BScript_Log("[ScriptDLS] ->GET_SAMPLE: Chunks=%u, Base=%s",
                 		chunk_id, base_filename);
                 SimpleTransferResult_t result;
-                result = SimpleDataTransfer_ExecuteTransfer(DATA_TYPE_CHUNK, chunk_id, base_filename);
+                result = SimpleDataTransfer_ExecuteTransfer(DATA_TYPE_CHUNK, chunk_id, base_filename, rtc.year, rtc.month, rtc.day, rtc.hour, rtc.minute, rtc.second);
                 // Check result and return appropriate step result
                 if (result == SIMPLE_TRANSFER_SUCCESS) {
                     BScript_Log("[ScriptDLS] ->GET_SAMPLE: Data acquisition chunk: %u completed successfully", chunk_id);
@@ -1898,10 +1902,24 @@ static StepExecResult ScriptManager_ExecuteDLSStep(Step* step)
                 }
             }
             BScript_Log("[ScriptDLS] ->GET_SAMPLE: Finish collect Chunk");
-            break;
+            BScript_Log("[ScriptDLS] ->GET_SAMPLE: Now, we shall collect Current sample data");
+            type_prefix = "current_data";
+            snprintf(base_filename, sizeof(base_filename), "%s_20%02d%02d%02d_%02d%02d%02d",
+                                type_prefix, rtc.year, rtc.month, rtc.day, rtc.hour, rtc.minute, rtc.second);
+            BScript_Log("[ScriptDLS] ->GET_SAMPLE: Base=%s", base_filename);
+            SimpleTransferResult_t result;
+            result = SimpleDataTransfer_ExecuteTransfer(DATA_TYPE_CURRENT, 0, base_filename, rtc.year, rtc.month, rtc.day, rtc.hour, rtc.minute, rtc.second);
+            // Check result and return appropriate step result
+            if (result == SIMPLE_TRANSFER_SUCCESS) {
+                BScript_Log("[ScriptDLS] ->GET_SAMPLE: Data acquisition CURRENT completed successfully");
+            } else {
+                BScript_Log("[ScriptDLS] ->GET_SAMPLE: Data acquisition CURRENT failed: %s",
+                           SimpleDataTransfer_GetResultString(result));
+                return STEP_EXEC_ERROR;
+            }
 
-            //---------------
-            // TODO: Get current here
+            BScript_Log("[ScriptDLS] ->GET_SAMPLE: [v] Done this stop");
+            break;
 
         }
 
@@ -2184,6 +2202,8 @@ void ScriptManager_PrintStatus(void)
     } else {
         BScript_Log("  - Configured: NO");
     }
+
+    BScript_Log("  - eMMC status: %s", SimpleDataTransfer_IsFatfsOk() ? "OK" : "FAIL");
 
     // Script status
     for (int i = 0; i < SCRIPT_TYPE_COUNT; i++) {

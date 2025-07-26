@@ -52,6 +52,8 @@
 
 /* Private variables ---------------------------------------------------------*/
 
+CRC_HandleTypeDef hcrc;
+
 MMC_HandleTypeDef hmmc1;
 
 MDMA_HandleTypeDef hmdma_mdma_channel0_sdmmc1_end_data_0;
@@ -75,6 +77,7 @@ static void MX_SPI5_Init(void);
 static void MX_SPI6_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_UART7_Init(void);
+static void MX_CRC_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -201,6 +204,7 @@ Error_Handler();
   MX_SPI6_Init();
   MX_TIM1_Init();
   MX_UART7_Init();
+  MX_CRC_Init();
   /* USER CODE BEGIN 2 */
 #else
 
@@ -441,6 +445,8 @@ Error_Handler();
 //	  while (!LL_USART_IsActiveFlag_TC(UART_USB));
   }
 
+  MX_CRC_Init();
+
 #endif
 
   if (Mgmt_HardwareSystemPreparing() != E_OK){
@@ -550,6 +556,37 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief CRC Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_CRC_Init(void)
+{
+
+  /* USER CODE BEGIN CRC_Init 0 */
+
+  /* USER CODE END CRC_Init 0 */
+
+  /* USER CODE BEGIN CRC_Init 1 */
+
+  /* USER CODE END CRC_Init 1 */
+  hcrc.Instance = CRC;
+  hcrc.Init.DefaultPolynomialUse = DEFAULT_POLYNOMIAL_ENABLE;
+  hcrc.Init.DefaultInitValueUse = DEFAULT_INIT_VALUE_ENABLE;
+  hcrc.Init.InputDataInversionMode = CRC_INPUTDATA_INVERSION_NONE;
+  hcrc.Init.OutputDataInversionMode = CRC_OUTPUTDATA_INVERSION_DISABLE;
+  hcrc.InputDataFormat = CRC_INPUTDATA_FORMAT_BYTES;
+  if (HAL_CRC_Init(&hcrc) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN CRC_Init 2 */
+
+  /* USER CODE END CRC_Init 2 */
+
 }
 
 /**
@@ -1363,6 +1400,7 @@ static void MX_MDMA_Init(void)
   /* MDMA_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(MDMA_IRQn, 7, 0);
   HAL_NVIC_EnableIRQ(MDMA_IRQn);
+
   peripherals[1].errorCode = Sys_OK;
 }
 

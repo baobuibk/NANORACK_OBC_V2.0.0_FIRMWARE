@@ -104,6 +104,7 @@ typedef struct {
     uint16_t current_step;
     uint8_t retry_count;
     uint8_t max_retries;
+    bool fatfs_not_ok;
     bool first_run;
 } ScriptExecContext_t;
 
@@ -183,4 +184,5 @@ void UserActivityTrigger(void);
 uint8_t ExpMonitor_IsEnabled(void);
 uint8_t ExpMonitor_SetEnabled(uint8_t enable);
 void SDScheduler_Configure(uint32_t release_time_raw, uint32_t lockin_time_raw);
+
 #endif // SCRIPT_MANAGER_H
