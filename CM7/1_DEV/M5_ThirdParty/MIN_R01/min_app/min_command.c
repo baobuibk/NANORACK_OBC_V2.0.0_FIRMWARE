@@ -38,6 +38,26 @@ _Bool MIN_GetLastResponseData(uint8_t* data, uint8_t* length, uint32_t timeout_m
     return false;
 }
 
+static void MIN_Handler_PLEASE_RESET_ACK(MIN_Context_t *ctx, const uint8_t *payload, uint8_t len) {
+    char buffer[256];
+    int offset = 0;
+    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "Payload PLEASE_RESET_ACK (%u bytes):", len);
+    for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
+        offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
+    }
+    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
+    BScript_Log(buffer);
+    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
+    BScript_Log(buffer);
+
+    if (len <= sizeof(g_last_response_data.data)) {
+        memcpy(g_last_response_data.data, payload, len);
+        g_last_response_data.length = len;
+        g_last_response_data.valid = 1;
+        xSemaphoreGive(g_response_data_semaphore);
+    }
+}
+
 static void MIN_Handler_TEST_CONNECTION_ACK(MIN_Context_t *ctx, const uint8_t *payload, uint8_t len) {
     char buffer[256];
     int offset = 0;
@@ -629,6 +649,7 @@ static void MIN_Handler_MIN_RESP_OK(MIN_Context_t *ctx, const uint8_t *payload, 
 #define SET_LASER_INT_ACK							0x2F
 
 static const MIN_Command_t command_table[] = {
+	{ PLEASE_RESET_ACK,                    MIN_Handler_PLEASE_RESET_ACK 				},
     { TEST_CONNECTION_ACK,                 MIN_Handler_TEST_CONNECTION_ACK 				},
     { SET_WORKING_RTC_ACK,                 MIN_Handler_SET_WORKING_RTC_ACK				},
 	{ SET_NTC_CONTROL_ACK,				   MIN_Handler_SET_NTC_CONTROL_ACK				},

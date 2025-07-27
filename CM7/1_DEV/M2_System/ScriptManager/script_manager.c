@@ -34,6 +34,8 @@ extern MODFSP_Data_t cm4_protocol;
 
 #include "filesystem.h"
 #include "reinit.h"
+
+#include "RAMBK_Infor/rambk_infor.h"
 /*************************************************
  *               PRIVATE VARIABLES               *
  *************************************************/
@@ -1006,12 +1008,12 @@ void ScriptManager_HandleUpdateOBC(const uint8_t* data, uint32_t length)
 	MODFSP_Send(&cm4_protocol, UPDATE_OBC_ACK, NULL, 0);
     BScript_Log("[ScriptManager] Received UPDATE_OBC frame");
     vTaskDelay(200);
-    NVIC_SystemReset();
+    SystemOnBootloader_Reset();
 }
 
 void ScriptManager_HandleUpdateEXP(const uint8_t* data, uint32_t length)
 {
-	MODFSP_Send(&cm4_protocol, UPDATE_EXP_ACK, NULL, 0);
+//	MODFSP_Send(&cm4_protocol, UPDATE_EXP_ACK, NULL, 0);
     BScript_Log("[ScriptManager] Received UPDATE_EXP frame");
     ExpMonitor_SetEnabled(1);
 }

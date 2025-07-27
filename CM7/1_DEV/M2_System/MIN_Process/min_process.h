@@ -15,7 +15,7 @@ void MIN_ResponseCallback(uint8_t min_id, const uint8_t *payload, uint8_t len);
 // =================================================================
 // Command Sending Functions
 // =================================================================
-void MIN_Send_PLEASE_RESET_CMD(void);
+uint8_t MIN_Send_PLEASE_RESET_CMD(void);
 void MIN_Send_TEST_CONNECTION_CMD(uint32_t value);
 
 void MIN_Send_SET_TEMP_PROFILE_CMD(uint16_t target_temp, uint16_t min_temp, uint16_t max_temp,

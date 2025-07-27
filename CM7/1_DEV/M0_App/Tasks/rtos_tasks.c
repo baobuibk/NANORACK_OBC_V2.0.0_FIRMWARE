@@ -101,7 +101,7 @@ void CLI_Handle_Task(void *pvParameters);
 void vTask1_handler(void *pvParameters);
 void vTask2_handler(void *pvParameters);
 void vTask3_handler(void *pvParameters);
-void vUART_bufferTest(void *pvParameters);
+//void vUART_bufferTest(void *pvParameters);
 //void vUSBCheck_Task(void *argument);
 //void CDC_TX_Task(void *pvParameters);
 void UART_USB_DMA_RX_TASK(void *pvParameters);
@@ -290,7 +290,7 @@ Std_ReturnType OBC_AppInit(void)
     CREATE_TASK(WatchdogMonitorTask, 	"WatchdogMonitor", 	MIN_STACK_SIZE * 2, 		NULL, 									1, NULL);
     CREATE_TASK(WatchdogPulseTask, 		"WatchdogPulse", 	MIN_STACK_SIZE * 2, 		NULL, 									1, NULL);
 
-//    CREATE_TASK(CM4_KeepAliveTask, 		"CM4_KeepAlive", 		MIN_STACK_SIZE * 5, 		NULL, 									1, NULL);
+    CREATE_TASK(CM4_KeepAliveTask, 		"CM4_KeepAlive", 		MIN_STACK_SIZE * 5, 		NULL, 									1, NULL);
 
     CREATE_TASK(LogFetching_Task, 		"LogFetching", 		MIN_STACK_SIZE * 10, 		NULL, 									1, NULL);
 
@@ -497,7 +497,7 @@ void MODFSP_Process_Task(void *pvParameters)
             	MODFSP_Process(&cm4_protocol);
             }
         }
-	    vTaskDelay(pdMS_TO_TICKS(1));
+	    vTaskDelay(pdMS_TO_TICKS(2));
 	}
 }
 
@@ -510,7 +510,7 @@ void MIN_Process_Task(void *pvParameters)
         if (mode == FORWARD_MODE_NORMAL) {
         	MIN_Processing();
         }
-	    vTaskDelay(pdMS_TO_TICKS(1));
+	    vTaskDelay(pdMS_TO_TICKS(2));
 	}
 }
 
@@ -621,7 +621,14 @@ void ExpMonitorTask(void *pvParameters) {
             uint32_t elapsedMs = (now - lastChangeTime) * portTICK_PERIOD_MS;
 
             if (isLow && elapsedMs >= MONITOR_DEBOUNCE_MS && !resetSent) {
-                MIN_Send_PLEASE_RESET_CMD();
+                if(MIN_Send_PLEASE_RESET_CMD()){
+                	MODFSP_Send(&cm4_protocol, UPDATE_EXP_ACK, NULL, 0);
+                }else{
+                	if(MIN_Send_PLEASE_RESET_CMD()){
+                    	MODFSP_Send(&cm4_protocol, UPDATE_EXP_ACK, NULL, 0);
+
+                	}
+                }
                 ForwardMode_Set(FORWARD_MODE_UART);
                 resetSent = 1;
             }

@@ -79,7 +79,7 @@ void MIN_Processing(void){
 // =================================================================
 // Command Sending Functions
 // =================================================================
-void MIN_Send_PLEASE_RESET_CMD(void) {
+uint8_t MIN_Send_PLEASE_RESET_CMD(void) {
     uint8_t payload[1] = {0xFF};
 
     MIN_Send(&OBC_MinCtx, PLEASE_RESET_CMD, payload, sizeof(payload));
@@ -89,10 +89,14 @@ void MIN_Send_PLEASE_RESET_CMD(void) {
 
     if (xSemaphoreTake(responseSemaphore, pdMS_TO_TICKS(1000)) == pdTRUE) {
         SYSLOG_NOTICE("Response OK - PLEASE_RESET_CMD");
+        return 1;
     } else {
+    	return 0;
         SYSLOG_ERROR("Timeout PLEASE_RESET_CMD");
         ClearPendingCommand();
     }
+
+    return 1;
 }
 
 void MIN_Send_TEST_CONNECTION_CMD(uint32_t value) {
