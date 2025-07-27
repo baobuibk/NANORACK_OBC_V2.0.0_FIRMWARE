@@ -880,6 +880,10 @@ void ScriptManager_HandleMODFSPFrame(uint8_t frame_id, const uint8_t* data, uint
         	ScriptManager_HandleUpdateEXP(data, length);
         	break;
 
+        case 0x98:
+        	BScript_Log("[ScriptManager] Response from CM4 OK!");
+        	break;
+
 
         default:
             BScript_Log("[ScriptManager] Warning: Unknown frame ID: 0x%02X", frame_id);

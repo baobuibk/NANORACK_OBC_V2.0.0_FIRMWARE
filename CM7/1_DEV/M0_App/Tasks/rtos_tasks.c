@@ -621,14 +621,8 @@ void ExpMonitorTask(void *pvParameters) {
             uint32_t elapsedMs = (now - lastChangeTime) * portTICK_PERIOD_MS;
 
             if (isLow && elapsedMs >= MONITOR_DEBOUNCE_MS && !resetSent) {
-                if(MIN_Send_PLEASE_RESET_CMD()){
-                	MODFSP_Send(&cm4_protocol, UPDATE_EXP_ACK, NULL, 0);
-                }else{
-                	if(MIN_Send_PLEASE_RESET_CMD()){
-                    	MODFSP_Send(&cm4_protocol, UPDATE_EXP_ACK, NULL, 0);
+                (void)MIN_Send_PLEASE_RESET_CMD();
 
-                	}
-                }
                 ForwardMode_Set(FORWARD_MODE_UART);
                 resetSent = 1;
             }

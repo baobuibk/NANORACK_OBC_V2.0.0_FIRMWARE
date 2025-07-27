@@ -88,6 +88,8 @@ static void CMD_Dmesg(EmbeddedCli *cli, char *args, void *context);
 /*************************************************
  * Command Define "Dev"              *
  *************************************************/
+static void CMD_DevCM4TestConnection(EmbeddedCli *cli, char *args, void *context);
+
 static void CMD_DevEXPPleaseReset(EmbeddedCli *cli, char *args, void *context);
 static void CMD_DevTestConnection(EmbeddedCli *cli, char *args, void *context);
 static void CMD_DevEXPSetRTC(EmbeddedCli *cli, char *args, void *context);
@@ -170,6 +172,8 @@ static const CliCommandBinding cliStaticBindings_internal[] = {
     { NULL, 			"pull_data", 	"Pull data status: pull_data", 							false,  NULL, CMD_PullData 		 },
     { NULL, 			"slavespi_rst", "Reset SPI Slave Device to initial state", 				false, 	NULL, CMD_SPISlaveRST 	 },
     { NULL, 			"master_read",  "Read data via SPI6 Master: master_read <size>", 		true,   NULL, CMD_MasterRead 	 },
+
+	{ NULL,	"cm4_test_connection", 			"-",													false,  NULL, CMD_DevCM4TestConnection},
 
 	{ NULL,	"exp_please_reset", 			"-",													false,  NULL, CMD_DevEXPPleaseReset},
 	{ NULL, "test_connection", 				"Send TEST_CONNECTION_CMD with a 32-bit value", 		true, 	NULL, CMD_DevTestConnection },
@@ -1148,6 +1152,33 @@ static void CMD_DevTestConnection(EmbeddedCli *cli, char *args, void *context)
     embeddedCliPrint(cli, buffer);
     embeddedCliPrint(cli, "");
 }
+
+static void CMD_DevCM4TestConnection(EmbeddedCli *cli, char *args, void *context)
+{
+    const char *arg1 = embeddedCliGetToken(args, 1);
+    char buffer[100];
+    if (arg1 == NULL) {
+        snprintf(buffer, sizeof(buffer), "Usage: cm4_test_connection <value(32bit)>");
+        embeddedCliPrint(cli, buffer);
+        return;
+    }
+
+    uint32_t value = (uint32_t)strtoul(arg1, NULL, 0);
+
+	uint8_t trigger_data[4];
+	trigger_data[0] = (uint8_t)((value >> 24) & 0xFF);
+	trigger_data[1] = (uint8_t)((value >> 16) & 0xFF);
+	trigger_data[2] = (uint8_t)((value >> 8) & 0xFF);
+	trigger_data[3] = (uint8_t)(value & 0xFF);
+
+	MODFSP_Send(&cm4_protocol, 0x99,
+					 trigger_data, sizeof(trigger_data));
+
+    snprintf(buffer, sizeof(buffer), "Sent CM4_TEST_CONNECTION_CMD with value: %lu", (unsigned long)value);
+    embeddedCliPrint(cli, buffer);
+    embeddedCliPrint(cli, "");
+}
+
 
 static void CMD_DevEXPSetRTC(EmbeddedCli *cli, char *args, void *context)
 {
