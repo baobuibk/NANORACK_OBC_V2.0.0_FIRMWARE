@@ -131,75 +131,75 @@ void Utils_SoftTime_Update(void) {
         }
     }
 
-    // Cronjob
-    uint32_t current_epoch = Utils_GetEpoch();
-    uint8_t second_changed = (last_second != s_RealTimeClock_context.second);
-    uint8_t minute_changed = (last_minute != s_RealTimeClock_context.minute);
-    uint8_t hour_changed = (last_hour != s_RealTimeClock_context.hour);
-
-    for (uint8_t i = 0; i < MAX_CRONJOBS; i++) {
-        s_Cronjob *job = &s_Cronjob_List[i];
-        if (!job->active || !job->callback) continue;
-
-        switch (job->type) {
-            case CRON_TYPE_MOMENT:
-                if (second_changed && s_RealTimeClock_context.hour == job->hour &&
-                    s_RealTimeClock_context.minute == job->minute &&
-                    s_RealTimeClock_context.second == job->second) {
-                	job->callback(job->context);
-                    if (job->repeat_count > 0 && --job->remaining == 0) {
-                        job->active = 0;
-                    }
-                }
-                break;
-
-            case CRON_TYPE_COUNTDOWN:
-                if (current_epoch - job->last_trigger >= job->interval) {
-                	job->callback(job->context);
-                    job->last_trigger = current_epoch;
-                    if (job->repeat_count > 0 && --job->remaining == 0) {
-                        job->active = 0;
-                    }
-                }
-                break;
-
-            case CRON_TYPE_EVERY:
-                switch (job->every_unit) {
-                    case EVERY_HOUR:
-                        if (hour_changed && s_RealTimeClock_context.hour == job->hour) {
-                        	job->callback(job->context);
-                            job->last_triggered_unit = job->hour;
-                            if (job->repeat_count > 0 && --job->remaining == 0) {
-                                job->active = 0;
-                            }
-                        }
-                        break;
-                    case EVERY_MINUTE:
-                        if (minute_changed && s_RealTimeClock_context.minute == job->minute) {
-                        	job->callback(job->context);
-                            job->last_triggered_unit = job->minute;
-                            if (job->repeat_count > 0 && --job->remaining == 0) {
-                                job->active = 0;
-                            }
-                        }
-                        break;
-                    case EVERY_SECOND:
-                        if (second_changed && s_RealTimeClock_context.second == job->second) {
-                        	job->callback(job->context);
-                            job->last_triggered_unit = job->second;
-                            if (job->repeat_count > 0 && --job->remaining == 0) {
-                                job->active = 0;
-                            }
-                        }
-                        break;
-                }
-                break;
-        }
-    }
-
-    last_second = s_RealTimeClock_context.second;
-    last_minute = s_RealTimeClock_context.minute;
-    last_hour = s_RealTimeClock_context.hour;
+//    // Cronjob
+//    uint32_t current_epoch = Utils_GetEpoch();
+//    uint8_t second_changed = (last_second != s_RealTimeClock_context.second);
+//    uint8_t minute_changed = (last_minute != s_RealTimeClock_context.minute);
+//    uint8_t hour_changed = (last_hour != s_RealTimeClock_context.hour);
+//
+//    for (uint8_t i = 0; i < MAX_CRONJOBS; i++) {
+//        s_Cronjob *job = &s_Cronjob_List[i];
+//        if (!job->active || !job->callback) continue;
+//
+//        switch (job->type) {
+//            case CRON_TYPE_MOMENT:
+//                if (second_changed && s_RealTimeClock_context.hour == job->hour &&
+//                    s_RealTimeClock_context.minute == job->minute &&
+//                    s_RealTimeClock_context.second == job->second) {
+//                	job->callback(job->context);
+//                    if (job->repeat_count > 0 && --job->remaining == 0) {
+//                        job->active = 0;
+//                    }
+//                }
+//                break;
+//
+//            case CRON_TYPE_COUNTDOWN:
+//                if (current_epoch - job->last_trigger >= job->interval) {
+//                	job->callback(job->context);
+//                    job->last_trigger = current_epoch;
+//                    if (job->repeat_count > 0 && --job->remaining == 0) {
+//                        job->active = 0;
+//                    }
+//                }
+//                break;
+//
+//            case CRON_TYPE_EVERY:
+//                switch (job->every_unit) {
+//                    case EVERY_HOUR:
+//                        if (hour_changed && s_RealTimeClock_context.hour == job->hour) {
+//                        	job->callback(job->context);
+//                            job->last_triggered_unit = job->hour;
+//                            if (job->repeat_count > 0 && --job->remaining == 0) {
+//                                job->active = 0;
+//                            }
+//                        }
+//                        break;
+//                    case EVERY_MINUTE:
+//                        if (minute_changed && s_RealTimeClock_context.minute == job->minute) {
+//                        	job->callback(job->context);
+//                            job->last_triggered_unit = job->minute;
+//                            if (job->repeat_count > 0 && --job->remaining == 0) {
+//                                job->active = 0;
+//                            }
+//                        }
+//                        break;
+//                    case EVERY_SECOND:
+//                        if (second_changed && s_RealTimeClock_context.second == job->second) {
+//                        	job->callback(job->context);
+//                            job->last_triggered_unit = job->second;
+//                            if (job->repeat_count > 0 && --job->remaining == 0) {
+//                                job->active = 0;
+//                            }
+//                        }
+//                        break;
+//                }
+//                break;
+//        }
+//    }
+//
+//    last_second = s_RealTimeClock_context.second;
+//    last_minute = s_RealTimeClock_context.minute;
+//    last_hour = s_RealTimeClock_context.hour;
 }
 
 void Utils_SoftTime_Init(void)
@@ -216,10 +216,10 @@ void Utils_SoftTime_Init(void)
     s_WorkingTimeClock_context.minutes = 0;
     s_WorkingTimeClock_context.seconds = 0;
 
-    memset(s_Cronjob_List, 0, sizeof(s_Cronjob_List));
-    for (uint8_t i = 0; i < MAX_CRONJOBS; i++) {
-            s_Cronjob_List[i].active = 0;
-    }
+//    memset(s_Cronjob_List, 0, sizeof(s_Cronjob_List));
+//    for (uint8_t i = 0; i < MAX_CRONJOBS; i++) {
+//            s_Cronjob_List[i].active = 0;
+//    }
 }
 
 // ================= Helper Functions =================

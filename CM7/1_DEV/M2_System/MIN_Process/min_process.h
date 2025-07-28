@@ -43,9 +43,9 @@ void MIN_Send_GET_INFO_SAMPLE_CMD(void);
 
 void MIN_Send_GET_CHUNK_CMD(uint8_t noChunk);
 
-void MIN_Send_SET_EXT_LASER_INTENSITY_CMD(uint8_t intensity);
-void MIN_Send_TURN_ON_EXT_LASER_CMD(uint8_t position);
-void MIN_Send_TURN_OFF_EXT_LASER_CMD(void);
+void MIN_Send_MANUAL_SET_LASER_INTENSITY_CMD(uint8_t type, uint8_t intensity);
+void MIN_Send_MANUAL_TURN_ON_LASER_CMD(uint8_t type, uint8_t position);
+void MIN_Send_MANUAL_TURN_OFF_LASER_CMD(uint8_t type);
 
 void MIN_Send_CUSTOM_COMMAND_CMD(const char *cmdStr, uint8_t len);
 void MIN_Send_SET_NTC_CONTROL_CMD(uint8_t ntc_bitControl) ;
@@ -81,5 +81,11 @@ _Bool MIN_Send_TURN_OFF_EXT_LASER_CMD_WithData(uint8_t* response_data, uint8_t* 
 _Bool MIN_Send_TURN_ON_EXT_LASER_CMD_WithData(uint8_t position, uint8_t* response_data, uint8_t* response_len);
 _Bool MIN_Send_SET_WORKING_RTC_CMD_WithData(uint8_t* response_data, uint8_t* response_len);
 _Bool MIN_Send_GET_LOG_CMD_WithData(uint8_t* response_data, uint8_t* response_len);
+
+_Bool MIN_Send_MANUAL_TURN_OFF_LASER_CMD_WithData(uint8_t type, uint8_t* response_data, uint8_t* response_len);
+_Bool MIN_Send_MANUAL_TURN_ON_LASER_CMD_WithData(uint8_t type, uint8_t position, uint8_t* response_data, uint8_t* response_len);
+_Bool MIN_Send_MANUAL_SET_INTENSITY_CMD_WithData(uint8_t type, uint8_t intensity, uint8_t* response_data, uint8_t* response_len);
+_Bool MIN_Send_MANUAL_GET_LASER_CURRENT_CMD_WithData(uint8_t* response_data, uint8_t* response_len) ;
+_Bool MIN_Send_PLEASE_RESET_EXP_WithData(uint8_t* response_data, uint8_t* response_len) ;
 
 #endif /* M2_SYSTEM_MIN_PROCESS_MIN_PROCESS_H_ */

@@ -247,13 +247,20 @@ void UART_Driver_TX_ISR(USART_TypeDef *uart)
         driver->uart->ICR = USART_ICR_NECF;  // Clear Noise Error Flag
     }
 
-//    if (driver->uart->ISR & USART_ISR_EOBF) {
-//        driver->uart->ICR = USART_ICR_EOBCF; // Clear End of Block Flag
-//    }
+    if (driver->uart->ISR & USART_ISR_EOBF) {
+        driver->uart->ICR = USART_ICR_EOBCF; // Clear End of Block Flag
+    }
 
     if (driver->uart->ISR & USART_ISR_CMF) {
         driver->uart->ICR = USART_ICR_CMCF;  // Clear Character Match Flag
     }
+
+    if (LL_USART_IsActiveFlag_FE(driver->uart))
+      LL_USART_ClearFlag_FE(driver->uart);
+    if (LL_USART_IsActiveFlag_NE(driver->uart))
+      LL_USART_ClearFlag_NE(driver->uart);
+    if (LL_USART_IsActiveFlag_ORE(driver->uart))
+      LL_USART_ClearFlag_ORE(driver->uart);
 
     if ((LL_USART_IsActiveFlag_TXE(uart) != RESET) &&
         (LL_USART_IsEnabledIT_TXE(uart) != RESET))

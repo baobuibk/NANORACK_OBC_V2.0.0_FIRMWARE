@@ -47,8 +47,6 @@ static void MIN_Handler_PLEASE_RESET_ACK(MIN_Context_t *ctx, const uint8_t *payl
     }
     snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
     BScript_Log(buffer);
-    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
-    BScript_Log(buffer);
 
     if (len <= sizeof(g_last_response_data.data)) {
         memcpy(g_last_response_data.data, payload, len);
@@ -366,6 +364,25 @@ static void MIN_Handler_GET_CHUNK_CRC_ACK(MIN_Context_t *ctx, const uint8_t *pay
     }
 }
 
+static void MIN_Handler_GET_LASER_CURRENT_DATA_ACK(MIN_Context_t *ctx, const uint8_t *payload, uint8_t len) {
+    char buffer[256];
+    int offset = 0;
+    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "Payload GET_LASER_CURRENT_DATA_ACK (%u bytes):", len);
+    for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
+        offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
+    }
+    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
+    BScript_Log("%s", buffer);
+    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
+    BScript_Log("%s", buffer);
+    if (len <= sizeof(g_last_response_data.data)) {
+        memcpy(g_last_response_data.data, payload, len);
+        g_last_response_data.length = len;
+        g_last_response_data.valid = 1;
+        xSemaphoreGive(g_response_data_semaphore);
+    }
+}
+
 static void MIN_Handler_GET_LASER_CURRENT_CRC_ACK(MIN_Context_t *ctx, const uint8_t *payload, uint8_t len) {
     char buffer[256];
     int offset = 0;
@@ -384,10 +401,10 @@ static void MIN_Handler_GET_LASER_CURRENT_CRC_ACK(MIN_Context_t *ctx, const uint
         xSemaphoreGive(g_response_data_semaphore);
     }
 }
-static void MIN_Handler_SET_EXT_LASER_INTENSITY_ACK(MIN_Context_t *ctx, const uint8_t *payload, uint8_t len) {
+static void MIN_Handler_MANUAL_SET_LASER_INTENSITY_ACK(MIN_Context_t *ctx, const uint8_t *payload, uint8_t len) {
     char buffer[256];
     int offset = 0;
-    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "Payload SET_EXT_LASER_INTENSITY_ACK (%u bytes):", len);
+    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "Payload MANUAL_SET_LASER_INTENSITY_ACK (%u bytes):", len);
     for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
         offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
     }
@@ -403,10 +420,10 @@ static void MIN_Handler_SET_EXT_LASER_INTENSITY_ACK(MIN_Context_t *ctx, const ui
     }
 }
 
-static void MIN_Handler_TURN_ON_EXT_LASER_ACK(MIN_Context_t *ctx, const uint8_t *payload, uint8_t len) {
+static void MIN_Handler_MANUAL_TURN_ON_LASER_ACK(MIN_Context_t *ctx, const uint8_t *payload, uint8_t len) {
     char buffer[256];
     int offset = 0;
-    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "Payload TURN_ON_EXT_LASER_ACK (%u bytes):", len);
+    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "Payload MANUAL_TURN_ON_LASER_ACK (%u bytes):", len);
     for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
         offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
     }
@@ -422,10 +439,29 @@ static void MIN_Handler_TURN_ON_EXT_LASER_ACK(MIN_Context_t *ctx, const uint8_t 
     }
 }
 
-static void MIN_Handler_TURN_OFF_EXT_LASER_ACK(MIN_Context_t *ctx, const uint8_t *payload, uint8_t len) {
+static void MIN_Handler_MANUAL_TURN_OFF_LASER_ACK(MIN_Context_t *ctx, const uint8_t *payload, uint8_t len) {
     char buffer[256];
     int offset = 0;
-    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "Payload TURN_OFF_EXT_LASER_ACK (%u bytes):", len);
+    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "Payload MANUAL_TURN_OFF_LASER_ACK (%u bytes):", len);
+    for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
+        offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
+    }
+    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
+    BScript_Log("%s", buffer);
+    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
+    BScript_Log("%s", buffer);
+    if (len <= sizeof(g_last_response_data.data)) {
+        memcpy(g_last_response_data.data, payload, len);
+        g_last_response_data.length = len;
+        g_last_response_data.valid = 1;
+        xSemaphoreGive(g_response_data_semaphore);
+    }
+}
+
+static void MIN_Handler_MANUAL_MANUAL_GET_LASER_CURRENT_ACK(MIN_Context_t *ctx, const uint8_t *payload, uint8_t len) {
+    char buffer[256];
+    int offset = 0;
+    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "Payload MANUAL_MANUAL_GET_LASER_CURRENT_ACK (%u bytes):", len);
     for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
         offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
     }
@@ -536,109 +572,7 @@ static void MIN_Handler_CUSTOM_COMMAND_ACK(MIN_Context_t *ctx, const uint8_t *pa
     }
 }
 
-static void MIN_Handler_PING_CMD(MIN_Context_t *ctx, const uint8_t *payload, uint8_t len) {
-    char buffer[256];
-    int offset = 0;
-    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "Payload PING_CMD (%u bytes):", len);
-    for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
-        offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
-    }
-    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
-    BScript_Log("%s", buffer);
-    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
-    BScript_Log("%s", buffer);
-}
 
-static void MIN_Handler_PONG_CMD(MIN_Context_t *ctx, const uint8_t *payload, uint8_t len) {
-    char buffer[256];
-    int offset = 0;
-    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "Payload PONG_CMD (%u bytes):", len);
-    for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
-        offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
-    }
-    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
-    BScript_Log("%s", buffer);
-    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
-    BScript_Log("%s", buffer);
-}
-
-static void MIN_Handler_MIN_RESP_NAK(MIN_Context_t *ctx, const uint8_t *payload, uint8_t len) {
-    char buffer[256];
-    int offset = 0;
-    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "Payload MIN_RESP_NAK (%u bytes):", len);
-    for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
-        offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
-    }
-    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
-    BScript_Log("%s", buffer);
-    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
-    BScript_Log("%s", buffer);
-}
-
-static void MIN_Handler_MIN_RESP_ACK(MIN_Context_t *ctx, const uint8_t *payload, uint8_t len) {
-    char buffer[256];
-    int offset = 0;
-    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "Payload MIN_RESP_ACK (%u bytes):", len);
-    for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
-        offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
-    }
-    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
-    BScript_Log("%s", buffer);
-    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
-    BScript_Log("%s", buffer);
-}
-
-static void MIN_Handler_MIN_RESP_WRONG(MIN_Context_t *ctx, const uint8_t *payload, uint8_t len) {
-    char buffer[256];
-    int offset = 0;
-    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "Payload MIN_RESP_WRONG (%u bytes):", len);
-    for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
-        offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
-    }
-    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
-    BScript_Log("%s", buffer);
-    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
-    BScript_Log("%s", buffer);
-}
-
-static void MIN_Handler_MIN_RESP_DONE(MIN_Context_t *ctx, const uint8_t *payload, uint8_t len) {
-    char buffer[256];
-    int offset = 0;
-    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "Payload MIN_RESP_DONE (%u bytes):", len);
-    for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
-        offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
-    }
-    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
-    BScript_Log("%s", buffer);
-    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
-    BScript_Log("%s", buffer);
-}
-
-static void MIN_Handler_MIN_RESP_FAIL(MIN_Context_t *ctx, const uint8_t *payload, uint8_t len) {
-    char buffer[256];
-    int offset = 0;
-    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "Payload MIN_RESP_FAIL (%u bytes):", len);
-    for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
-        offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
-    }
-    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
-    BScript_Log("%s", buffer);
-    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
-    BScript_Log("%s", buffer);
-}
-
-static void MIN_Handler_MIN_RESP_OK(MIN_Context_t *ctx, const uint8_t *payload, uint8_t len) {
-    char buffer[256];
-    int offset = 0;
-    offset += snprintf(buffer + offset, sizeof(buffer) - offset, "Payload MIN_RESP_OK (%u bytes):", len);
-    for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
-        offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
-    }
-    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
-    BScript_Log("%s", buffer);
-    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
-    BScript_Log("%s", buffer);
-}
 
 // =================================================================
 // Command Table
@@ -666,23 +600,17 @@ static const MIN_Command_t command_table[] = {
     { GET_INFO_SAMPLE_ACK,                 MIN_Handler_GET_INFO_SAMPLE_ACK 				},
     { GET_CHUNK_ACK,                       MIN_Handler_GET_CHUNK_ACK 					},
     { GET_CHUNK_CRC_ACK,                   MIN_Handler_GET_CHUNK_CRC_ACK 				},
+	{ GET_LASER_CURRENT_DATA_ACK,		   MIN_Handler_GET_LASER_CURRENT_DATA_ACK		},
     { GET_LASER_CURRENT_CRC_ACK,           MIN_Handler_GET_LASER_CURRENT_CRC_ACK 		},
-    { SET_EXT_LASER_INTENSITY_ACK,         MIN_Handler_SET_EXT_LASER_INTENSITY_ACK 		},
-    { TURN_ON_EXT_LASER_ACK,               MIN_Handler_TURN_ON_EXT_LASER_ACK 			},
-    { TURN_OFF_EXT_LASER_ACK,              MIN_Handler_TURN_OFF_EXT_LASER_ACK 			},
+    { MANUAL_SET_LASER_INTENSITY_ACK,         MIN_Handler_MANUAL_SET_LASER_INTENSITY_ACK 		},
+    { MANUAL_TURN_ON_LASER_ACK,               MIN_Handler_MANUAL_TURN_ON_LASER_ACK 				},
+    { MANUAL_TURN_OFF_LASER_ACK,              MIN_Handler_MANUAL_TURN_OFF_LASER_ACK 			},
+    { MANUAL_GET_LASER_CURRENT_ACK,           MIN_Handler_MANUAL_MANUAL_GET_LASER_CURRENT_ACK 	},
     { SET_LASER_INT_ACK,              	   MIN_Handler_SET_LASER_INT_ACK			    },
     { GET_LASER_CURRENT_ACK,               MIN_Handler_GET_LASER_CURRENT_ACK			},
     { SET_LASER_EXT_ACK,              	   MIN_Handler_SET_LASER_EXT_ACK 			    },
     { GET_LOG_ACK,              		   MIN_Handler_GET_LOG_ACK						},
     { CUSTOM_COMMAND_ACK,                  MIN_Handler_CUSTOM_COMMAND_ACK 				},
-    { PING_CMD,                            MIN_Handler_PING_CMD 						},
-    { PONG_CMD,                            MIN_Handler_PONG_CMD 						},
-    { MIN_RESP_NAK,                        MIN_Handler_MIN_RESP_NAK 					},
-    { MIN_RESP_ACK,                        MIN_Handler_MIN_RESP_ACK 					},
-    { MIN_RESP_WRONG,                      MIN_Handler_MIN_RESP_WRONG 					},
-    { MIN_RESP_DONE,                       MIN_Handler_MIN_RESP_DONE 					},
-    { MIN_RESP_FAIL,                       MIN_Handler_MIN_RESP_FAIL 					},
-    { MIN_RESP_OK,                         MIN_Handler_MIN_RESP_OK 						},
 };
 
 static const int command_table_size = sizeof(command_table) / sizeof(command_table[0]);

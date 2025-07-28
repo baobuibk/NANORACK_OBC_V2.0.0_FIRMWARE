@@ -15,7 +15,8 @@ typedef enum {
     FORWARD_MODE_UART,
     FORWARD_MODE_USB,
     FORWARD_MODE_LISTEN_CM4,
-    FORWARD_MODE_LISTEN_USB
+    FORWARD_MODE_LISTEN_USB,
+    FORWARD_MODE_BACKUP
 } ForwardMode_t;
 
 void ForwardMode_Set(ForwardMode_t mode);

@@ -47,6 +47,13 @@
 #define MODFSP_TYPE_SET_CAM_POSITION_CMD 0x50
 #define MODFSP_TYPE_TAKE_IMAGE_CMD		 0x51
 
+#define SELF_TEST_CMD			0xCB
+#define SELF_TEST_ACK			0xCC
+
+#define FRAME_PAUSE_CMD          0xB0
+#define FRAME_PAUSE_ACK          0xB1
+#define FRAME_RESUME_CMD          0xB2
+#define FRAME_RESUME_ACK          0xB3
 
 // Time Point Configuration
 #define MAX_TIME_POINTS         288    // Maximum points for 5-minute intervals in 24 hours
@@ -160,6 +167,9 @@ void ScriptManager_GetStatistics(uint32_t* dls_runs, uint32_t* cam_runs, uint32_
 void ScriptManager_PrintStatus(void);
 
 /* MODFSP Frame Handlers */
+void ScriptManager_HandleResumeFrame(const uint8_t* data, uint32_t length);
+void ScriptManager_HandlePauseFrame(const uint8_t* data, uint32_t length);
+
 void ScriptManager_HandleUpdateOBC(const uint8_t* data, uint32_t length);
 void ScriptManager_HandleUpdateEXP(const uint8_t* data, uint32_t length);
 void ScriptManager_HandleRunExperiment(const uint8_t* data, uint32_t length);
@@ -169,6 +179,7 @@ void ScriptManager_HandleDLSFrame(const uint8_t* data, uint32_t length);
 void ScriptManager_HandleCAMFrame(const uint8_t* data, uint32_t length);
 void ScriptManager_HandleHaltFrame(const uint8_t* data, uint32_t length);
 void ScriptManager_HandleCM4GetRTC (const uint8_t* data, uint32_t length);
+void ScriptManager_HandleSelfTest(const uint8_t* data, uint32_t length);
 
 /* Time Point Functions */
 _Bool ScriptManager_GenerateTimePoints(TimePointSchedule_t* schedule, uint32_t start_daily_time, uint32_t interval_sec);

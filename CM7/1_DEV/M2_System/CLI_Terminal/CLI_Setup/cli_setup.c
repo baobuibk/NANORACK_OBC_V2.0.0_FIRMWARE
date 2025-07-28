@@ -15,7 +15,7 @@
  *           CLI Static Buffer Define            *
  *************************************************/
 
-#define USBCDC_CLI_BUFFER_SIZE 2048
+#define USBCDC_CLI_BUFFER_SIZE 3072
 static  CLI_UINT usbcdc_cliStaticBuffer[BYTES_TO_CLI_UINTS(USBCDC_CLI_BUFFER_SIZE)];
 //#define UARTCM4_CLI_BUFFER_SIZE 2048
 //static  CLI_UINT uartcm4_cliStaticBuffer[BYTES_TO_CLI_UINTS(UARTCM4_CLI_BUFFER_SIZE)];

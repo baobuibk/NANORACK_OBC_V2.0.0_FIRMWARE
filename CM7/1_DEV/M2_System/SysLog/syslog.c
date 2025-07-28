@@ -12,7 +12,7 @@
 #include "DateTime/date_time.h"
 #include "Dmesg/dmesg.h"
 
-static USART_TypeDef* syslog_uarts[SYSLOG_OUTPUT_UART_COUNT] = SYSLOG_OUTPUT_UARTS;
+//static USART_TypeDef* syslog_uarts[SYSLOG_OUTPUT_UART_COUNT] = SYSLOG_OUTPUT_UARTS;
 
 static const char* syslog_level_to_str(syslog_level_t level)
 {
@@ -44,19 +44,7 @@ void Sys_Boardcast(bool status, syslog_level_t level, const char *msg)
 
     offset = 0;
     const char* status_str = status ? "[ ER ] " : "[ OK ] ";
-    offset += snprintf(log_buffer + offset, sizeof(log_buffer) - offset, "%s", status_str);
-
     const char* level_str = syslog_level_to_str(level);
-    offset += snprintf(log_buffer + offset, sizeof(log_buffer) - offset, "%s->[OBC-STM32] ", level_str);
-
-    offset += snprintf(log_buffer + offset, sizeof(log_buffer) - offset, "\"%s\"\r\n", msg);
-
-    for (uint32_t i = 0; log_buffer[i] != '\0'; i++)
-    {
-        while (!LL_USART_IsActiveFlag_TXE(UART_DEBUG));
-        LL_USART_TransmitData8(UART_DEBUG, (uint8_t)log_buffer[i]);
-    }
-    while (!LL_USART_IsActiveFlag_TC(UART_DEBUG));
 
     offset = 0;
     offset += snprintf(log_buffer + offset, sizeof(log_buffer) - offset, "%s", status_str);
@@ -75,6 +63,7 @@ void Sys_Boardcast(bool status, syslog_level_t level, const char *msg)
 
 void Sys_Debugcast(bool status, syslog_level_t level, const char *msg)
 {
+#ifdef RELEASE_CODE
     switch(level) {
         case LOG_INFOR:  if (!LOG_INFOR_ENABLED)  return; break;
         case LOG_DEBUG:  if (!LOG_DEBUG_ENABLED)  return; break;
@@ -103,6 +92,11 @@ void Sys_Debugcast(bool status, syslog_level_t level, const char *msg)
         LL_USART_TransmitData8(UART_DEBUG, (uint8_t)log_buffer[i]);
     }
     while (!LL_USART_IsActiveFlag_TC(UART_DEBUG));
+#else
+    (void)status;
+    (void)level;
+    (void)msg;
+#endif
 }
 
 /*
@@ -149,8 +143,7 @@ void syslog_log(syslog_level_t level, const char *msg, int use_polling)
 
 #ifdef DEBUG_USE_UART
         if (use_polling) {
-            UART_Driver_Polling_SendString(syslog_uarts[0], log_buffer);
-            UART_Driver_Polling_SendString(syslog_uarts[0], "\r\n");
+        	Dmesg_HardWrite(log_buffer);
         } else {
             Dmesg_SafeWrite(log_buffer);
         }

@@ -462,6 +462,7 @@ static void ScriptManager_ResetContext(ScriptType_t type)
     context->current_step = 0;
     context->retry_count = 0;
     SimpleDataTransfer_SetFatfsOk(true);
+    SimpleDataTransfer_SetMasterCommOk(true);
     context->first_run = true;
 }
 
@@ -880,6 +881,18 @@ void ScriptManager_HandleMODFSPFrame(uint8_t frame_id, const uint8_t* data, uint
         	ScriptManager_HandleUpdateEXP(data, length);
         	break;
 
+        case SELF_TEST_CMD:
+        	ScriptManager_HandleSelfTest(data, length);
+        	break;
+
+        case FRAME_RESUME_CMD:
+        	ScriptManager_HandleResumeFrame(data, length);
+        	break;
+
+        case FRAME_PAUSE_CMD:
+        	ScriptManager_HandlePauseFrame(data, length);
+        	break;
+
         case 0x98:
         	BScript_Log("[ScriptManager] Response from CM4 OK!");
         	break;
@@ -955,6 +968,100 @@ void ScriptManager_HandleHaltFrame(const uint8_t* data, uint32_t length)
     BScript_Log("[ScriptManager] Received HALT frame");
     frames_received = 0;
     ScriptManager_StopExecution();
+}
+
+void ScriptManager_HandleResumeFrame(const uint8_t* data, uint32_t length)
+{
+    if (!g_script_manager.scripts[SCRIPT_TYPE_INIT].is_loaded) {
+        BScript_Log("[ScriptManager] Error: INIT script not loaded");
+        return;
+    }
+
+	MODFSP_Send(&cm4_protocol, FRAME_RESUME_ACK, NULL, 0);
+
+    g_script_manager.manager_running = true;
+    g_script_manager.init_completed = false;
+
+    for (int i = 0; i < SCRIPT_TYPE_COUNT; i++) {
+        ScriptManager_ResetContext((ScriptType_t)i);
+    }
+
+    g_script_manager.contexts[SCRIPT_TYPE_INIT].state = SCRIPT_EXEC_RUNNING;
+
+    BScript_Log("[ScriptManager] Resume!");
+}
+
+void ScriptManager_HandlePauseFrame(const uint8_t* data, uint32_t length)
+{
+	MODFSP_Send(&cm4_protocol, FRAME_PAUSE_ACK, NULL, 0);
+    BScript_Log("[ScriptManager] Received PAUSE frame");
+    g_script_manager.manager_running = false;
+
+    for (int i = 0; i < SCRIPT_TYPE_COUNT; i++) {
+        ScriptManager_ResetContext((ScriptType_t)i);
+    }
+
+    BScript_Log("[ScriptManager] Pause!");
+}
+
+
+void ScriptManager_HandleSelfTest(const uint8_t* data, uint32_t length)
+{
+
+    BScript_Log("[ScriptManager] Received SELF_TEST frame");
+
+    uint8_t type = 0;
+    uint8_t intensity = 0;
+    uint8_t position = 0;
+
+    type   		= data[0];
+    intensity 	= data[1];
+    position 	= data[2];
+
+    uint8_t intensity_data[2];
+    uint8_t intensity_length = 0;
+
+    if(MIN_Send_MANUAL_SET_INTENSITY_CMD_WithData(type, intensity, intensity_data, &intensity_length)){
+    	BScript_Log("[ScriptDLS] MANUAL_SET_INTENSITY_CMD received: %u bytes", intensity_length);
+    }else {
+        BScript_Log("[ScriptDLS] Failed to MANUAL_SET_INTENSITY_CMD");
+        return ;
+    }
+
+    uint8_t on_info[2];
+    uint8_t on_len = 0;
+
+    if(MIN_Send_MANUAL_TURN_ON_LASER_CMD_WithData(type, position, on_info, &on_len)){
+    	BScript_Log("[ScriptDLS] MANUAL_TURN_ON_LASER_CMD received: %u bytes", on_len);
+    }else {
+        BScript_Log("[ScriptDLS] Failed to MANUAL_TURN_ON_LASER_CMD");
+        return ;
+    }
+
+    uint8_t data_info[4];
+    uint8_t data_len = 0;
+
+
+    if(MIN_Send_MANUAL_GET_LASER_CURRENT_CMD_WithData(data_info, &data_len)){
+    	BScript_Log("[ScriptDLS] MANUAL_GET_LASER_CURRENT received: %u bytes", data_len);
+    }else {
+        BScript_Log("[ScriptDLS] Failed to MANUAL_GET_LASER_CURRENT");
+        return ;
+    }
+
+    uint16_t int_current = ((uint16_t)data_info[0] << 8) | data_info[1];
+    uint16_t ext_current = ((uint16_t)data_info[2] << 8) | data_info[3];
+
+    BScript_Log("[ScriptDLS] int_current = %u, ext_current = %u", int_current, ext_current);
+
+    if (type == 0) {
+        MODFSP_Send(&cm4_protocol, SELF_TEST_ACK, (uint8_t*)&int_current, sizeof(int_current));
+    } else if (type == 1) {
+        MODFSP_Send(&cm4_protocol, SELF_TEST_ACK, (uint8_t*)&ext_current, sizeof(ext_current));
+    } else {
+        BScript_Log("[ScriptDLS] Unknown type: %u", type);
+    }
+
 }
 
 void ScriptManager_HandleSyncTime(const uint8_t* data, uint32_t length)
@@ -1138,7 +1245,7 @@ void ScriptDLS_Task(void *pvParameters)
                 context->current_step = 0;
                 context->retry_count = 0;
                 SimpleDataTransfer_SetFatfsOk(true);
-
+                SimpleDataTransfer_SetMasterCommOk(true);
                 // Execute all steps in the DLS routine
                 while (context->current_step < storage->parsed_script.total_steps &&
                        context->state == SCRIPT_EXEC_RUNNING) {
@@ -1320,8 +1427,9 @@ void LogFetching_Task(void *pvParameters)
 void SDLockRelease_Task(void *pvParameters)
 {
     TickType_t xLastWakeTime = xTaskGetTickCount();
+
     while (1) {
-        vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(30000)); // 30s interval
+        vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(15000)); // 15s interval
 
         if (!g_sd_scheduler.configured)
             continue;
@@ -1339,12 +1447,14 @@ void SDLockRelease_Task(void *pvParameters)
             now_sec >= g_sd_scheduler.release_time_sec &&
             now_sec < g_sd_scheduler.release_time_sec + 60) {
 
-        	BScript_Log("[SDScheduler] SD Release");
+            BScript_Log("[SDScheduler] SD Release");
 
-        	SDMMC1_DeInit();
-            SD_Release();
-
-            g_sd_scheduler.release_done_today = true;
+            uint8_t result = SD_Release();
+            if (result) {
+                g_sd_scheduler.release_done_today = true;
+            } else {
+                BScript_Log("[SDScheduler] SD Release FAILED");
+            }
         }
 
         // Auto-lockin SD
@@ -1352,19 +1462,14 @@ void SDLockRelease_Task(void *pvParameters)
             now_sec >= g_sd_scheduler.lockin_time_sec &&
             now_sec < g_sd_scheduler.lockin_time_sec + 60) {
 
-        	BScript_Log("[SDScheduler] SD Lock-in");
+            BScript_Log("[SDScheduler] SD Lock-in");
 
-        	SD_Lockin();
-        	SDMMC1_Init();
-
-        	Std_ReturnType ret = Link_SDFS_Driver();
-        	if(ret != E_OK){
-        		BScript_Log("[SDScheduler] [Link FATFS Fail]");
-        	}else{
-        		BScript_Log("[SDScheduler] [Link FATFS Successfully]");
-        	}
-
-            g_sd_scheduler.lockin_done_today = true;
+            uint8_t result = SD_Lockin();
+            if (result) {
+                g_sd_scheduler.lockin_done_today = true;
+            } else {
+                BScript_Log("[SDScheduler] SD Lock-in FAILED");
+            }
         }
     }
 }
@@ -2210,6 +2315,7 @@ void ScriptManager_PrintStatus(void)
     }
 
     BScript_Log("  - eMMC status: %s", SimpleDataTransfer_IsFatfsOk() ? "OK" : "FAIL");
+    BScript_Log("  - MasterCommOK: %s", SimpleDataTransfer_IsMasterCommOk() ? "YES" : "NO");
 
     // Script status
     for (int i = 0; i < SCRIPT_TYPE_COUNT; i++) {

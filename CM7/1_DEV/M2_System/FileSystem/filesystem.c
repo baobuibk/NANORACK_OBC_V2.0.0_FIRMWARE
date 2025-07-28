@@ -20,7 +20,7 @@
 #define DATE_TIME_FILENAME "date_time.txt"
 #define SECONDS_PER_DAY (24 * 60 * 60)
 
-
+#include "reinit.h"
 /*************************************************
  *                 FATFS Variable                *
  *************************************************/
@@ -38,17 +38,61 @@ SemaphoreHandle_t fsMutex;
  *************************************************/
 SDFS_StateTypedef SDFS_State = SDFS_READY;
 
-void SD_Lockin(void)
+uint8_t SD_Lockin(void)
 {
+    if (xSemaphoreTake(fsMutex, pdMS_TO_TICKS(1000)) != pdTRUE) {
+        SYSLOG_ERROR("Failed to acquire FS mutex before lockin");
+        return 0;
+    }
+
     GPIO_SetHigh(SD_InOut_Port, SD_InOut);
     GPIO_SetHigh(SD_Detect_Port, SD_Detect);
+
+    vTaskDelay(100);
+
+    SDMMC1_Init();
+
+    if (SDFS_State != SDFS_READY) {
+        Std_ReturnType ret = Link_SDFS_Driver();
+        if (ret == E_OK) {
+            SDFS_State = SDFS_READY;
+            SYSLOG_DEBUG_POLL("[SDFS] Filesystem re-mounted successfully");
+        } else {
+            SDFS_State = SDFS_ERROR;
+            SYSLOG_ERROR_POLL("[SDFS] Failed to re-mount filesystem");
+            xSemaphoreGive(fsMutex);
+            return 0;
+        }
+    }
+
+    xSemaphoreGive(fsMutex);
+    return 1;
 }
 
-void SD_Release(void)
+
+uint8_t SD_Release(void)
 {
+    if (xSemaphoreTake(fsMutex, pdMS_TO_TICKS(1000)) != pdTRUE) {
+        SYSLOG_ERROR("Failed to acquire FS mutex before release");
+        return 0;
+    }
+
+    f_mount(NULL, MMC1Path, 0);
+    FATFS_UnLinkDriver(MMC1Path);
+    SDMMC1_DeInit();
+
+    vTaskDelay(100);
+
     GPIO_SetLow(SD_InOut_Port, SD_InOut);
     GPIO_SetLow(SD_Detect_Port, SD_Detect);
+
+    SDFS_State = SDFS_RELEASE;
+
+    xSemaphoreGive(fsMutex);
+
+    return 1;
 }
+
 
 /*************************************************
  *                 Simplified Init              *
@@ -59,7 +103,7 @@ void FS_Init(void) {
         SYSLOG_ERROR_POLL("Failed to create filesystem mutex");
         return;
     }
-    SYSLOG_INFO_POLL("Filesystem initialized successfully");
+//    SYSLOG_INFO_POLL("Filesystem initialized successfully");
 }
 
 /*************************************************

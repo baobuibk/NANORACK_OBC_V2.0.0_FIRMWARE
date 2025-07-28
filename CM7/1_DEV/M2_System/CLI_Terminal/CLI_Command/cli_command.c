@@ -74,6 +74,7 @@ static void CMD_AliveCheck(EmbeddedCli *cli, char *args, void *context);
 static void CMD_RtosCheck(EmbeddedCli *cli, char *args, void *context);
 static void CMD_LogOut(EmbeddedCli *cli, char *args, void *context);
 static void CMD_PwdChange(EmbeddedCli *cli, char *args, void *context);
+static void CMD_mode_backup_scrip_line(EmbeddedCli *cli, char *args, void *context);
 
 static void CMD_RamFill(EmbeddedCli *cli, char *args, void *context);
 static void CMD_RamDump(EmbeddedCli *cli, char *args, void *context);
@@ -142,6 +143,7 @@ static const CliCommandBinding cliStaticBindings_internal[] = {
     { "Time", 			"rtc_set",     	"Set RTC time: rtc_set <h> <m> <s> <DD> <MM> <YY>",   	true,  	NULL, CMD_RtcSet,    	 },
     { "Time",         	"rtc_get",     	"Get RTC. Usage: rtc_get <hard|soft|work|epoch|all>",  	true,  	NULL, CMD_RtcGet,    	 },
     { "Time",         	"epoch_set",   	"Set RTC time by epoch: rtc_setepoch <epoch>",        	true,  	NULL, CMD_RtcSetEpoch, 	 },
+    { NULL,         	"mode_backup_script_line",  								"-",        false,  NULL, CMD_mode_backup_scrip_line, 	 },
     { NULL,         	"fram_write",  	"Write to FRAM: fram_write [address] [value]",        	true,  	NULL, CMD_FramWrite, 	 },
     { NULL,         	"fram_read",   	"Read from FRAM: fram_read [address]",                	true,  	NULL, CMD_FramRead,  	 },
 	{ "FileSystem", 	"ls", 			"List files in filesystem", 							false, 	NULL, CMD_ls 			 },
@@ -814,19 +816,14 @@ static void CMD_ls(EmbeddedCli *cli, char *args, void *context) {
 
 static void CMD_sd_lockin(EmbeddedCli *cli, char *args, void *context) {
 	SD_Lockin();
-	SDMMC1_Init();
+//	SDMMC1_Init();
     embeddedCliPrint(cli, "SD filesystem locked-in");
-	Std_ReturnType ret = Link_SDFS_Driver();
-	if(ret != E_OK){
-        embeddedCliPrint(cli, "[Link FATFS Fail]");
-	}else{
-        embeddedCliPrint(cli, "[Link FATFS Successfully]");
-	}
+
     embeddedCliPrint(cli, "");
 }
 
 static void CMD_sd_release(EmbeddedCli *cli, char *args, void *context) {
-	SDMMC1_DeInit();
+//	SDMMC1_DeInit();
     SD_Release();
     embeddedCliPrint(cli, "SD filesystem released");
     embeddedCliPrint(cli, "");
@@ -929,6 +926,14 @@ static void CMD_ExpForward(EmbeddedCli *cli, char *args, void *context) {
 
     embeddedCliPrint(cli, "");
 }
+
+static void CMD_mode_backup_scrip_line(EmbeddedCli *cli, char *args, void *context) {
+
+    ForwardMode_Set(FORWARD_MODE_BACKUP);
+
+    embeddedCliPrint(cli, "");
+}
+
 
 static void CMD_ExpListen(EmbeddedCli *cli, char *args, void *context) {
     const char *param = embeddedCliGetToken(args, 1);
@@ -1130,8 +1135,17 @@ static void CMD_Reset(EmbeddedCli *cli, char *args, void *context) {
 static void CMD_DevEXPPleaseReset(EmbeddedCli *cli, char *args, void *context)
 {
     char buffer[100];
-    MIN_Send_PLEASE_RESET_CMD();
-    snprintf(buffer, sizeof(buffer), "Sent EXP-PLEASE_RESET_CMD");
+
+    uint8_t data_info[4];
+    uint8_t data_len = 0;
+
+
+    if(MIN_Send_PLEASE_RESET_EXP_WithData(data_info, &data_len)){
+        snprintf(buffer, sizeof(buffer), "[PLEASE_RESET_CMD] Length %u", data_len);
+    }else {
+    	snprintf(buffer, sizeof(buffer), "[PLEASE_RESET_CMD] Failed to PLEASE_RESET_CMD");
+    }
+
     embeddedCliPrint(cli, buffer);
     embeddedCliPrint(cli, "");
 }
@@ -1458,7 +1472,7 @@ static void CMD_DevSetExtLaserProfile(EmbeddedCli *cli, char *args, void *contex
         return;
     }
     uint8_t intensity = (uint8_t)strtoul(arg1, NULL, 0);
-    MIN_Send_SET_EXT_LASER_INTENSITY_CMD(intensity);
+    MIN_Send_MANUAL_SET_LASER_INTENSITY_CMD(0x01, intensity);
     snprintf(buffer, sizeof(buffer), "Sent SET_EXT_LASER_PROFILE_CMD with intensity: %u", intensity);
     embeddedCliPrint(cli, buffer);
     embeddedCliPrint(cli, "");
@@ -1474,7 +1488,7 @@ static void CMD_DevTurnOnExtLaser(EmbeddedCli *cli, char *args, void *context)
         return;
     }
     uint8_t position = (uint8_t)strtoul(arg1, NULL, 0);
-    MIN_Send_TURN_ON_EXT_LASER_CMD(position);
+    MIN_Send_MANUAL_TURN_ON_LASER_CMD(0x01, position);
     snprintf(buffer, sizeof(buffer), "Sent TURN_ON_EXT_LASER_CMD for position: %u", position);
     embeddedCliPrint(cli, buffer);
     embeddedCliPrint(cli, "");
@@ -1484,7 +1498,7 @@ static void CMD_DevTurnOffExtLaser(EmbeddedCli *cli, char *args, void *context)
 {
     (void)args;
     (void)context;
-    MIN_Send_TURN_OFF_EXT_LASER_CMD();
+    MIN_Send_MANUAL_TURN_OFF_LASER_CMD(0x01);
     embeddedCliPrint(cli, "Sent TURN_OFF_EXT_LASER_CMD");
     embeddedCliPrint(cli, "");
 }
@@ -1537,9 +1551,18 @@ static void CMD_DevGetCurrentLaser(EmbeddedCli *cli, char *args, void *context)
 {
     char buffer[100];
 
-    MIN_Send_GET_CURRENT_CMD();
+    uint8_t data_info[4];
+    uint8_t data_len = 0;
 
-    snprintf(buffer, sizeof(buffer), "Sent GET_CURRENT_CMD");
+
+    if(MIN_Send_MANUAL_GET_LASER_CURRENT_CMD_WithData(data_info, &data_len)){
+        uint16_t int_current = ((uint16_t)data_info[0] << 8) | data_info[1];
+        uint16_t ext_current = ((uint16_t)data_info[2] << 8) | data_info[3];
+        snprintf(buffer, sizeof(buffer), "[MANUAL_GET_LASER_CURRENT_CMD] int_current = %u, ext_current = %u", int_current, ext_current);
+    }else {
+    	snprintf(buffer, sizeof(buffer), "[MANUAL_GET_LASER_CURRENT_CMD] Failed to MANUAL_GET_LASER_CURRENT");
+    }
+
     embeddedCliPrint(cli, buffer);
     embeddedCliPrint(cli, "");
 }

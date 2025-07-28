@@ -42,9 +42,10 @@ static void ClearPendingCommand(void) {
     CommandInfo_t cmdInfo;
     if (xQueueReceive(pendingCommandsQueue, &cmdInfo, 0) == pdTRUE) {
         char buffer[100];
-        snprintf(buffer, sizeof(buffer), "Cleared pending command: ID 0x%02X, Expected 0x%02X\r\n",
+        snprintf(buffer, sizeof(buffer), "Cleared pending command: ID 0x%02X, Expected 0x%02X",
                  cmdInfo.cmdId, cmdInfo.expectedResponseId);
-        UART_Driver_SendString(UART_DEBUG, buffer);
+        SYSLOG_ERROR(buffer);
+        MIN_ReInit(&OBC_MinCtx);
     }
 }
 
@@ -430,55 +431,61 @@ void MIN_Send_GET_CHUNK_CRC_CMD(uint8_t noChunk) {
     }
 }
 
-void MIN_Send_SET_EXT_LASER_INTENSITY_CMD(uint8_t intensity) {
-    uint8_t payload[2] = {0};
+void MIN_Send_MANUAL_SET_LASER_INTENSITY_CMD(uint8_t type,uint8_t intensity) {
+    uint8_t payload[3] = {0};
 
-    payload[0] = intensity;
-    payload[1] = 0xFF; // RESERVED
+    payload[0] = type;
+    payload[1] = intensity;
+    payload[2] = 0xFF; // RESERVED
 
-    MIN_Send(&OBC_MinCtx, SET_EXT_LASER_INTENSITY_CMD, payload, sizeof(payload));
+    MIN_Send(&OBC_MinCtx, MANUAL_SET_LASER_INTENSITY_CMD, payload, sizeof(payload));
 
-    CommandInfo_t cmdInfo = {SET_EXT_LASER_INTENSITY_CMD, SET_EXT_LASER_INTENSITY_ACK};
+    CommandInfo_t cmdInfo = {MANUAL_SET_LASER_INTENSITY_CMD, MANUAL_SET_LASER_INTENSITY_ACK};
     xQueueSend(pendingCommandsQueue, &cmdInfo, portMAX_DELAY);
 
     if (xSemaphoreTake(responseSemaphore, pdMS_TO_TICKS(1000)) == pdTRUE) {
-        SYSLOG_NOTICE("Response OK - SET_EXT_LASER_PROFILE_CMD");
+        SYSLOG_NOTICE("Response OK - MANUAL_SET_LASER_INTENSITY_CMD");
     } else {
-        SYSLOG_ERROR("Timeout SET_EXT_LASER_PROFILE_CMD");
+        SYSLOG_ERROR("Timeout MANUAL_SET_LASER_INTENSITY_CMD");
         ClearPendingCommand();
     }
 }
 
-void MIN_Send_TURN_ON_EXT_LASER_CMD(uint8_t position) {
-    uint8_t payload[2] = {0};
+void MIN_Send_MANUAL_TURN_ON_LASER_CMD(uint8_t type, uint8_t position) {
+    uint8_t payload[3] = {0};
 
-    payload[0] = position;
-    payload[1] = 0xFF; // RESERVED
+    payload[0] = type;
+    payload[1] = position;
+    payload[2] = 0xFF; // RESERVED
 
-    MIN_Send(&OBC_MinCtx, TURN_ON_EXT_LASER_CMD, payload, sizeof(payload));
+    MIN_Send(&OBC_MinCtx, MANUAL_TURN_ON_LASER_CMD, payload, sizeof(payload));
 
-    CommandInfo_t cmdInfo = {TURN_ON_EXT_LASER_CMD, TURN_ON_EXT_LASER_ACK};
+    CommandInfo_t cmdInfo = {MANUAL_TURN_ON_LASER_CMD, MANUAL_TURN_ON_LASER_ACK};
     xQueueSend(pendingCommandsQueue, &cmdInfo, portMAX_DELAY);
 
     if (xSemaphoreTake(responseSemaphore, pdMS_TO_TICKS(1000)) == pdTRUE) {
-        SYSLOG_NOTICE("Response OK - TURN_ON_EXT_LASER_CMD");
+        SYSLOG_NOTICE("Response OK - MANUAL_TURN_ON_LASER_CMD");
     } else {
-        SYSLOG_ERROR("Timeout TURN_ON_EXT_LASER_CMD");
+        SYSLOG_ERROR("Timeout MANUAL_TURN_ON_LASER_CMD");
         ClearPendingCommand();
     }
 }
 
-void MIN_Send_TURN_OFF_EXT_LASER_CMD(void) { // all
-    uint8_t payload[1] = {0xFF}; // RESERVED
-    MIN_Send(&OBC_MinCtx, TURN_OFF_EXT_LASER_CMD, payload, sizeof(payload));
+void MIN_Send_MANUAL_TURN_OFF_LASER_CMD(uint8_t type) { // all
+    uint8_t payload[2] = {0}; // RESERVED
 
-    CommandInfo_t cmdInfo = {TURN_OFF_EXT_LASER_CMD, TURN_OFF_EXT_LASER_ACK};
+    payload[0] = type;
+    payload[1] = 0xFF;
+
+    MIN_Send(&OBC_MinCtx, MANUAL_TURN_OFF_LASER_CMD, payload, sizeof(payload));
+
+    CommandInfo_t cmdInfo = {MANUAL_TURN_OFF_LASER_CMD, MANUAL_TURN_OFF_LASER_ACK};
     xQueueSend(pendingCommandsQueue, &cmdInfo, portMAX_DELAY);
 
     if (xSemaphoreTake(responseSemaphore, pdMS_TO_TICKS(1000)) == pdTRUE) {
-        SYSLOG_NOTICE("Response OK - TURN_OFF_EXT_LASER_CMD");
+        SYSLOG_NOTICE("Response OK - MANUAL_TURN_OFF_LASER_CMD");
     } else {
-        SYSLOG_ERROR("Timeout TURN_OFF_EXT_LASER_CMD");
+        SYSLOG_ERROR("Timeout MANUAL_TURN_OFF_LASER_CMD");
         ClearPendingCommand();
     }
 }
@@ -523,23 +530,23 @@ void MIN_Send_SET_LASER_EXT_CMD(uint8_t pos, uint8_t percent) {
     }
 }
 
-void MIN_Send_GET_CURRENT_CMD(void) {
-    uint8_t payload[1] = {0};
-
-    payload[0] = 0xFF;
-
-    MIN_Send(&OBC_MinCtx, GET_LASER_CURRENT_CMD, payload, sizeof(payload));
-
-    CommandInfo_t cmdInfo = {GET_LASER_CURRENT_CMD, GET_LASER_CURRENT_ACK};
-    xQueueSend(pendingCommandsQueue, &cmdInfo, portMAX_DELAY);
-
-    if (xSemaphoreTake(responseSemaphore, pdMS_TO_TICKS(1000)) == pdTRUE) {
-        SYSLOG_NOTICE("Response OK - GET_CURRENT_CMD");
-    } else {
-        SYSLOG_ERROR("Timeout GET_CURRENT_CMD");
-        ClearPendingCommand();
-    }
-}
+//void MIN_Send_GET_CURRENT_CMD(void) {
+//    uint8_t payload[1] = {0};
+//
+//    payload[0] = 0xFF;
+//
+//    MIN_Send(&OBC_MinCtx, GET_LASER_CURRENT_CMD, payload, sizeof(payload));
+//
+//    CommandInfo_t cmdInfo = {GET_LASER_CURRENT_CMD, GET_LASER_CURRENT_ACK};
+//    xQueueSend(pendingCommandsQueue, &cmdInfo, portMAX_DELAY);
+//
+//    if (xSemaphoreTake(responseSemaphore, pdMS_TO_TICKS(1000)) == pdTRUE) {
+//        SYSLOG_NOTICE("Response OK - GET_CURRENT_CMD");
+//    } else {
+//        SYSLOG_ERROR("Timeout GET_CURRENT_CMD");
+//        ClearPendingCommand();
+//    }
+//}
 
 void MIN_Send_GET_LOG_CMD(void) {
     uint8_t payload[1] = {0};
@@ -598,6 +605,28 @@ _Bool MIN_Send_SET_WORKING_RTC_CMD_WithData(uint8_t* response_data, uint8_t* res
         return true;
     } else {
         SYSLOG_ERROR("Timeout SET_WORKING_RTC_CMD");
+        ClearPendingCommand();
+        return false;
+    }
+}
+
+_Bool MIN_Send_PLEASE_RESET_EXP_WithData(uint8_t* response_data, uint8_t* response_len) {
+    uint8_t payload[1] = {0xFF}; // RESERVED
+
+    MIN_Send(&OBC_MinCtx, PLEASE_RESET_CMD, payload, sizeof(payload));
+    CommandInfo_t cmdInfo = { PLEASE_RESET_CMD, PLEASE_RESET_ACK };
+    xQueueSend(pendingCommandsQueue, &cmdInfo, portMAX_DELAY);
+
+
+    if (xSemaphoreTake(responseSemaphore, pdMS_TO_TICKS(1000)) == pdTRUE) {
+        SYSLOG_NOTICE("Response OK - PLEASE_RESET_OK");
+
+        if (response_data && response_len) {
+            return MIN_GetLastResponseData(response_data, response_len, 100);
+        }
+        return true;
+    } else {
+        SYSLOG_ERROR("Timeout PLEASE_RESET_FAIL");
         ClearPendingCommand();
         return false;
     }
@@ -1008,16 +1037,125 @@ _Bool MIN_Send_GET_LASER_CURRENT_CRC_CMD_WithData(uint8_t* response_data, uint8_
     }
 }
 
-_Bool MIN_Send_SET_EXT_LASER_INTENSITY_CMD_WithData(uint8_t intensity, uint8_t* response_data, uint8_t* response_len) {
-    uint8_t payload[2] = {0};
+
+_Bool MIN_Send_MANUAL_SET_INTENSITY_CMD_WithData(uint8_t type, uint8_t intensity, uint8_t* response_data, uint8_t* response_len) {
+    uint8_t payload[3] = {0};
     // Big-endian packing for 16-bit value
 
-    payload[0] = intensity;
+    payload[0] = type;
+    payload[1] = intensity;
+    payload[2] = 0xFF; // RESERVED
+
+    MIN_Send(&OBC_MinCtx, MANUAL_SET_LASER_INTENSITY_CMD, payload, sizeof(payload));
+
+    CommandInfo_t cmdInfo = {MANUAL_SET_LASER_INTENSITY_CMD, MANUAL_SET_LASER_INTENSITY_ACK};
+    xQueueSend(pendingCommandsQueue, &cmdInfo, portMAX_DELAY);
+
+    if (xSemaphoreTake(responseSemaphore, pdMS_TO_TICKS(1000)) == pdTRUE) {
+        SYSLOG_NOTICE("Response OK - MANUAL_SET_INTENSITY_CMD");
+
+        if (response_data && response_len) {
+            return MIN_GetLastResponseData(response_data, response_len, 100);
+        }
+        return true;
+    } else {
+        SYSLOG_ERROR("Timeout MANUAL_SET_INTENSITY_CMD");
+        ClearPendingCommand();
+        return false;
+    }
+}
+
+_Bool MIN_Send_MANUAL_TURN_ON_LASER_CMD_WithData(uint8_t type, uint8_t position, uint8_t* response_data, uint8_t* response_len) {
+    uint8_t payload[3] = {0};
+    // Big-endian packing for 16-bit value
+    payload[0] = type;
+    payload[1] = position;
+    payload[2] = 0xFF; // RESERVED
+
+    MIN_Send(&OBC_MinCtx, MANUAL_TURN_ON_LASER_CMD, payload, sizeof(payload));
+
+    CommandInfo_t cmdInfo = {MANUAL_TURN_ON_LASER_CMD, MANUAL_TURN_ON_LASER_ACK};
+    xQueueSend(pendingCommandsQueue, &cmdInfo, portMAX_DELAY);
+
+    if (xSemaphoreTake(responseSemaphore, pdMS_TO_TICKS(1000)) == pdTRUE) {
+        SYSLOG_NOTICE("Response OK - MANUAL_TURN_ON_LASER_CMD");
+
+        if (response_data && response_len) {
+            return MIN_GetLastResponseData(response_data, response_len, 100);
+        }
+        return true;
+    } else {
+        SYSLOG_ERROR("Timeout MANUAL_TURN_ON_LASER_CMD");
+        ClearPendingCommand();
+        return false;
+    }
+}
+
+
+_Bool MIN_Send_MANUAL_TURN_OFF_LASER_CMD_WithData(uint8_t type, uint8_t* response_data, uint8_t* response_len) {
+    uint8_t payload[2] = {0};
+    // Big-endian packing for 16-bit value
+    payload[0] = type;
     payload[1] = 0xFF; // RESERVED
 
-    MIN_Send(&OBC_MinCtx, SET_EXT_LASER_INTENSITY_CMD, payload, sizeof(payload));
+    MIN_Send(&OBC_MinCtx, MANUAL_TURN_OFF_LASER_CMD, payload, sizeof(payload));
 
-    CommandInfo_t cmdInfo = {SET_EXT_LASER_INTENSITY_CMD, SET_EXT_LASER_INTENSITY_ACK};
+    CommandInfo_t cmdInfo = {MANUAL_TURN_OFF_LASER_CMD, MANUAL_TURN_OFF_LASER_ACK};
+    xQueueSend(pendingCommandsQueue, &cmdInfo, portMAX_DELAY);
+
+    if (xSemaphoreTake(responseSemaphore, pdMS_TO_TICKS(1000)) == pdTRUE) {
+        SYSLOG_NOTICE("Response OK - MANUAL_TURN_OFF_LASER_CMD");
+
+        if (response_data && response_len) {
+            return MIN_GetLastResponseData(response_data, response_len, 100);
+        }
+        return true;
+    } else {
+        SYSLOG_ERROR("Timeout MANUAL_TURN_OFF_LASER_CMD");
+        ClearPendingCommand();
+        return false;
+    }
+}
+
+
+_Bool MIN_Send_MANUAL_GET_LASER_CURRENT_CMD_WithData(uint8_t* response_data, uint8_t* response_len) {
+    uint8_t payload[1] = {0};
+    // Big-endian packing for 16-bit value
+    payload[0] = 0xFF; // RESERVED
+
+    MIN_Send(&OBC_MinCtx, MANUAL_GET_LASER_CURRENT_CMD, payload, sizeof(payload));
+
+    CommandInfo_t cmdInfo = {MANUAL_GET_LASER_CURRENT_CMD, MANUAL_GET_LASER_CURRENT_ACK};
+    xQueueSend(pendingCommandsQueue, &cmdInfo, portMAX_DELAY);
+
+    if (xSemaphoreTake(responseSemaphore, pdMS_TO_TICKS(1000)) == pdTRUE) {
+        SYSLOG_NOTICE("Response OK - MANUAL_GET_LASER_CURRENT_CMD");
+
+        if (response_data && response_len) {
+            return MIN_GetLastResponseData(response_data, response_len, 100);
+        }
+        return true;
+    } else {
+        SYSLOG_ERROR("Timeout MANUAL_GET_LASER_CURRENT_CMD");
+        ClearPendingCommand();
+        return false;
+    }
+}
+
+
+
+
+_Bool MIN_Send_SET_EXT_LASER_INTENSITY_CMD_WithData(uint8_t intensity, uint8_t* response_data, uint8_t* response_len) {
+    uint8_t payload[3] = {0};
+    // Big-endian packing for 16-bit value
+
+    payload[0] = 0x01;
+    payload[1] = intensity;
+    payload[2] = 0xFF; // RESERVED
+
+    MIN_Send(&OBC_MinCtx, MANUAL_SET_LASER_INTENSITY_CMD, payload, sizeof(payload));
+
+    CommandInfo_t cmdInfo = {MANUAL_SET_LASER_INTENSITY_CMD, MANUAL_SET_LASER_INTENSITY_ACK};
     xQueueSend(pendingCommandsQueue, &cmdInfo, portMAX_DELAY);
 
     if (xSemaphoreTake(responseSemaphore, pdMS_TO_TICKS(1000)) == pdTRUE) {
@@ -1035,15 +1173,15 @@ _Bool MIN_Send_SET_EXT_LASER_INTENSITY_CMD_WithData(uint8_t intensity, uint8_t* 
 }
 
 _Bool MIN_Send_TURN_ON_EXT_LASER_CMD_WithData(uint8_t position, uint8_t* response_data, uint8_t* response_len) {
-    uint8_t payload[2] = {0};
+    uint8_t payload[3] = {0};
     // Big-endian packing for 16-bit value
+    payload[0] = 0x01;
+    payload[1] = position;
+    payload[2] = 0xFF; // RESERVED
 
-    payload[0] = position;
-    payload[1] = 0xFF; // RESERVED
+    MIN_Send(&OBC_MinCtx, MANUAL_TURN_ON_LASER_CMD, payload, sizeof(payload));
 
-    MIN_Send(&OBC_MinCtx, TURN_ON_EXT_LASER_CMD, payload, sizeof(payload));
-
-    CommandInfo_t cmdInfo = {TURN_ON_EXT_LASER_CMD, TURN_ON_EXT_LASER_ACK};
+    CommandInfo_t cmdInfo = {MANUAL_TURN_ON_LASER_CMD, MANUAL_TURN_ON_LASER_ACK};
     xQueueSend(pendingCommandsQueue, &cmdInfo, portMAX_DELAY);
 
     if (xSemaphoreTake(responseSemaphore, pdMS_TO_TICKS(1000)) == pdTRUE) {
@@ -1062,13 +1200,14 @@ _Bool MIN_Send_TURN_ON_EXT_LASER_CMD_WithData(uint8_t position, uint8_t* respons
 
 
 _Bool MIN_Send_TURN_OFF_EXT_LASER_CMD_WithData(uint8_t* response_data, uint8_t* response_len) {
-    uint8_t payload[1] = {0};
+    uint8_t payload[2] = {0};
     // Big-endian packing for 16-bit value
-    payload[0] = 0xFF; // RESERVED
+    payload[0] = 0x01;
+    payload[1] = 0xFF; // RESERVED
 
-    MIN_Send(&OBC_MinCtx, TURN_OFF_EXT_LASER_CMD, payload, sizeof(payload));
+    MIN_Send(&OBC_MinCtx, MANUAL_TURN_OFF_LASER_CMD, payload, sizeof(payload));
 
-    CommandInfo_t cmdInfo = {TURN_OFF_EXT_LASER_CMD, TURN_OFF_EXT_LASER_ACK};
+    CommandInfo_t cmdInfo = {MANUAL_TURN_OFF_LASER_CMD, MANUAL_TURN_OFF_LASER_ACK};
     xQueueSend(pendingCommandsQueue, &cmdInfo, portMAX_DELAY);
 
     if (xSemaphoreTake(responseSemaphore, pdMS_TO_TICKS(1000)) == pdTRUE) {

@@ -143,6 +143,11 @@ int main(void)
   /* MPU Configuration--------------------------------------------------------*/
   MPU_Config();
 
+  /* Enable the CPU Cache */
+
+  /* Enable I-Cache---------------------------------------------------------*/
+  SCB_EnableICache();
+
 /* USER CODE BEGIN Boot_Mode_Sequence_1 */
   /* Wait until CPU2 boots and enters in stop mode or timeout*/
 #ifdef USE_CORE_M4
@@ -279,12 +284,12 @@ Error_Handler();
 	  peripherals[5].state = PERIPH_STATE_INIT;
   }
 
-  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
-  {
-      while (!LL_USART_IsActiveFlag_TXE(UART_DEBUG));
-      LL_USART_TransmitData8(UART_DEBUG, (uint8_t)boot_log[i]);
-  }
-  while (!LL_USART_IsActiveFlag_TC(UART_DEBUG));
+//  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
+//  {
+//      while (!LL_USART_IsActiveFlag_TXE(UART_DEBUG));
+//      LL_USART_TransmitData8(UART_DEBUG, (uint8_t)boot_log[i]);
+//  }
+//  while (!LL_USART_IsActiveFlag_TC(UART_DEBUG));
 
 //  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
 //  {
@@ -297,13 +302,13 @@ Error_Handler();
   MX_I2C2_Init();
   if(peripherals[6].errorCode == Sys_OK)
   {
-	  sprintf(boot_log, "[ OK ] I2C2 -> RTC Initialized.\r\n");
-	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
-	  {
-	      while (!LL_USART_IsActiveFlag_TXE(UART_DEBUG));
-	      LL_USART_TransmitData8(UART_DEBUG, (uint8_t)boot_log[i]);
-	  }
-	  while (!LL_USART_IsActiveFlag_TC(UART_DEBUG));
+//	  sprintf(boot_log, "[ OK ] I2C2 -> RTC Initialized.\r\n");
+//	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
+//	  {
+//	      while (!LL_USART_IsActiveFlag_TXE(UART_DEBUG));
+//	      LL_USART_TransmitData8(UART_DEBUG, (uint8_t)boot_log[i]);
+//	  }
+//	  while (!LL_USART_IsActiveFlag_TC(UART_DEBUG));
 
 //	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
 //	  {
@@ -326,12 +331,12 @@ Error_Handler();
 	  peripherals[7].state = PERIPH_STATE_ERROR;
   }
 
-  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
-  {
-      while (!LL_USART_IsActiveFlag_TXE(UART_DEBUG));
-      LL_USART_TransmitData8(UART_DEBUG, (uint8_t)boot_log[i]);
-  }
-  while (!LL_USART_IsActiveFlag_TC(UART_DEBUG));
+//  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
+//  {
+//      while (!LL_USART_IsActiveFlag_TXE(UART_DEBUG));
+//      LL_USART_TransmitData8(UART_DEBUG, (uint8_t)boot_log[i]);
+//  }
+//  while (!LL_USART_IsActiveFlag_TC(UART_DEBUG));
 
 //  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
 //  {
@@ -344,14 +349,14 @@ Error_Handler();
   MX_SPI4_Init();
   if(peripherals[8].errorCode == Sys_OK)
   {
-	  sprintf(boot_log, "[ OK ] SPI4 -> ExMemory Initialized.\r\n");
-	  peripherals[8].state = PERIPH_STATE_INIT;
-	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
-	  {
-	      while (!LL_USART_IsActiveFlag_TXE(UART_DEBUG));
-	      LL_USART_TransmitData8(UART_DEBUG, (uint8_t)boot_log[i]);
-	  }
-	  while (!LL_USART_IsActiveFlag_TC(UART_DEBUG));
+//	  sprintf(boot_log, "[ OK ] SPI4 -> ExMemory Initialized.\r\n");
+//	  peripherals[8].state = PERIPH_STATE_INIT;
+//	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
+//	  {
+//	      while (!LL_USART_IsActiveFlag_TXE(UART_DEBUG));
+//	      LL_USART_TransmitData8(UART_DEBUG, (uint8_t)boot_log[i]);
+//	  }
+//	  while (!LL_USART_IsActiveFlag_TC(UART_DEBUG));
 
 //	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
 //	  {
@@ -365,14 +370,14 @@ Error_Handler();
   MX_SPI5_Init();
   if(peripherals[9].errorCode == Sys_OK)
   {
-	  sprintf(boot_log, "[ OK ] SPI5 -> Host Initialized.\r\n");
-	  peripherals[11].state = PERIPH_STATE_INIT;
-	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
-	  {
-	      while (!LL_USART_IsActiveFlag_TXE(UART_DEBUG));
-	      LL_USART_TransmitData8(UART_DEBUG, (uint8_t)boot_log[i]);
-	  }
-	  while (!LL_USART_IsActiveFlag_TC(UART_DEBUG));
+//	  sprintf(boot_log, "[ OK ] SPI5 -> Host Initialized.\r\n");
+//	  peripherals[11].state = PERIPH_STATE_INIT;
+//	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
+//	  {
+//	      while (!LL_USART_IsActiveFlag_TXE(UART_DEBUG));
+//	      LL_USART_TransmitData8(UART_DEBUG, (uint8_t)boot_log[i]);
+//	  }
+//	  while (!LL_USART_IsActiveFlag_TC(UART_DEBUG));
 
 //	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
 //	  {
@@ -386,14 +391,14 @@ Error_Handler();
   MX_SPI6_Init();
   if(peripherals[10].errorCode == Sys_OK)
   {
-	  sprintf(boot_log, "[ OK ] SPI6 -> EXP Initialized.\r\n");
-	  peripherals[10].state = PERIPH_STATE_INIT;
-	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
-	  {
-	      while (!LL_USART_IsActiveFlag_TXE(UART_DEBUG));
-	      LL_USART_TransmitData8(UART_DEBUG, (uint8_t)boot_log[i]);
-	  }
-	  while (!LL_USART_IsActiveFlag_TC(UART_DEBUG));
+//	  sprintf(boot_log, "[ OK ] SPI6 -> EXP Initialized.\r\n");
+//	  peripherals[10].state = PERIPH_STATE_INIT;
+//	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
+//	  {
+//	      while (!LL_USART_IsActiveFlag_TXE(UART_DEBUG));
+//	      LL_USART_TransmitData8(UART_DEBUG, (uint8_t)boot_log[i]);
+//	  }
+//	  while (!LL_USART_IsActiveFlag_TC(UART_DEBUG));
 
 //	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
 //	  {
@@ -407,14 +412,14 @@ Error_Handler();
   MX_TIM1_Init();
   if(peripherals[11].errorCode == Sys_OK)
   {
-	  sprintf(boot_log, "[ OK ] Timer-Clock Ready.\r\n");
-	  peripherals[13].state = PERIPH_STATE_INIT;
-	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
-	  {
-	      while (!LL_USART_IsActiveFlag_TXE(UART_DEBUG));
-	      LL_USART_TransmitData8(UART_DEBUG, (uint8_t)boot_log[i]);
-	  }
-	  while (!LL_USART_IsActiveFlag_TC(UART_DEBUG));
+//	  sprintf(boot_log, "[ OK ] Timer-Clock Ready.\r\n");
+//	  peripherals[13].state = PERIPH_STATE_INIT;
+//	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
+//	  {
+//	      while (!LL_USART_IsActiveFlag_TXE(UART_DEBUG));
+//	      LL_USART_TransmitData8(UART_DEBUG, (uint8_t)boot_log[i]);
+//	  }
+//	  while (!LL_USART_IsActiveFlag_TC(UART_DEBUG));
 
 //	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
 //	  {
@@ -428,14 +433,14 @@ Error_Handler();
   MX_UART7_Init();
   if(peripherals[12].errorCode == Sys_OK)
   {
-	  sprintf(boot_log, "[ OK ] UART7 Initialized, Baud Rate: 115200.\r\n");
-	  peripherals[12].state = PERIPH_STATE_INIT;
-	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
-	  {
-	      while (!LL_USART_IsActiveFlag_TXE(UART_DEBUG));
-	      LL_USART_TransmitData8(UART_DEBUG, (uint8_t)boot_log[i]);
-	  }
-	  while (!LL_USART_IsActiveFlag_TC(UART_DEBUG));
+//	  sprintf(boot_log, "[ OK ] UART7 Initialized, Baud Rate: 115200.\r\n");
+//	  peripherals[12].state = PERIPH_STATE_INIT;
+//	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
+//	  {
+//	      while (!LL_USART_IsActiveFlag_TXE(UART_DEBUG));
+//	      LL_USART_TransmitData8(UART_DEBUG, (uint8_t)boot_log[i]);
+//	  }
+//	  while (!LL_USART_IsActiveFlag_TC(UART_DEBUG));
 
 //	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
 //	  {
@@ -453,12 +458,12 @@ Error_Handler();
 	  system_status.init_state = INIT_STATE_FAILED;
       system_status.program_state = PROGRAM_STATE_ERROR;
 	  sprintf(boot_log, "[ ER ] System Hardware Preparing Fail!...\r\n[ ER ] Something wrong in Hardware Start-up\r\n");
-	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
-	  {
-	      while (!LL_USART_IsActiveFlag_TXE(UART_DEBUG));
-	      LL_USART_TransmitData8(UART_DEBUG, (uint8_t)boot_log[i]);
-	  }
-	  while (!LL_USART_IsActiveFlag_TC(UART_DEBUG));
+//	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
+//	  {
+//	      while (!LL_USART_IsActiveFlag_TXE(UART_DEBUG));
+//	      LL_USART_TransmitData8(UART_DEBUG, (uint8_t)boot_log[i]);
+//	  }
+//	  while (!LL_USART_IsActiveFlag_TC(UART_DEBUG));
 
 	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
 	  {
@@ -468,12 +473,12 @@ Error_Handler();
 	  while (!LL_USART_IsActiveFlag_TC(UART_USB));
   }else{
 	  sprintf(boot_log, "[ OK ] System Hardware Preparing Done...\r\n");
-	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
-	  {
-	      while (!LL_USART_IsActiveFlag_TXE(UART_DEBUG));
-	      LL_USART_TransmitData8(UART_DEBUG, (uint8_t)boot_log[i]);
-	  }
-	  while (!LL_USART_IsActiveFlag_TC(UART_DEBUG));
+//	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
+//	  {
+//	      while (!LL_USART_IsActiveFlag_TXE(UART_DEBUG));
+//	      LL_USART_TransmitData8(UART_DEBUG, (uint8_t)boot_log[i]);
+//	  }
+//	  while (!LL_USART_IsActiveFlag_TC(UART_DEBUG));
 
 	  for (uint32_t i = 0; boot_log[i] != '\0'; i++)
 	  {
@@ -674,8 +679,8 @@ static void MX_SDMMC1_MMC_Init(void)
   hmmc1.Instance = SDMMC1;
   hmmc1.Init.ClockEdge = SDMMC_CLOCK_EDGE_RISING;
   hmmc1.Init.ClockPowerSave = SDMMC_CLOCK_POWER_SAVE_DISABLE;
-  hmmc1.Init.BusWide = SDMMC_BUS_WIDE_8B;
-  hmmc1.Init.HardwareFlowControl = SDMMC_HARDWARE_FLOW_CONTROL_DISABLE;
+  hmmc1.Init.BusWide = SDMMC_BUS_WIDE_4B;
+  hmmc1.Init.HardwareFlowControl = SDMMC_HARDWARE_FLOW_CONTROL_ENABLE;
   hmmc1.Init.ClockDiv = 4;
   if (HAL_MMC_Init(&hmmc1) != HAL_OK)
   {
@@ -1323,7 +1328,7 @@ static void MX_BDMA_Init(void)
   NVIC_SetPriority(BDMA_Channel0_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),7, 0));
   NVIC_EnableIRQ(BDMA_Channel0_IRQn);
   /* BDMA_Channel1_IRQn interrupt configuration */
-  NVIC_SetPriority(BDMA_Channel1_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
+  NVIC_SetPriority(BDMA_Channel1_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),7, 0));
   NVIC_EnableIRQ(BDMA_Channel1_IRQn);
 
   peripherals[3].errorCode = Sys_OK;
@@ -1352,7 +1357,6 @@ static void MX_DMA_Init(void)
   /* DMA2_Stream1_IRQn interrupt configuration */
   NVIC_SetPriority(DMA2_Stream1_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),7, 0));
   NVIC_EnableIRQ(DMA2_Stream1_IRQn);
-
   peripherals[2].errorCode = Sys_OK;
 }
 
@@ -1393,14 +1397,13 @@ static void MX_MDMA_Init(void)
   /* Configure post request address and data masks */
   if (HAL_MDMA_ConfigPostRequestMask(&hmdma_mdma_channel0_sdmmc1_end_data_0, 0, 0) != HAL_OK)
   {
-	return;
+    return;
   }
 
   /* MDMA interrupt initialization */
   /* MDMA_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(MDMA_IRQn, 7, 0);
   HAL_NVIC_EnableIRQ(MDMA_IRQn);
-
   peripherals[1].errorCode = Sys_OK;
 }
 

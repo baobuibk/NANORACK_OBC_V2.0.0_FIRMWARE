@@ -57,9 +57,9 @@
 
 
 #define FF_USE_STRFUNC	1
-#define FF_PRINT_LLI	1
-#define FF_PRINT_FLOAT	1
-#define FF_STRF_ENCODE	3
+#define FF_PRINT_LLI	0
+#define FF_PRINT_FLOAT	0
+#define FF_STRF_ENCODE	1
 /* FF_USE_STRFUNC switches string functions, f_gets(), f_putc(), f_puts() and
 /  f_printf().
 /
@@ -84,7 +84,7 @@
 / Locale and Namespace Configurations
 /---------------------------------------------------------------------------*/
 
-#define FF_CODE_PAGE	850
+#define FF_CODE_PAGE	437
 /* This option specifies the OEM code page to be used on the target system.
 /  Incorrect code page setting can cause a file open failure.
 /
@@ -114,7 +114,7 @@
 
 
 #define FF_USE_LFN		2
-#define FF_MAX_LFN		255
+#define FF_MAX_LFN		127
 /* The FF_USE_LFN switches the support for LFN (long file name).
 /
 /   0: Disable LFN. FF_MAX_LFN has no effect.
@@ -145,7 +145,7 @@
 /  When LFN is not enabled, this option has no effect. */
 
 
-#define FF_LFN_BUF		255
+#define FF_LFN_BUF		127
 #define FF_SFN_BUF		12
 /* This set of options defines size of file name members in the FILINFO structure
 /  which is used to read out directory items. These values should be suffcient for
@@ -153,7 +153,7 @@
 /  on character encoding. When LFN is not enabled, these options have no effect. */
 
 
-#define FF_FS_RPATH		1
+#define FF_FS_RPATH		0
 /* This option configures support for relative path.
 /
 /   0: Disable relative path and remove related functions.
@@ -276,7 +276,7 @@
 
 
 #define FF_FS_REENTRANT	1
-#define FF_FS_TIMEOUT	1000
+#define FF_FS_TIMEOUT	3000
 /* The option FF_FS_REENTRANT switches the re-entrancy (thread safe) of the FatFs
 /  module itself. Note that regardless of this option, file access to different
 /  volume is always re-entrant and volume control functions, f_mount(), f_mkfs()

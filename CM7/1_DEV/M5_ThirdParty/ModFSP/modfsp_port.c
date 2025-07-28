@@ -4,6 +4,8 @@
 #include "board.h"
 #include "utils.h"
 
+#include "Structs/mode.h"
+
 #ifndef NULL
 #define NULL ((void *)0)
 #endif
@@ -22,6 +24,12 @@ int MODFSP_ReadByte(uint8_t *byte)
     }
 
     int data = UART_DMA_Driver_Read(UART_DEBUG);
+
+    ForwardMode_t mode = ForwardMode_Get();
+    if (mode == FORWARD_MODE_BACKUP) {
+    	data = UART_DMA_Driver_Read(UART_USB);
+    }
+
     if (data >= 0) {
         *byte = data;
          return 0;

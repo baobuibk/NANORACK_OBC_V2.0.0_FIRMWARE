@@ -250,12 +250,12 @@ Std_ReturnType OBC_AppInit(void)
 	}
 	while (!LL_USART_IsActiveFlag_TC(USART1));
 
-	for (uint32_t i = 0; boot_log[i] != '\0'; i++)
-	{
-	    while (!LL_USART_IsActiveFlag_TXE(USART2));
-	    LL_USART_TransmitData8(USART2, (uint8_t)boot_log[i]);
-	}
-	while (!LL_USART_IsActiveFlag_TC(USART2));
+//	for (uint32_t i = 0; boot_log[i] != '\0'; i++)
+//	{
+//	    while (!LL_USART_IsActiveFlag_TXE(USART2));
+//	    LL_USART_TransmitData8(USART2, (uint8_t)boot_log[i]);
+//	}
+//	while (!LL_USART_IsActiveFlag_TC(USART2));
 
 
 	ScriptManager_Init();
@@ -542,10 +542,11 @@ void vTask3_handler(void *pvParameters)
 	static uint8_t counting = 0;
 	while (1)
 	{
+		vTaskDelay(60000);
 		char buffer[64];
 	    snprintf(buffer, sizeof(buffer), "60s Cycle Heartbeat: %d", counting++);
 		SYSLOG_NOTICE(buffer);
-		vTaskDelay(60000);
+		vTaskDelay(1);
 	}
 }
 
@@ -599,6 +600,43 @@ void WatchdogPulseTask(void *pvParameters)
     }
 }
 
+//void ExpMonitorTask(void *pvParameters) {
+//    uint8_t lastLow = GPIO_IsInLow(CM4_PIN_PORT, CM4_PIN);
+//    uint32_t lastChangeTime = xTaskGetTickCount();
+//    uint8_t resetSent = 0;
+//
+//    for (;;) {
+//        if (!ExpMonitor_IsEnabled()) {
+//            resetSent = 0;
+//            vTaskDelay(pdMS_TO_TICKS(100));
+//            continue;
+//        }
+//
+//        uint8_t isLow = GPIO_IsInLow(CM4_PIN_PORT, CM4_PIN);
+//        uint32_t now = xTaskGetTickCount();
+//
+//        if (isLow != lastLow) {
+//            lastLow = isLow;
+//            lastChangeTime = now;
+//        } else {
+//            uint32_t elapsedMs = (now - lastChangeTime) * portTICK_PERIOD_MS;
+//
+//            if (isLow && elapsedMs >= MONITOR_DEBOUNCE_MS && !resetSent) {
+//                (void)MIN_Send_PLEASE_RESET_CMD();
+//
+//                ForwardMode_Set(FORWARD_MODE_UART);
+//                resetSent = 1;
+//            }
+//            else if (!isLow && elapsedMs >= MONITOR_DEBOUNCE_MS) {
+//                ForwardMode_Set(FORWARD_MODE_NORMAL);
+//                ExpMonitor_SetEnabled(0);
+//            }
+//        }
+//
+//        vTaskDelay(pdMS_TO_TICKS(10));
+//    }
+//}
+
 void ExpMonitorTask(void *pvParameters) {
     uint8_t lastLow = GPIO_IsInLow(CM4_PIN_PORT, CM4_PIN);
     uint32_t lastChangeTime = xTaskGetTickCount();
@@ -621,10 +659,24 @@ void ExpMonitorTask(void *pvParameters) {
             uint32_t elapsedMs = (now - lastChangeTime) * portTICK_PERIOD_MS;
 
             if (isLow && elapsedMs >= MONITOR_DEBOUNCE_MS && !resetSent) {
-                (void)MIN_Send_PLEASE_RESET_CMD();
 
-                ForwardMode_Set(FORWARD_MODE_UART);
+                uint8_t data_info[4];
+                uint8_t data_len = 0;
+
+
+                if(MIN_Send_PLEASE_RESET_EXP_WithData(data_info, &data_len)){
+                	MODFSP_Send(&cm4_protocol, UPDATE_EXP_ACK, NULL, 0);
+                    ForwardMode_Set(FORWARD_MODE_UART);
+
+                }else {
+                	if(MIN_Send_PLEASE_RESET_EXP_WithData(data_info, &data_len)){
+                    	MODFSP_Send(&cm4_protocol, UPDATE_EXP_ACK, NULL, 0);
+                        ForwardMode_Set(FORWARD_MODE_UART);
+                	}
+
+                }
                 resetSent = 1;
+
             }
             else if (!isLow && elapsedMs >= MONITOR_DEBOUNCE_MS) {
                 ForwardMode_Set(FORWARD_MODE_NORMAL);
@@ -635,7 +687,6 @@ void ExpMonitorTask(void *pvParameters) {
         vTaskDelay(pdMS_TO_TICKS(10));
     }
 }
-
 
 /*************************************************
  *                    END                        *

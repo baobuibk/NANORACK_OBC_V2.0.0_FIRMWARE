@@ -53,6 +53,7 @@ static volatile bool g_master_ack_received = false;
 static volatile bool g_master_ack_success = false;
 
 static volatile bool fatfs_ok = true;
+static volatile bool master_comm_ok = true;
 
 /*************************************************
  *              PRIVATE FUNCTIONS                *
@@ -82,7 +83,15 @@ bool SimpleDataTransfer_IsFatfsOk(void)
     return fatfs_ok;
 }
 
+void SimpleDataTransfer_SetMasterCommOk(bool status)
+{
+    master_comm_ok = status;
+}
 
+bool SimpleDataTransfer_IsMasterCommOk(void)
+{
+    return master_comm_ok;
+}
 /**
  * @brief Initialize Simple Data Transfer system
  */
@@ -418,125 +427,130 @@ static SimpleTransferResult_t ExecuteSingleTransfer(SimpleDataType_t data_type,
     	BScript_Log("[SimpleDataTransfer] Bypass Filesystem write file !!!...");
     }
 
-
-    uint8_t master_retry = 0;
-    do {
-		// Step 5: Send data to master via SPI slave
-		BScript_Log("[SimpleDataTransfer] Step 5: Sending data to master...");
-		if (SPI_SlaveDevice_ResetDMA((uint32_t)g_transfer_ram_d1_buffer, DATA_CHUNK_SIZE) != E_OK) {
-			BScript_Log("[SimpleDataTransfer] SPI slave setup failed");
-		    master_retry++;
-			continue;
-		}
-
-		// Step 6: Trigger master to read data
-		BScript_Log("[SimpleDataTransfer] Step 6: Triggering master...");
-		g_master_ack_received = false;
-		g_master_ack_success = false;
-
-		switch (data_type) {
-		  case DATA_TYPE_CHUNK: {
-			uint8_t trigger_data[12];
-			trigger_data[0] = (uint8_t)((chunk_id >> 8) & 0xFF);
-			trigger_data[1] = (uint8_t)(chunk_id & 0xFF);
-			uint32_t crc_for_master = crc_check_needed ? calculated_crc : 0;
-			trigger_data[2] = (uint8_t)((crc_for_master >> 24) & 0xFF);
-			trigger_data[3] = (uint8_t)((crc_for_master >> 16) & 0xFF);
-			trigger_data[4] = (uint8_t)((crc_for_master >>  8) & 0xFF);
-			trigger_data[5] = (uint8_t)(crc_for_master         & 0xFF);
-
-			trigger_data[6] = year;
-			trigger_data[7] = month;
-			trigger_data[8] = day;
-			trigger_data[9] = hour;
-			trigger_data[10] = minute;
-			trigger_data[11] = second;
-
-			if (MODFSP_Send(&cm4_protocol, MODFSP_TYPE_CHUNK_CMD,
-							 trigger_data, sizeof(trigger_data)) != MODFSP_OK) {
-			  BScript_Log("[SimpleDataTransfer] Master trigger failed");
-			    master_retry++;
+    if(SimpleDataTransfer_IsMasterCommOk()){
+		uint8_t master_retry = 0;
+		do {
+			// Step 5: Send data to master via SPI slave
+			BScript_Log("[SimpleDataTransfer] Step 5: Sending data to master...");
+			if (SPI_SlaveDevice_ResetDMA((uint32_t)g_transfer_ram_d1_buffer, DATA_CHUNK_SIZE) != E_OK) {
+				BScript_Log("[SimpleDataTransfer] SPI slave setup failed");
+				master_retry++;
 				continue;
 			}
-			break;
-		  }
 
-		  case DATA_TYPE_CURRENT: {
-			uint8_t trigger_data[10];
-			uint32_t crc_for_master = crc_check_needed ? calculated_crc : 0;
-			trigger_data[0] = (uint8_t)((crc_for_master >> 24) & 0xFF);
-			trigger_data[1] = (uint8_t)((crc_for_master >> 16) & 0xFF);
-			trigger_data[2] = (uint8_t)((crc_for_master >> 8)  & 0xFF);
-			trigger_data[3] = (uint8_t)(crc_for_master         & 0xFF);
+			// Step 6: Trigger master to read data
+			BScript_Log("[SimpleDataTransfer] Step 6: Triggering master...");
+			g_master_ack_received = false;
+			g_master_ack_success = false;
 
-			trigger_data[4] = year;
-			trigger_data[5] = month;
-			trigger_data[6] = day;
-			trigger_data[7] = hour;
-			trigger_data[8] = minute;
-			trigger_data[9] = second;
+			switch (data_type) {
+			  case DATA_TYPE_CHUNK: {
+				uint8_t trigger_data[12];
+				trigger_data[0] = (uint8_t)((chunk_id >> 8) & 0xFF);
+				trigger_data[1] = (uint8_t)(chunk_id & 0xFF);
+				uint32_t crc_for_master = crc_check_needed ? calculated_crc : 0;
+				trigger_data[2] = (uint8_t)((crc_for_master >> 24) & 0xFF);
+				trigger_data[3] = (uint8_t)((crc_for_master >> 16) & 0xFF);
+				trigger_data[4] = (uint8_t)((crc_for_master >>  8) & 0xFF);
+				trigger_data[5] = (uint8_t)(crc_for_master         & 0xFF);
 
-			if (MODFSP_Send(&cm4_protocol, MODFSP_TYPE_CURRENT_CMD,
-							 trigger_data, sizeof(trigger_data)) != MODFSP_OK) {
-			  BScript_Log("[SimpleDataTransfer] Master trigger failed");
-			    master_retry++;
-				continue;
+				trigger_data[6] = year;
+				trigger_data[7] = month;
+				trigger_data[8] = day;
+				trigger_data[9] = hour;
+				trigger_data[10] = minute;
+				trigger_data[11] = second;
+
+				if (MODFSP_Send(&cm4_protocol, MODFSP_TYPE_CHUNK_CMD,
+								 trigger_data, sizeof(trigger_data)) != MODFSP_OK) {
+				  BScript_Log("[SimpleDataTransfer] Master trigger failed");
+					master_retry++;
+					continue;
+				}
+				break;
+			  }
+
+			  case DATA_TYPE_CURRENT: {
+				uint8_t trigger_data[10];
+				uint32_t crc_for_master = crc_check_needed ? calculated_crc : 0;
+				trigger_data[0] = (uint8_t)((crc_for_master >> 24) & 0xFF);
+				trigger_data[1] = (uint8_t)((crc_for_master >> 16) & 0xFF);
+				trigger_data[2] = (uint8_t)((crc_for_master >> 8)  & 0xFF);
+				trigger_data[3] = (uint8_t)(crc_for_master         & 0xFF);
+
+				trigger_data[4] = year;
+				trigger_data[5] = month;
+				trigger_data[6] = day;
+				trigger_data[7] = hour;
+				trigger_data[8] = minute;
+				trigger_data[9] = second;
+
+				if (MODFSP_Send(&cm4_protocol, MODFSP_TYPE_CURRENT_CMD,
+								 trigger_data, sizeof(trigger_data)) != MODFSP_OK) {
+				  BScript_Log("[SimpleDataTransfer] Master trigger failed");
+					master_retry++;
+					continue;
+				}
+				break;
+			  }
+
+			  case DATA_TYPE_LOG: {
+				uint8_t trigger_data[7];
+				trigger_data[0] = 0;
+				trigger_data[1] = year;
+				trigger_data[2] = month;
+				trigger_data[3] = day;
+				trigger_data[4] = hour;
+				trigger_data[5] = minute;
+				trigger_data[6] = second;
+
+				if (MODFSP_Send(&cm4_protocol, MODFSP_TYPE_LOG_CMD, trigger_data, sizeof(trigger_data)) != MODFSP_OK) {
+				  BScript_Log("[SimpleDataTransfer] Master trigger failed");
+					master_retry++;
+					continue;
+				}
+				break;
+			  }
+
+			  default:
+				break;
 			}
-			break;
-		  }
 
-		  case DATA_TYPE_LOG: {
-			uint8_t trigger_data[7];
-			trigger_data[0] = 0;
-			trigger_data[1] = year;
-			trigger_data[2] = month;
-			trigger_data[3] = day;
-			trigger_data[4] = hour;
-			trigger_data[5] = minute;
-			trigger_data[6] = second;
+			// Step 7: Wait for master acknowledgment
+			BScript_Log("[SimpleDataTransfer] Step 7: Waiting for master acknowledgment...");
 
-			if (MODFSP_Send(&cm4_protocol, MODFSP_TYPE_LOG_CMD, trigger_data, sizeof(trigger_data)) != MODFSP_OK) {
-			  BScript_Log("[SimpleDataTransfer] Master trigger failed");
-			    master_retry++;
-				continue;
+			TickType_t start_time = xTaskGetTickCount();
+			TickType_t timeout_ticks = pdMS_TO_TICKS(TRANSFER_TIMEOUT_MS);
+
+			while (!g_master_ack_received) {
+				if ((xTaskGetTickCount() - start_time) >= timeout_ticks) {
+					BScript_Log("[SimpleDataTransfer] Master acknowledgment timeout");
+					master_retry++;
+					break;
+				}
+				BScript_Delayms(2);
 			}
-			break;
-		  }
 
-		  default:
-			break;
-		}
-
-		// Step 7: Wait for master acknowledgment
-		BScript_Log("[SimpleDataTransfer] Step 7: Waiting for master acknowledgment...");
-
-		TickType_t start_time = xTaskGetTickCount();
-		TickType_t timeout_ticks = pdMS_TO_TICKS(TRANSFER_TIMEOUT_MS);
-
-		while (!g_master_ack_received) {
-			if ((xTaskGetTickCount() - start_time) >= timeout_ticks) {
-				BScript_Log("[SimpleDataTransfer] Master acknowledgment timeout");
-			    master_retry++;
-				continue;
+			if (g_master_ack_success) {
+				SimpleDataTransfer_SetMasterCommOk(true);
+				BScript_Log("[SimpleDataTransfer] Transfer completed successfully");
+				return SIMPLE_TRANSFER_SUCCESS;
+			} else {
+				BScript_Log("[SimpleDataTransfer] Master NACK received, retrying (%u/%u)",
+							master_retry+1, MAX_MASTER_RETRIES);
+				master_retry++;
+				BScript_Delayms(100);
+				g_master_ack_received = false;
 			}
-			BScript_Delayms(2);
-		}
 
-        if (g_master_ack_success) {
-            BScript_Log("[SimpleDataTransfer] Transfer completed successfully");
-            return SIMPLE_TRANSFER_SUCCESS;
-        } else {
-            BScript_Log("[SimpleDataTransfer] Master NACK received, retrying (%u/%u)",
-                        master_retry+1, MAX_MASTER_RETRIES);
-            master_retry++;
-            BScript_Delayms(100);
-            g_master_ack_received = false;
-        }
-
-    } while (master_retry < MAX_MASTER_RETRIES);
-
-    BScript_Log("[SimpleDataTransfer] Max master retries exceeded");
-    return SIMPLE_TRANSFER_ERROR_MASTER_ACK_TIMEOUT;
+		} while (master_retry < MAX_MASTER_RETRIES);
+		SimpleDataTransfer_SetMasterCommOk(false);
+		BScript_Log("[SimpleDataTransfer] Max master retries exceeded");
+	}else{
+    	BScript_Log("[ScriptDLS] Master communication error, Bypass!!");
+        return SIMPLE_TRANSFER_SUCCESS;
+    }
+    return SIMPLE_TRANSFER_SUCCESS;
 }
 
 SimpleTransferResult_t SimpleDataTransfer_ExecuteLogTransfer(const char* base_filename, uint8_t* log_data_ptr, uint32_t log_data_size,                                                           uint8_t year,
@@ -576,61 +590,66 @@ SimpleTransferResult_t SimpleDataTransfer_ExecuteLogTransfer(const char* base_fi
      	BScript_Log("[SimpleDataTransfer] Bypass Filesystem write file !!!...");
     }
 
+    if(SimpleDataTransfer_IsMasterCommOk()){
+		uint8_t master_retry = 0;
+		do {
+			BScript_Log("[SimpleDataTransfer] Step 5: Sending data to master...");
+			if (SPI_SlaveDevice_ResetDMA((uint32_t)log_data_ptr, log_data_size) != E_OK) {
+				BScript_Log("[SimpleDataTransfer] SPI slave setup failed");
+				return SIMPLE_TRANSFER_ERROR_MASTER_TRIGGER_FAILED;
+			}
 
-    uint8_t master_retry = 0;
-    do {
-        BScript_Log("[SimpleDataTransfer] Step 5: Sending data to master...");
-        if (SPI_SlaveDevice_ResetDMA((uint32_t)log_data_ptr, log_data_size) != E_OK) {
-            BScript_Log("[SimpleDataTransfer] SPI slave setup failed");
-            return SIMPLE_TRANSFER_ERROR_MASTER_TRIGGER_FAILED;
-        }
+			BScript_Log("[SimpleDataTransfer] Step 6: Triggering master...");
+			g_master_ack_received = false;
+			g_master_ack_success = false;
 
-        BScript_Log("[SimpleDataTransfer] Step 6: Triggering master...");
-        g_master_ack_received = false;
-        g_master_ack_success = false;
+			uint8_t trigger_data[7] = {0};
 
-        uint8_t trigger_data[7] = {0};
+			trigger_data[0] = 0xFF;
+			trigger_data[1] = year;
+			trigger_data[2] = month;
+			trigger_data[3] = day;
+			trigger_data[4] = hour;
+			trigger_data[5] = minute;
+			trigger_data[6] = second;
 
-        trigger_data[0] = 0xFF;
-		trigger_data[1] = year;
-		trigger_data[2] = month;
-		trigger_data[3] = day;
-		trigger_data[4] = hour;
-		trigger_data[5] = minute;
-		trigger_data[6] = second;
+			if (MODFSP_Send(&cm4_protocol, MODFSP_TYPE_LOG_CMD, trigger_data, sizeof(trigger_data)) != MODFSP_OK) {
+				BScript_Log("[SimpleDataTransfer] Master trigger failed");
+				return SIMPLE_TRANSFER_ERROR_MASTER_TRIGGER_FAILED;
+			}
 
-        if (MODFSP_Send(&cm4_protocol, MODFSP_TYPE_LOG_CMD, trigger_data, sizeof(trigger_data)) != MODFSP_OK) {
-            BScript_Log("[SimpleDataTransfer] Master trigger failed");
-            return SIMPLE_TRANSFER_ERROR_MASTER_TRIGGER_FAILED;
-        }
+			BScript_Log("[SimpleDataTransfer] Step 7: Waiting for master acknowledgment...");
+			TickType_t start_time = xTaskGetTickCount();
+			TickType_t timeout_ticks = pdMS_TO_TICKS(TRANSFER_TIMEOUT_MS);
 
-        BScript_Log("[SimpleDataTransfer] Step 7: Waiting for master acknowledgment...");
-        TickType_t start_time = xTaskGetTickCount();
-        TickType_t timeout_ticks = pdMS_TO_TICKS(TRANSFER_TIMEOUT_MS);
+			while (!g_master_ack_received) {
+				if ((xTaskGetTickCount() - start_time) >= timeout_ticks) {
+					BScript_Log("[SimpleDataTransfer] Master acknowledgment timeout");
+					break;
+				}
+				BScript_Delayms(10);
+			}
 
-        while (!g_master_ack_received) {
-            if ((xTaskGetTickCount() - start_time) >= timeout_ticks) {
-                BScript_Log("[SimpleDataTransfer] Master acknowledgment timeout");
-                return SIMPLE_TRANSFER_ERROR_MASTER_ACK_TIMEOUT;
-            }
-            BScript_Delayms(10);
-        }
+			if (g_master_ack_success) {
+				BScript_Log("[SimpleDataTransfer] Transfer completed successfully for %s", filename);
+				SimpleDataTransfer_SetMasterCommOk(true);
+				return SIMPLE_TRANSFER_SUCCESS;
+			} else {
+				BScript_Log("[SimpleDataTransfer] Master NACK received, retrying (%u/%u)",
+							  master_retry + 1, MAX_MASTER_RETRIES);
+				master_retry++;
+				BScript_Delayms(100);
+				g_master_ack_received = false;
+			}
 
-        if (g_master_ack_success) {
-            BScript_Log("[SimpleDataTransfer] Transfer completed successfully for %s", filename);
-            return SIMPLE_TRANSFER_SUCCESS;
-        } else {
-            BScript_Log("[SimpleDataTransfer] Master NACK received, retrying (%u/%u)",
-                          master_retry + 1, MAX_MASTER_RETRIES);
-            master_retry++;
-            BScript_Delayms(100);
-            g_master_ack_received = false;
-        }
-
-    } while (master_retry < MAX_MASTER_RETRIES);
-
-    BScript_Log("[SimpleDataTransfer] Max master retries exceeded for %s", filename);
-    return SIMPLE_TRANSFER_ERROR_MASTER_ACK_TIMEOUT;
+		} while (master_retry < MAX_MASTER_RETRIES);
+		SimpleDataTransfer_SetMasterCommOk(false);
+		BScript_Log("[SimpleDataTransfer] Max master retries exceeded");
+	}else{
+    	BScript_Log("[ScriptDLS] Master communication error, Bypass!!");
+        return SIMPLE_TRANSFER_SUCCESS;
+    }
+    return SIMPLE_TRANSFER_SUCCESS;
 }
 
 /*************************************************

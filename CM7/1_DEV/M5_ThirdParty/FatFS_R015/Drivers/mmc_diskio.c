@@ -23,9 +23,9 @@
 #define USE_FREERTOS
 
 #ifdef USE_FREERTOS
-//#include "FreeRTOS.h"
-//#include "semphr.h"
-//#include "task.h"
+#include "FreeRTOS.h"
+#include "semphr.h"
+#include "task.h"
 #endif
 
 /* External MMC handle declarations */
@@ -37,7 +37,7 @@ extern MMC_HandleTypeDef hmmc2;
 #endif
 
 /* Private defines */
-#define MMC_TIMEOUT 30000
+#define MMC_TIMEOUT 10000
 #define MMC_DEFAULT_BLOCK_SIZE 512
 #define ENABLE_DMA_CACHE_MAINTENANCE 0
 #define EMMC_HSEM_ID (1U)
@@ -85,7 +85,10 @@ static DSTATUS MMC_Initialize(MMC_HandleTypeDef *hmmc, BYTE lun) {
             if (hmmc == &hmmc1 && MMC1Semaphore == NULL) {
                 MMC1Semaphore = xSemaphoreCreateBinary();
                 if (MMC1Semaphore == NULL) {
+
                     Stat = STA_NOINIT;  /* Failed to create semaphore */
+
+                	return RES_ERROR;
                 }
             }
 #endif
@@ -138,7 +141,7 @@ static DRESULT MMC_Read(MMC_HandleTypeDef *hmmc, BYTE *buff, DWORD sector, UINT 
                     res = RES_OK;
                     break;
                 }
-                vTaskDelay(pdMS_TO_TICKS(1));  /* Delay 1ms to avoid busy-wait */
+                vTaskDelay(pdMS_TO_TICKS(2));  /* Delay 1ms to avoid busy-wait */
             }
         }
     }
@@ -191,7 +194,7 @@ static DRESULT MMC_Write(MMC_HandleTypeDef *hmmc, const BYTE *buff, DWORD sector
                     res = RES_OK;
                     break;
                 }
-                vTaskDelay(pdMS_TO_TICKS(1));  /* Delay 1ms to avoid busy-wait */
+                vTaskDelay(pdMS_TO_TICKS(2));  /* Delay 1ms to avoid busy-wait */
             }
         }
     }

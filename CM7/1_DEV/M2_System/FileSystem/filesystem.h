@@ -67,8 +67,8 @@ Std_ReturnType FS_Request_Write(const char* filename, uint8_t* buffer, uint32_t 
 /*************************************************
  *              Hardware Control                 *
  *************************************************/
-void SD_Lockin(void);
-void SD_Release(void);
+uint8_t SD_Lockin(void);
+uint8_t SD_Release(void);
 Std_ReturnType Link_SDFS_Driver(void);
 
 /*************************************************

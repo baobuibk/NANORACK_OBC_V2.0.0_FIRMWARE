@@ -163,6 +163,7 @@ SimpleTransferResult_t SimpleDataTransfer_ExecuteLogTransfer(const char* base_fi
 
 bool SimpleDataTransfer_IsFatfsOk(void);
 void SimpleDataTransfer_SetFatfsOk(bool status);
-
+bool SimpleDataTransfer_IsMasterCommOk(void);
+void SimpleDataTransfer_SetMasterCommOk(bool status);
 
 #endif /* M2_SYSTEM_SIMPLEDATATRANSFER_SIMPLE_DATATRANS_H_ */

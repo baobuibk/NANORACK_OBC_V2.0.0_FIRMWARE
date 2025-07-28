@@ -190,6 +190,17 @@ void DMA1_Stream0_IRQHandler(void)
      LL_DMA_EnableStream(DMA1, LL_DMA_STREAM_0);
   }
 
+  if (LL_DMA_IsActiveFlag_FE0(DMA1))
+  {
+     LL_DMA_ClearFlag_FE0(DMA1);
+     LL_DMA_EnableStream(DMA1, LL_DMA_STREAM_0);
+  }
+
+  if (LL_DMA_IsActiveFlag_DME0(DMA1))
+  {
+	  LL_DMA_ClearFlag_DME0(DMA1);
+  }
+
   /* USER CODE END DMA1_Stream0_IRQn 1 */
 }
 
@@ -353,6 +364,17 @@ void DMA2_Stream1_IRQHandler(void)
   {
      LL_DMA_ClearFlag_TE1(DMA2);
      LL_DMA_EnableStream(DMA2, LL_DMA_STREAM_1);
+  }
+
+  if (LL_DMA_IsActiveFlag_FE1(DMA2))
+  {
+     LL_DMA_ClearFlag_FE1(DMA2);
+     LL_DMA_EnableStream(DMA2, LL_DMA_STREAM_1);
+  }
+
+  if (LL_DMA_IsActiveFlag_DME1(DMA2))
+  {
+	  LL_DMA_ClearFlag_DME1(DMA2);
   }
   /* USER CODE END DMA2_Stream1_IRQn 1 */
 }

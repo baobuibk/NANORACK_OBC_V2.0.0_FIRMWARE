@@ -21,6 +21,7 @@ void min_debug_print(const char *msg, ...) {
 
 #include "board.h"
 #include "uart_driver_dma.h"
+#include "Tick/tick.h"
 
 static MIN_Context_t *registered_contexts[MAX_MIN_CONTEXTS] = {0};
 
@@ -80,7 +81,7 @@ void min_tx_finished(uint8_t port)
  */
 uint32_t min_time_ms(void)
 {
-    return HAL_GetTick(); // Uses HAL function to get system uptime
+    return Utils_GetTick(); // Uses HAL function to get system uptime
 }
 
 void MIN_Context_Init(MIN_Context_t *ctx, uint8_t port) {
