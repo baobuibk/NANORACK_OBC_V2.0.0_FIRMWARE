@@ -178,8 +178,8 @@ MODFSP_Return_t MODFSP_Read(MODFSP_Data_t *this, const uint8_t *rx_data)
         {
             if (this->index < sizeof(this->data))
             {
-            	MODFSP_Log("DATA[%d]: 0x%02X (%d)", this->index - 1, byte, byte);
-                this->data[this->index++] = byte;
+            	MODFSP_Log("DATA[%d]: 0x%02X (%d)", this->index, byte, byte);
+            	this->data[this->index++] = byte;
                 crc_update(&this->crc16, byte);
                 if (this->index == this->length)
                 {

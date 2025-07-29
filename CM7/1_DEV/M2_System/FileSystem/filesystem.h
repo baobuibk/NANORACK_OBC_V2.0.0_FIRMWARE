@@ -77,7 +77,7 @@ Std_ReturnType Link_SDFS_Driver(void);
 void FS_ListFiles_path(EmbeddedCli *cli);
 int Vim_SDFS(EmbeddedCli *cli, const char *filename, const char *content);
 int Cat_SDFS(EmbeddedCli *cli, const char *filename);
-
+SDFS_StateTypedef SDFS_GetStatus(void);
 /*************************************************
  *              Return Codes                     *
  *************************************************/

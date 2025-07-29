@@ -461,7 +461,7 @@ uint8_t ScriptStorage_AutoLoadScripts(void* script_manager)
     BScript_Log("[ScriptStorage] Auto-load delay completed, loading scripts from FRAM...");
     
     uint8_t loaded_count = 0;
-    uint8_t buffer[MAX_SCRIPT_DATA_SIZE];
+    static uint8_t buffer[MAX_SCRIPT_DATA_SIZE];
     
     // Try to load each script type
     for (ScriptType_t type = SCRIPT_TYPE_INIT; type < SCRIPT_TYPE_COUNT; type++) {

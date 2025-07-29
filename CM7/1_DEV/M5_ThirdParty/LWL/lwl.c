@@ -145,7 +145,7 @@ void LWL_Log(uint8_t id, ...) {
     va_end(ap);
 
     // Send directly to Log Manager
-    LogManager_Write_OBC(package, package_idx);
+    LogManager_Write(package, package_idx);
 }
 
 void LWL_Enable(bool enable) {

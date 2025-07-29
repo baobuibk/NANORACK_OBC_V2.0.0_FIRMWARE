@@ -1600,11 +1600,9 @@ static void CMD_DevEraseScript(EmbeddedCli *cli, char *args, void *context)
 static void CMD_DevLogManagerDebug(EmbeddedCli *cli, char *args, void *context)
 {
 
-	for (LogSource_TypeDef source = 0; source < LOG_SOURCE_COUNT; source++) {
-		LogManager_DebugInfo(source);
-		LogManager_DumpBuffer(source, LOG_BUFFER_LEFT);
-		LogManager_DumpBuffer(source, LOG_BUFFER_RIGHT);
-	}
+	LogManager_DebugInfo();
+	LogManager_DumpBuffer(LOG_BUFFER_LEFT);
+	LogManager_DumpBuffer(LOG_BUFFER_RIGHT);
 
     embeddedCliPrint(cli, "");
 }

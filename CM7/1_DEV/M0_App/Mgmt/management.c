@@ -67,7 +67,7 @@ void Mgmt_SystemStart(void){
  *************************************************/
 Std_ReturnType Mgmt_SystemInitStepZero(void)
 {
-	Std_ReturnType ret = E_ERROR;
+	Std_ReturnType ret = E_OK;
 	system_status.init_state = INIT_STATE_STEP_ZERO;
 	Sys_Debugcast(E_OK, LOG_INFOR, "Step Zero: Pending...");
 
@@ -75,9 +75,7 @@ Std_ReturnType Mgmt_SystemInitStepZero(void)
 
 	LogManager_Init();
 
-	LWL_TestLogs();
-
-	ret = Utils_SoftTime_Sync();
+//	LWL_TestLogs();
 
 	if(Utils_SoftTime_Sync() == E_OK){
 		Sys_Boardcast(E_OK,	LOG_NOTICE, "[Sync Time!]");

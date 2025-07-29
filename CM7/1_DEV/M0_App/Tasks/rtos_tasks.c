@@ -89,6 +89,7 @@ static StaticTask_t root_tcb;
         return E_ERROR; \
     }
 
+static SemaphoreHandle_t g_watchdog_mutex;
 /*************************************************
  *               TASK DEFINE                     *
  *************************************************/
@@ -128,13 +129,18 @@ TaskHeartbeat_t taskHeartbeats[TASK_COUNT] = {
 volatile uint8_t watchdog_allow_pulse = 1;
 
 void Task_Kick(const char *taskName) {
-    for (int i = 0; i < TASK_COUNT; i++) {
-        if (strcmp(taskHeartbeats[i].name, taskName) == 0) {
-            taskHeartbeats[i].alive = 1;
-            break;
+    if (xSemaphoreTake(g_watchdog_mutex, pdMS_TO_TICKS(10)) == pdTRUE) {
+        for (int i = 0; i < TASK_COUNT; i++) {
+            if (strcmp(taskHeartbeats[i].name, taskName) == 0) {
+                taskHeartbeats[i].alive = 1;
+                break;
+            }
         }
+        xSemaphoreGive(g_watchdog_mutex);
     }
 }
+
+static SemaphoreHandle_t g_watchdog_mutex = NULL;
 
 #define CM4_PIN_PORT            CM4OUT_STMIN_D1_GPIO_Port
 #define CM4_PIN                 CM4OUT_STMIN_D1_Pin
@@ -179,6 +185,25 @@ void OBC_RootGrowUp(void)
     }
 
     vTaskStartScheduler();
+}
+
+Std_ReturnType Watchdog_Mechanism_Init(void)
+{
+    g_watchdog_mutex = xSemaphoreCreateMutex();
+
+    if (g_watchdog_mutex == NULL)
+    {
+        SYSLOG_FATAL("[Watchdog] Failed to create watchdog mutex!");
+        return E_ERROR;
+    }
+
+    SYSLOG_NOTICE("[Watchdog] Watchdog protection mutex created successfully.");
+    return E_OK;
+}
+
+SemaphoreHandle_t Watchdog_GetMutex(void)
+{
+    return g_watchdog_mutex;
 }
 
 /*************************************************
@@ -228,27 +253,27 @@ Std_ReturnType OBC_AppInit(void)
     	Sys_Boardcast(E_OK, LOG_INFOR, "[WELCOME]");
 	}
 
-	char boot_log[256] = {0};
-    int offset = 0;
-    s_DateTime rtc;
-    Utils_GetRTC(&rtc);
-    offset += snprintf(boot_log + offset, sizeof(boot_log) - offset,
-                "\r\nHardtime: 20%02d-%02d-%02d %02d:%02d:%02d ",
-                rtc.year, rtc.month, rtc.day, rtc.hour, rtc.minute, rtc.second);
-    uint8_t hours = 0, minutes = 0, seconds = 0;
-    Utils_GetWorkingTime(NULL, &hours, &minutes, &seconds);
-    offset += snprintf(boot_log + offset, sizeof(boot_log) - offset,
-                    "\r\nUptime: %02u:%02u:%02u",
-                    hours, minutes, seconds);
-    offset += snprintf(boot_log + offset, sizeof(boot_log) - offset,
-                    "\r\nWelcome to SpaceLiinTech - SLT BEE-PC1 OBC \r\n\r\n");
-
-	for (uint32_t i = 0; boot_log[i] != '\0'; i++)
-	{
-	    while (!LL_USART_IsActiveFlag_TXE(USART1));
-	    LL_USART_TransmitData8(USART1, (uint8_t)boot_log[i]);
-	}
-	while (!LL_USART_IsActiveFlag_TC(USART1));
+//	char boot_log[256] = {0};
+//    int offset = 0;
+//    s_DateTime rtc;
+//    Utils_GetRTC(&rtc);
+//    offset += snprintf(boot_log + offset, sizeof(boot_log) - offset,
+//                "\r\nHardtime: 20%02d-%02d-%02d %02d:%02d:%02d ",
+//                rtc.year, rtc.month, rtc.day, rtc.hour, rtc.minute, rtc.second);
+//    uint8_t hours = 0, minutes = 0, seconds = 0;
+//    Utils_GetWorkingTime(NULL, &hours, &minutes, &seconds);
+//    offset += snprintf(boot_log + offset, sizeof(boot_log) - offset,
+//                    "\r\nUptime: %02u:%02u:%02u",
+//                    hours, minutes, seconds);
+//    offset += snprintf(boot_log + offset, sizeof(boot_log) - offset,
+//                    "\r\nWelcome to SpaceLiinTech - SLT BEE-PC1 OBC \r\n\r\n");
+//
+//	for (uint32_t i = 0; boot_log[i] != '\0'; i++)
+//	{
+//	    while (!LL_USART_IsActiveFlag_TXE(USART1));
+//	    LL_USART_TransmitData8(USART1, (uint8_t)boot_log[i]);
+//	}
+//	while (!LL_USART_IsActiveFlag_TC(USART1));
 
 //	for (uint32_t i = 0; boot_log[i] != '\0'; i++)
 //	{
@@ -256,11 +281,19 @@ Std_ReturnType OBC_AppInit(void)
 //	    LL_USART_TransmitData8(USART2, (uint8_t)boot_log[i]);
 //	}
 //	while (!LL_USART_IsActiveFlag_TC(USART2));
-
+	Watchdog_Mechanism_Init();
 
 	ScriptManager_Init();
 
+	ScriptManager_EnableLogFetching(true);
+
 	MODFSP_Init(&cm4_protocol);
+
+	SD_Release();
+
+	vTaskDelay(200);
+
+	SD_Lockin();
 
     CREATE_TASK(MIN_Process_Task, 		"MIN_Process", 		MIN_STACK_SIZE * 20, 	NULL, 									1, NULL);
 
@@ -283,7 +316,7 @@ Std_ReturnType OBC_AppInit(void)
     		CREATE_TASK(ScriptManager_Task, 		"ScriptManager", 		MIN_STACK_SIZE * 20, 	NULL, 									1, NULL);
     		CREATE_TASK(ScriptDLS_Task, 			"ScriptDLS", 			MIN_STACK_SIZE * 20, 	NULL, 									1, NULL);
     		CREATE_TASK(ScriptCAM_Task, 			"ScriptCAM", 			MIN_STACK_SIZE * 20, 	NULL, 									1, NULL);
-    		CREATE_TASK(LogManager_Task, 			"LogManager", 			MIN_STACK_SIZE * 5, 		NULL, 								1, NULL);
+    		CREATE_TASK(LogManager_Task, 			"LogManager", 			MIN_STACK_SIZE * 5, 	NULL, 								1, NULL);
 
     CREATE_TASK(UART_USB_DMA_RX_TASK, 	"UART_USB_RX", MIN_STACK_SIZE * 20, 	(void*)UART_DMA_Driver_Get(UART_USB),	1, NULL);
 
@@ -301,6 +334,7 @@ Std_ReturnType OBC_AppInit(void)
     vTaskDelay(pdMS_TO_TICKS(1));
 
 	Shield_Init(&auth_usb, writeChar_auth_USB);
+
 
 	Dmesg_Init();
 
@@ -488,7 +522,6 @@ void UART_DEBUG_DMA_RX_Task(void *pvParameters)
 void MODFSP_Process_Task(void *pvParameters)
 {
 	while(1){
-		Task_Kick("MODFSP");
         ForwardMode_t mode = ForwardMode_Get();
         if (mode == FORWARD_MODE_NORMAL) {
             if (UART_DMA_Driver_IsDataAvailable(UART_DEBUG)) {
@@ -497,6 +530,7 @@ void MODFSP_Process_Task(void *pvParameters)
             	MODFSP_Process(&cm4_protocol);
             }
         }
+		Task_Kick("MODFSP");
 	    vTaskDelay(pdMS_TO_TICKS(2));
 	}
 }
@@ -505,11 +539,13 @@ void MODFSP_Process_Task(void *pvParameters)
 void MIN_Process_Task(void *pvParameters)
 {
 	while(1){
-		Task_Kick("MIN");
+
         ForwardMode_t mode = ForwardMode_Get();
         if (mode == FORWARD_MODE_NORMAL) {
         	MIN_Processing();
         }
+		Task_Kick("MIN");
+
 	    vTaskDelay(pdMS_TO_TICKS(2));
 	}
 }
@@ -559,28 +595,28 @@ void LogManager_Task(void *pvParameters)
     }
 }
 
-void WatchdogMonitorTask(void *pvParameters)
-{
+void WatchdogMonitorTask(void *pvParameters) {
     for (;;) {
-        int allAlive = 1;
-        for (int i = 0; i < TASK_COUNT; i++) {
-            if (taskHeartbeats[i].alive == 0) {
-                allAlive = 0;
-                SYSLOG_WARN("Missed heartbeat");
-            }
-        }
+        vTaskDelay(pdMS_TO_TICKS(500));
 
-        if (allAlive) {
-            watchdog_allow_pulse = 1;
+        int allAlive = 1;
+        if (xSemaphoreTake(g_watchdog_mutex, pdMS_TO_TICKS(50)) == pdTRUE) {
+            for (int i = 0; i < TASK_COUNT; i++) {
+                if (taskHeartbeats[i].alive == 0) {
+                    allAlive = 0;
+                    SYSLOG_WARN("Missed heartbeat");
+                }
+            }
+
+            watchdog_allow_pulse = allAlive;
+            for (int i = 0; i < TASK_COUNT; i++) {
+                taskHeartbeats[i].alive = 0;
+            }
+            xSemaphoreGive(g_watchdog_mutex);
         } else {
+            SYSLOG_ERROR("[Watchdog] Monitor could not acquire mutex!");
             watchdog_allow_pulse = 0;
         }
-
-        for (int i = 0; i < TASK_COUNT; i++) {
-            taskHeartbeats[i].alive = 0;
-        }
-
-        vTaskDelay(pdMS_TO_TICKS(500));
     }
 }
 
@@ -675,6 +711,7 @@ void ExpMonitorTask(void *pvParameters) {
                 	}
 
                 }
+                ForwardMode_Set(FORWARD_MODE_UART);
                 resetSent = 1;
 
             }

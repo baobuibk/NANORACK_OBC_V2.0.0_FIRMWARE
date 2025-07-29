@@ -36,6 +36,9 @@ extern MODFSP_Data_t cm4_protocol;
 #include "reinit.h"
 
 #include "RAMBK_Infor/rambk_infor.h"
+
+#define CLEANUP_CHECK_INTERVAL_HOURS    4
+#define CLEANUP_CHECK_INTERVAL_TICKS    (pdMS_TO_TICKS(CLEANUP_CHECK_INTERVAL_HOURS * 3600 * 1000))
 /*************************************************
  *               PRIVATE VARIABLES               *
  *************************************************/
@@ -1038,7 +1041,7 @@ void ScriptManager_HandleSelfTest(const uint8_t* data, uint32_t length)
         return ;
     }
 
-    uint8_t data_info[4];
+    uint8_t data_info[5];
     uint8_t data_len = 0;
 
 
@@ -1049,10 +1052,24 @@ void ScriptManager_HandleSelfTest(const uint8_t* data, uint32_t length)
         return ;
     }
 
-    uint16_t int_current = ((uint16_t)data_info[0] << 8) | data_info[1];
-    uint16_t ext_current = ((uint16_t)data_info[2] << 8) | data_info[3];
+    uint16_t int_current = ((uint16_t)data_info[1] << 8) | data_info[2];
+    uint16_t ext_current = ((uint16_t)data_info[3] << 8) | data_info[4];
 
     BScript_Log("[ScriptDLS] int_current = %u, ext_current = %u", int_current, ext_current);
+
+
+
+
+    uint8_t off_data[1];
+    uint8_t off_len = 0;
+
+
+    if(MIN_Send_MANUAL_TURN_OFF_LASER_CMD_WithData(type, off_data, &off_len)){
+    	BScript_Log("[ScriptDLS] MANUAL_TURN_OFF_LASER_CMD received: %u bytes", off_len);
+    }else {
+        BScript_Log("[ScriptDLS] Failed to MANUAL_TURN_OFF_LASER_CMD");
+        return ;
+    }
 
     if (type == 0) {
         MODFSP_Send(&cm4_protocol, SELF_TEST_ACK, (uint8_t*)&int_current, sizeof(int_current));
@@ -1364,41 +1381,23 @@ void ScriptCAM_Task(void *pvParameters)
  */
 void LogFetching_Task(void *pvParameters)
 {
-	bool date_file_created = false;
+    bool date_file_created = false;
+    TickType_t last_cleanup_check_time = 0;
 
     while (1) {
-        vTaskDelay(pdMS_TO_TICKS(3000));
+        vTaskDelay(pdMS_TO_TICKS(4000));
 
         if (!g_log_fetching_enabled) {
             continue;
         }
 
-        if (xSemaphoreTake(g_script_manager.execution_mutex, pdMS_TO_TICKS(100)) == pdTRUE) {
-
             // Check if cleanup is needed (only if date file exists)
-            if (NeedCleanup()) {
-                BScript_Log("[LogFetching] Log retention period exceeded. Performing cleanup...");
 
-                if (PerformCleanup() == E_OK) {
-                    date_file_created = false; // Need to recreate date file
-                    BScript_Log("[LogFetching] Cleanup completed successfully");
-                } else {
-                    BScript_Log("[LogFetching] Cleanup failed, continuing with current files");
-                }
-            }
-
-            // Create date_time.txt if not created yet (first run or after cleanup)
-            if (!date_file_created) {
-                if (CreateOrUpdateDateFile() == E_OK) {
-                    date_file_created = true;
-                    BScript_Log("[LogFetching] Date tracking file created");
-                } else {
-                    BScript_Log("[LogFetching] Failed to create date file");
-                }
-            }
-
+        if (xSemaphoreTake(g_script_manager.execution_mutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+            // Check for EXP trigger (debounced)
             if (!LL_GPIO_IsInputPinSet(EXP_LOG_TRIGGER_GPIO_PORT, EXP_LOG_TRIGGER_GPIO_PIN)) {
-                vTaskDelay(pdMS_TO_TICKS(50));
+                vTaskDelay(pdMS_TO_TICKS(50)); // Debounce delay
+
                 if (!LL_GPIO_IsInputPinSet(EXP_LOG_TRIGGER_GPIO_PORT, EXP_LOG_TRIGGER_GPIO_PIN)) {
                     BScript_Log("[LogFetching] Stable EXP trigger detected. Initiating special transfer.");
 
@@ -1407,20 +1406,56 @@ void LogFetching_Task(void *pvParameters)
                     Utils_GetRTC(&rtc);
 
                     snprintf(base_filename, sizeof(base_filename), "exp_log_20%02d%02d%02d_%02d%02d%02d",
-                             rtc.year, rtc.month, rtc.day, rtc.hour, rtc.minute, rtc.second);
+                            rtc.year, rtc.month, rtc.day, rtc.hour, rtc.minute, rtc.second);
 
-                    SimpleDataTransfer_ExecuteTransfer(DATA_TYPE_LOG, 0, base_filename, rtc.year, rtc.month, rtc.day, rtc.hour, rtc.minute, rtc.second);
+                    // Execute transfer and check result
+                    Std_ReturnType transfer_result = SimpleDataTransfer_ExecuteTransfer(
+                        DATA_TYPE_LOG, 0, base_filename,
+                        rtc.year, rtc.month, rtc.day, rtc.hour, rtc.minute, rtc.second);
+
+                    if (transfer_result == E_OK) {
+                        BScript_Log("[LogFetching] EXP transfer completed successfully");
+                    } else {
+                        BScript_Log("[LogFetching] EXP transfer failed: %d", transfer_result);
+                    }
 
                     xSemaphoreGive(g_script_manager.execution_mutex);
                     continue;
                 }
             }
 
-            BScript_Log("[LogFetching] No stable EXP trigger, processing buffered logs...");
-            LogManager_Process();
+//            BScript_Log("[LogFetching] No EXP trigger, processing buffered logs...");
+
+            Std_ReturnType log_result = LogManager_Process();
+            if (log_result != E_OK) {
+                BScript_Log("[LogFetching] LogManager_Process failed: %d", log_result);
+            }
 
             xSemaphoreGive(g_script_manager.execution_mutex);
+
+        } else {
+            BScript_Log("[LogFetching] Failed to acquire execution mutex, will retry next cycle");
         }
+
+
+        if ((xTaskGetTickCount() - last_cleanup_check_time) > CLEANUP_CHECK_INTERVAL_TICKS) {
+
+            if (NeedCleanup()) {
+                BScript_Log("[LogFetching] Performing periodic cleanup...");
+                if (PerformCleanup() == E_OK) {
+                    date_file_created = false;
+                }
+            }
+
+            if (!date_file_created) {
+                if (CreateOrUpdateDateFile() == E_OK) {
+                    date_file_created = true;
+                }
+            }
+
+            last_cleanup_check_time = xTaskGetTickCount();
+        }
+
     }
 }
 
@@ -1445,7 +1480,7 @@ void SDLockRelease_Task(void *pvParameters)
         // Auto-release SD
         if (!g_sd_scheduler.release_done_today &&
             now_sec >= g_sd_scheduler.release_time_sec &&
-            now_sec < g_sd_scheduler.release_time_sec + 60) {
+            now_sec < g_sd_scheduler.release_time_sec + 1800) {
 
             BScript_Log("[SDScheduler] SD Release");
 
@@ -1460,7 +1495,7 @@ void SDLockRelease_Task(void *pvParameters)
         // Auto-lockin SD
         if (!g_sd_scheduler.lockin_done_today &&
             now_sec >= g_sd_scheduler.lockin_time_sec &&
-            now_sec < g_sd_scheduler.lockin_time_sec + 60) {
+            now_sec < g_sd_scheduler.lockin_time_sec + 1800) {
 
             BScript_Log("[SDScheduler] SD Lock-in");
 

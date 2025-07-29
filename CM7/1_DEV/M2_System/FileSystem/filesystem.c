@@ -38,6 +38,11 @@ SemaphoreHandle_t fsMutex;
  *************************************************/
 SDFS_StateTypedef SDFS_State = SDFS_READY;
 
+SDFS_StateTypedef SDFS_GetStatus(void){
+	return SDFS_State;
+}
+
+
 uint8_t SD_Lockin(void)
 {
     if (xSemaphoreTake(fsMutex, pdMS_TO_TICKS(1000)) != pdTRUE) {
@@ -45,30 +50,32 @@ uint8_t SD_Lockin(void)
         return 0;
     }
 
-    GPIO_SetHigh(SD_InOut_Port, SD_InOut);
-    GPIO_SetHigh(SD_Detect_Port, SD_Detect);
+    if (SDFS_State == SDFS_READY) {
+        xSemaphoreGive(fsMutex);
+        return 1;
+    }
 
-    vTaskDelay(100);
+    GPIO_SetHigh(SD_Detect_Port, SD_Detect);
+    vTaskDelay(pdMS_TO_TICKS(20));
+    GPIO_SetHigh(SD_InOut_Port, SD_InOut);
+    vTaskDelay(200);
 
     SDMMC1_Init();
 
-    if (SDFS_State != SDFS_READY) {
-        Std_ReturnType ret = Link_SDFS_Driver();
-        if (ret == E_OK) {
-            SDFS_State = SDFS_READY;
-            SYSLOG_DEBUG_POLL("[SDFS] Filesystem re-mounted successfully");
-        } else {
-            SDFS_State = SDFS_ERROR;
-            SYSLOG_ERROR_POLL("[SDFS] Failed to re-mount filesystem");
-            xSemaphoreGive(fsMutex);
-            return 0;
-        }
+    Std_ReturnType ret = Link_SDFS_Driver();
+    if (ret == E_OK) {
+        SDFS_State = SDFS_READY;
+        SYSLOG_DEBUG_POLL("[SDFS] Filesystem mounted successfully");
+    } else {
+        SDFS_State = SDFS_ERROR;
+        SYSLOG_ERROR_POLL("[SDFS] Failed to mount filesystem");
+        xSemaphoreGive(fsMutex);
+        return 0;
     }
 
     xSemaphoreGive(fsMutex);
     return 1;
 }
-
 
 uint8_t SD_Release(void)
 {
@@ -77,13 +84,22 @@ uint8_t SD_Release(void)
         return 0;
     }
 
+    vTaskDelay(200);
+    f_sync(NULL);
+
+    vTaskDelay(pdMS_TO_TICKS(20));
+
     f_mount(NULL, MMC1Path, 0);
     FATFS_UnLinkDriver(MMC1Path);
+
+    vTaskDelay(pdMS_TO_TICKS(20));
+
     SDMMC1_DeInit();
 
     vTaskDelay(100);
 
     GPIO_SetLow(SD_InOut_Port, SD_InOut);
+    vTaskDelay(pdMS_TO_TICKS(20));
     GPIO_SetLow(SD_Detect_Port, SD_Detect);
 
     SDFS_State = SDFS_RELEASE;
@@ -114,9 +130,8 @@ Std_ReturnType FS_Write_Direct(const char* filename, uint8_t* buffer, uint32_t s
         return E_ERROR;
     }
 
-    // Take mutex with short timeout (50ms is enough for SDMMC DMA)
-    if (xSemaphoreTake(fsMutex, pdMS_TO_TICKS(500)) != pdTRUE) {
-        return E_BUSY; // Filesystem busy, try again later
+    if (xSemaphoreTake(fsMutex, pdMS_TO_TICKS(1000)) != pdTRUE) {
+        return E_BUSY;
     }
 
     FIL file;
@@ -124,14 +139,17 @@ Std_ReturnType FS_Write_Direct(const char* filename, uint8_t* buffer, uint32_t s
     UINT byteswritten;
     Std_ReturnType result = E_ERROR;
 
-    // Open file for append/write
     res = f_open(&file, filename, FA_OPEN_APPEND | FA_WRITE);
     if (res == FR_OK) {
-        // Write data - with DMA this is very fast
         res = f_write(&file, buffer, size, &byteswritten);
-        f_close(&file);
 
         if (res == FR_OK && byteswritten == size) {
+            res = f_sync(&file);
+        }
+
+        FRESULT close_res = f_close(&file);
+
+        if (res == FR_OK && byteswritten == size && close_res == FR_OK) {
             result = E_OK;
         }
     }
@@ -375,20 +393,30 @@ _Bool NeedCleanup(void) {
     UINT bytes_read;
     uint32_t stored_epoch = 0;
     uint32_t current_epoch;
+//    _Bool result = false;
 
     // Get current epoch time using existing function
     current_epoch = Utils_GetEpoch();
+
+    // Take mutex for file operations
+    if (xSemaphoreTake(fsMutex, pdMS_TO_TICKS(1000)) != pdTRUE) {
+        SYSLOG_ERROR("Failed to acquire FS mutex for cleanup check");
+        return false;
+    }
 
     // Try to open date file
     res = f_open(&file, DATE_TIME_FILENAME, FA_READ);
     if (res != FR_OK) {
         // File doesn't exist, no cleanup needed (first run)
+        xSemaphoreGive(fsMutex);
         return false;
     }
 
     // Read stored epoch
     res = f_read(&file, date_str, sizeof(date_str) - 1, &bytes_read);
     f_close(&file);
+
+    xSemaphoreGive(fsMutex);
 
     if (res != FR_OK || bytes_read == 0) {
         return false; // Can't read file
