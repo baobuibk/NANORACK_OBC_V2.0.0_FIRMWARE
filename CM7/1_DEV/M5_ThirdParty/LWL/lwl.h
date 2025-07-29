@@ -32,43 +32,84 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 enum {
-    INVALID = 0,                        // ID 0: Reserved
-    // EXP Block
-    TIMESTAMP = 1,                      // ID 1
-    TEMPERATURE_NTC,                    // ID 2
-    TEMPERATURE_SINGLE_NTC,             // ID 3
-    TEMPERATURE_ERROR,                  // ID 4
-    TEMPERATURE_AUTOMMODE_ON,           // ID 5
-    TEMPERATURE_AUTOMMODE_TEC_ON,       // ID 6
-    TEMPERATURE_AUTOMMODE_TEC_OFF,      // ID 7
-    TEMPERATURE_TEC_ON,                 // ID 8
-    TEMPERATURE_TEC_OFF,                // ID 9
-    TEMPERATURE_TEC_STATUS,             // ID 10
-    TEMPERATURE_HEATER_ON,              // ID 11
-    TEMPERATURE_HEATER_OFF,             // ID 12
-    TEMPERATURE_HEATER_STATUS,          // ID 13
-    TEMPERATURE_INTERNAL_LASER_ON,      // ID 14
-    TEMPERATURE_INTERNAL_LASER_OFF,     // ID 15
-    TEMPERATURE_EXTERNAL_LASER_ON,      // ID 16
-    TEMPERATURE_EXTERNAL_LASER_OFF,     // ID 17
-    PHOTODIODE_START_SAMPLING,          // ID 18
-    PHOTODIODE_FINISH_SAMPLING,         // ID 19
-    SYSTEM_RESET,                       // ID 20
-    SYSTEM_INITIALIZED,                 // ID 21
-    SYSTEM_STARTED,                     // ID 22
+    LWL_EXP_INVALID = 0,                  // ID 0: Reserved
+    LWL_EXP_TIMESTAMP,                    // ID 1: System timestamp log
+
+    LWL_EXP_TEMP_SINGLE_NTC,              // ID 2: Log single NTC value
+    LWL_EXP_TEMP_PROFILE_SET,            // ID 3: Set temperature control profile
+
+    LWL_EXP_TEMP_MANUAL_MODE,            // ID 4: Manual temperature control mode
+    LWL_EXP_TEMP_AUTO_MODE,              // ID 5: Automatic temperature control mode
+    LWL_EXP_TEMP_COOLING,                // ID 6: Cooling active
+    LWL_EXP_TEMP_HEATING,                // ID 7: Heating active
+    LWL_EXP_TEMP_ERROR,                  // ID 8: NTC error (primary/secondary)
+
+    LWL_EXP_TEMP_TEC_OVERRIDE_PROFILE,   // ID 9: TEC override profile configuration
+    LWL_EXP_TEMP_TEC_OVERRIDE_ON,        // ID 10: Enable TEC override
+    LWL_EXP_TEMP_TEC_OVERRIDE_OFF,       // ID 11: Disable TEC override
+
+    LWL_EXP_TEC_MANUAL_ON,               // ID 12: Manually turn on TEC
+    LWL_EXP_TEC_MANUAL_OFF,              // ID 13: Manually turn off TEC
+    LWL_EXP_TEC_AUTO_ON,                 // ID 14: Automatically turn on TEC
+    LWL_EXP_TEC_AUTO_OFF,                // ID 15: Automatically turn off TEC
+
+    LWL_EXP_HEATER_MANUAL_ON,            // ID 16: Manually turn on heater
+    LWL_EXP_HEATER_MANUAL_OFF,           // ID 17: Manually turn off heater
+    LWL_EXP_HEATER_AUTO_ON,              // ID 18: Automatically turn on heater
+    LWL_EXP_HEATER_AUTO_OFF,             // ID 19: Automatically turn off heater
+
+    LWL_EXP_LASER_INT_MANUAL_ON,         // ID 20: Internal laser manual ON
+    LWL_EXP_LASER_INT_MANUAL_OFF,        // ID 21: Internal laser manual OFF
+    LWL_EXP_LASER_INT_SAMPLE_ON,         // ID 22: Internal laser sampling ON
+    LWL_EXP_LASER_INT_SAMPLE_OFF,        // ID 23: Internal laser sampling OFF
+
+    LWL_EXP_LASER_EXT_MANUAL_ON,         // ID 24: External laser manual ON
+    LWL_EXP_LASER_EXT_MANUAL_OFF,        // ID 25: External laser manual OFF
+    LWL_EXP_LASER_EXT_SAMPLE_ON,         // ID 26: External laser sampling ON
+    LWL_EXP_LASER_EXT_SAMPLE_OFF,        // ID 27: External laser sampling OFF
+
+    LWL_EXP_PHOTO_SAMPLE_ON,             // ID 28: Start sampling photodiode (photo)
+    LWL_EXP_PHOTO_SAMPLE_OFF,            // ID 29: Stop sampling photodiode (photo)
+
+    LWL_EXP_SET_PHOTO_PROFILE,           // ID 30: Configure photo sampling profile
+    LWL_EXP_SET_LASER_INTENSITY,         // ID 31: Set laser intensity
+    LWL_EXP_SET_LASER_PHOTO_INDEX,       // ID 32: Set laser and photo sensor index
+    LWL_EXP_START,                       // ID 33: Start experiment
+    LWL_EXP_STOP,                        // ID 34: Stop experiment
+
+    LWL_EXP_SYS_RESET_OTA,               // ID 35: OTA system reset trigger
+	LWL_EXP_SET_RTC,					 // ID 36:
+
+	LWL_EXP_TRANS_PHOTO_DATA,
+	LWL_EXP_TRANS_CURRENT_DATA,
+	LWL_EXP_TRANS_LOG_DATA,				 // ID 39
 
     // OBC STM32 block
-    OBC_STM32_________________LOG,      // ID 23
-    OBC_STM32_TEST_LOG,                 // ID 24
-    OBC_STM32_STARTUP,                  // ID 25
-	OBC_STM32_BOOTING,					// 26
-	OBC_STM32_LOGTEST,
+    OBC_STM32_________________LOG,      // ID 40
+    OBC_STM32_TEST_LOG,                 // ID 41
+    OBC_STM32_STARTUP,                  // ID 42
+	OBC_STM32_BOOTING,					// ID 43
+	OBC_STM32_LOGTEST,					// ID 44
 
-    // OBC CM4 block
-    OBC_CM4___________________LOG,      // ID 26
-    OBC_CM4_TEST_LOG,                   // ID 27
-    OBC_CM4_STARTUP                     // ID 28
+	OBC_STM32_INIT_STEP,				// ID 45
+	OBC_STM32_MISS_HEARTBEAT,			// ID 46
 
+	OBC_STM32_RELEASE,					// ID 47
+	OBC_STM32_LOCKIN,					// ID 48
+	OBC_STM32_CLEAN,					// ID 49
+
+	OBC_STM32_CM4_SCRIP_NAK,			// ID 50
+	OBC_STM32_WRITE_FATFS_FAIL,			// ID 51
+
+	OBC_STM32_RTC_SCRIPT_SET,			// ID 52
+	OBC_STM32_TIME_POINT_START,			// ID 53
+	OBC_STM32_ROUTINE_INIT_STEP,		// ID 54
+	OBC_STM32_ROUTINE_DLS_STEP,			// ID 55
+	OBC_STM32_ROUTINE_CAM_STEP,			// ID 56
+	OBC_STM32_ROUTINE_RETURN, 			// ID 57
+
+	OBC_STM32_MIN_CALLBACK,				// ID 58
+	OBC_STM32_MODFSP_CALLBACK			// ID 59
 };
 
 ////////////////////////////////////////////////////////////////////////////////

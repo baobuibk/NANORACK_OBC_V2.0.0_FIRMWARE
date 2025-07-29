@@ -21,6 +21,8 @@
 
 #include "storage/script_storage.h"
 
+#include "lwl.h"
+
 extern MODFSP_Data_t cm4_protocol;
 
 #include "MIN_Process/min_process.h"
@@ -241,8 +243,8 @@ _Bool ScriptManager_GenerateTimePoints(TimePointSchedule_t* schedule, uint32_t s
         return false;
     }
 
-    if (start_daily_time >= SECONDS_PER_DAY) {
-        BScript_Log("[ScriptManager] Invalid start_daily_time: %u (must be 0-86399)", start_daily_time);
+    if (start_daily_time > SECONDS_PER_DAY) {
+        BScript_Log("[ScriptManager] Invalid start_daily_time: %u (must be 0-86400)", start_daily_time);
         return false;
     }
 
@@ -370,6 +372,10 @@ void ScriptManager_AdvanceSchedule(TimePointSchedule_t* schedule, const char* ro
     if (schedule->current_index < schedule->count) {
         TimePoint_t* current_point = &schedule->points[schedule->current_index];
 
+	    s_DateTime now;
+	    Utils_GetRTC(&now);
+	    LWL_Log(OBC_STM32_TIME_POINT_START, LWL_1(now.day), LWL_1(now.month), LWL_1(now.year), LWL_1(now.hour), LWL_1(now.minute), LWL_1(now.second), LWL_1(schedule->current_index));
+
         BScript_Log("[ScriptManager] %s: Time point reached: %02u:%02u:%02u (daily_timestamp: %u, index %u)",
                    routine_name, current_point->hour, current_point->minute, current_point->second,
                    current_point->daily_timestamp, schedule->current_index);
@@ -485,6 +491,8 @@ static void ScriptManager_HandleStepResult(ScriptType_t type, StepExecResult res
             context->current_step++;
             context->retry_count = 0;
 
+            LWL_Log(OBC_STM32_ROUTINE_INIT_STEP, LWL_1(STEP_EXEC_SUCCESS));
+
             // Check if INIT is completed
             if (type == SCRIPT_TYPE_INIT &&
                 context->current_step >= g_script_manager.scripts[type].parsed_script.total_steps) {
@@ -496,6 +504,7 @@ static void ScriptManager_HandleStepResult(ScriptType_t type, StepExecResult res
 
         case STEP_EXEC_ERROR:
             context->retry_count++;
+            LWL_Log(OBC_STM32_ROUTINE_INIT_STEP, LWL_1(STEP_EXEC_ERROR));
             if (context->retry_count >= context->max_retries) {
                 context->state = SCRIPT_EXEC_FAILED_MAX_RETRIES;
                 g_script_manager.total_errors++;
@@ -824,6 +833,9 @@ _Bool ScriptManager_ScriptExistsInFRAM(ScriptType_t type)
  */
 void MODFSP_ApplicationHandler(MODFSP_Data_t *ctx, uint8_t id, const uint8_t *payload, uint16_t len)
 {
+
+    LWL_Log(OBC_STM32_MODFSP_CALLBACK, LWL_1(id), LWL_2(len));
+
     if (id == MODFSP_MASTER_ACK ||  id == MODFSP_MASTER_NAK) {
         SimpleDataTransfer_HandleMasterAck(id, payload, len);
         return;
@@ -1096,6 +1108,9 @@ void ScriptManager_HandleSyncTime(const uint8_t* data, uint32_t length)
 	RV3129_SetTime(hrtc, &dt);
 	BScript_Log("[ScriptManager] RTC set to %02d:%02d:%02d, %02d/%02d/20%02d",
 	                             dt.hour, dt.minute, dt.second, dt.day, dt.month, dt.year);
+    s_DateTime now;
+    Utils_GetRTC(&now);
+    LWL_Log(OBC_STM32_RTC_SCRIPT_SET, LWL_1(now.day), LWL_1(now.month), LWL_1(now.year), LWL_1(now.hour), LWL_1(now.minute), LWL_1(now.second));
 
 }
 
@@ -1542,6 +1557,8 @@ static StepExecResult ScriptManager_ExecuteInitStep(Step* step)
 {
     BScript_Log("[ScriptInit] Executing step %u: action_id = 0x%02X", step->step_id, step->action_id);
 
+    LWL_Log(OBC_STM32_ROUTINE_INIT_STEP, LWL_2(step->step_id), LWL_1(step->action_id));
+
     switch (step->action_id) {
         case CLEAR_PROFILE: {
             BScript_Log("[ScriptInit] ->CLEAR_PROFILE");
@@ -1867,6 +1884,9 @@ static StepExecResult ScriptManager_ExecuteDLSStep(Step* step)
 {
     BScript_Log("[ScriptDLS] Executing step %u: action_id = 0x%02X", step->step_id, step->action_id);
 
+    LWL_Log(OBC_STM32_ROUTINE_DLS_STEP, LWL_2(step->step_id), LWL_1(step->action_id));
+
+
     switch (step->action_id) {
         case SET_DLS_INTERVAL: { // set_dls_interval (now only for logging)
             uint32_t interval;
@@ -2086,6 +2106,8 @@ static StepExecResult ScriptManager_ExecuteCAMStep(Step* step)
 {
     BScript_Log("[ScriptCAM] Executing step %u: action_id = 0x%02X", step->step_id, step->action_id);
 
+    LWL_Log(OBC_STM32_ROUTINE_CAM_STEP, LWL_2(step->step_id), LWL_1(step->action_id));
+
     switch (step->action_id) {
         case SET_CAMERA_INTERVAL: { // set_camera_interval (now only for logging)
             uint32_t interval;
@@ -2173,6 +2195,8 @@ static StepExecResult ScriptManager_ExecuteCAMStep(Step* step)
                 BScript_Log("[ScriptCAM] Master set camera position failed");
             }
 
+            vTaskDelay(1000);
+
             break;
         }
 
@@ -2183,6 +2207,8 @@ static StepExecResult ScriptManager_ExecuteCAMStep(Step* step)
                 BScript_Log("[ScriptCAM] Master take image failed");
 
             }
+            vTaskDelay(1000);
+
             break;
         }
 

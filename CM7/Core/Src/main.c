@@ -47,7 +47,7 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-
+#define USE_BOOTLOADER
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -122,6 +122,7 @@ static PeriphDescriptor_t peripherals[] = {
 	{12, "UART7",   	PERIPH_STATE_UNINIT, 0, Sys_ERROR, MX_UART7_Init,        	NULL},
 };
 
+
 /* USER CODE END 0 */
 
 /**
@@ -132,7 +133,7 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-
+#ifndef USE_BOOTLOADER
   /* USER CODE END 1 */
 /* USER CODE BEGIN Boot_Mode_Sequence_0 */
 #ifdef USE_CORE_M4
@@ -188,6 +189,34 @@ if ( timeout < 0 )
 Error_Handler();
 }
 #endif
+
+#else
+
+// TODO: If use Bootloader, please notice that must change in HAL_Init(): Line142[  __HAL_ART_CONFIG_BASE_ADDRESS(0x08140000UL);  ]
+// And linker change to:
+/*
+  FLASH (rx)     : ORIGIN = 0x08040000, LENGTH = 384K
+ */
+
+MPU_Config();
+
+SCB_EnableICache();
+
+HAL_Init();
+
+SystemClock_Config();
+
+#ifdef USE_CORE_M4
+  __HAL_RCC_HSEM_CLK_ENABLE();
+  HAL_HSEM_FastTake(1);
+  while (!HAL_HSEM_IsSemTaken(0));
+  HAL_HSEM_Release(0, 0);
+  while (!__HAL_RCC_GET_FLAG(RCC_FLAG_D2CKRDY));
+  HAL_Init();
+#endif
+
+#endif
+
 /* USER CODE END Boot_Mode_Sequence_2 */
 
   /* USER CODE BEGIN SysInit */

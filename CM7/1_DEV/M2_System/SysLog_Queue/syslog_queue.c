@@ -104,7 +104,7 @@ void SysLog_Task(void *parameters)
                                "\"%s", logMsg.msg);
 
   #ifdef DEBUG_USE_UART
-            Dmesg_SafeWrite(outputBuffer);
+            //Dmesg_SafeWrite(outputBuffer);
   #endif
         }
     }

@@ -143,9 +143,9 @@ void syslog_log(syslog_level_t level, const char *msg, int use_polling)
 
 #ifdef DEBUG_USE_UART
         if (use_polling) {
-        	Dmesg_HardWrite(log_buffer);
+        	//Dmesg_HardWrite(log_buffer);
         } else {
-            Dmesg_SafeWrite(log_buffer);
+            //Dmesg_SafeWrite(log_buffer);
         }
 #endif
 }

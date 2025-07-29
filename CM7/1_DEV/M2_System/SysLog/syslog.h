@@ -19,12 +19,12 @@
 
 // Enable/Disable RTC timestamp (DD-MM-YYYY HH:MM:SS)
 #ifndef SYSLOG_USE_RTC
-#define SYSLOG_USE_RTC 1
+#define SYSLOG_USE_RTC 0
 #endif
 
 // Enable/Disable working time display (HH:MM:SS or days+HH:MM:SS)
 #ifndef SYSLOG_USE_WORKING_TIME
-#define SYSLOG_USE_WORKING_TIME 1
+#define SYSLOG_USE_WORKING_TIME 0
 #endif
 
 // Log source identifier (e.g., "OBC-STM32")
@@ -39,7 +39,7 @@
 
 // List of UART outputs, default is USART1 (can be modified)
 #ifndef SYSLOG_OUTPUT_UARTS
-#define SYSLOG_OUTPUT_UARTS {UART_DEBUG}
+#define SYSLOG_OUTPUT_UARTS {UART_USB}
 #endif
 
 /*---------------------------
@@ -50,23 +50,23 @@
 #endif
 
 #ifndef LOG_DEBUG_ENABLED
-#define LOG_DEBUG_ENABLED 1
+#define LOG_DEBUG_ENABLED 0
 #endif
 
 #ifndef LOG_NOTICE_ENABLED
-#define LOG_NOTICE_ENABLED 1
+#define LOG_NOTICE_ENABLED 0
 #endif
 
 #ifndef LOG_WARN_ENABLED
-#define LOG_WARN_ENABLED 1
+#define LOG_WARN_ENABLED 0
 #endif
 
 #ifndef LOG_ERROR_ENABLED
-#define LOG_ERROR_ENABLED 1
+#define LOG_ERROR_ENABLED 0
 #endif
 
 #ifndef LOG_FATAL_ENABLED
-#define LOG_FATAL_ENABLED 1
+#define LOG_FATAL_ENABLED 0
 #endif
 
 /**

@@ -56,36 +56,89 @@ static bool lwl_enabled = true;
 // Log message table (ID is the index)
 // Keep descriptions for debugging, can be removed to save memory
 static const struct lwl_msg lwl_msg_table[] = {
-    {NULL, 0}, // ID 0: invalid
-    {"Time:Time Counter in sec = %4d", 4}, // ID 1: TIMESTAMP, 4 bytes
-    {"Temperature NTC0: %2d NTC1: %2d NTC3:%2d NTC4: %2d NTC5:%2d NTC6:%2d NTC7:%2d NTC8: %2d", 16}, // ID 2: TEMPERATURE_NTC, 8x2 bytes
-	{"NTC channel %1d : %2d", 3},   // ID 3: SINGLE NTC 3 Byte
-	{"Temperature: ERROR, Pri NTC = %2d Sec NTC = %2d", 4}, // ID 4: TEMPERATURE_ERROR, 2x2 bytes
-    {"Temperature: AUTO MODE", 0}, // ID 5: TEMPERATURE_AUTOMMODE_ON, No arguments
-    {"TEC: AUTO mode TEC ON with voltage %2d", 2}, // ID 6: TEMPERATURE_AUTOMMODE_TEC_ON, 2 bytes
-    {"TEC: AUTO mode TEC OFF", 0}, // ID 7: TEMPERATURE_AUTOMMODE_TEC_OFF, No arguments
-    {"TEC: %1d ON", 1}, // ID 8: TEMPERATURE_TEC_ON, 1 byte
-    {"TEC: %1d OFF", 1}, // ID 9: TEMPERATURE_TEC_OFF, 1 byte
-    {"TEC Status Tec 0: %1d Tec 1: %1d Tec 2: %1d Tec 3: %1d Tec 4: %1d Tec 5: %1d Tec 6: %1d Tec 7: %1d", 8}, // ID 10: TEMPERATURE_TEC_STATUS, 8x1 bytes
-    {"Heater Number: %1d ON", 1}, // ID 11: TEMPERATURE_HEATER_ON, 1 byte
-    {"Heater Number: %1d OFF", 1}, // ID 12: TEMPERATURE_HEATER_OFF, 1 byte
-    {"Heater Status Heater 0: %1d heater 1: %1d heater 2: %1d heater 3: %1d heater 4: %1d heater 5: %1d heater 6: %1d heater 7: %1d", 8}, // ID 13: TEMPERATURE_HEATER_STATUS, 8x1 bytes
-    {"Laser: Internal laser %1d ON at %1d percent", 2}, // ID 14: TEMPERATURE_INTERNAL_LASER_ON, 2x1 bytes
-    {"Laser: Internal laser %1d OFF", 1}, // ID 15: TEMPERATURE_INTERNAL_LASER_OFF, 1 byte
-    {"Laser: External laser %1d ON at %1d percent", 2}, // ID 16: TEMPERATURE_EXTERNAL_LASER_ON, 2x1 bytes
-    {"Laser: External laser %1d OFF", 1}, // ID 17: TEMPERATURE_EXTERNAL_LASER_OFF, 1 byte
-    {"Photodiode: Start sampling photodiode number %1d", 1}, // ID 18: PHOTODIODE_START_SAMPLING, 1 byte
-    {"Photodiode: Finish sampling", 0}, // ID 19: PHOTODIODE_FINISH_SAMPLING, No arguments
-    {"System: Reseting", 0}, // ID 20: SYSTEM_RESET, No arguments
-    {"System: Finish Peripheral Initialization", 0}, // ID 21 : SYSTEM_INITIALIZED, No arguments
-    {"System: Start Applications", 0}, // ID 22: SYSTEM_STARTED, No arguments
+	    {NULL, 0},                                       // ID 0: EXP_INVALID
+
+	    {"Time: Day %1d, %1d:%1d:%1d", 4},               // ID 1: EXP_TIMESTAMP
+
+	    {"Temperature: NTC[%1d]: %2d", 3},               // ID 2: EXP_TEMP_SINGLE_NTC
+	    {"Temperature: Set temperature profile: Target_temp: %2d, Min_temp: %2d, Max_temp: %2d, NTC_primary: %1d, NTC_secondary: %1d, \
+	        	Auto_recover: %1d, TEC_mask: %1d, Heater_mask: %1d, TEC_vol: %2d, Heater_duty: %1d", 14}, // ID 3: EXP_TEMP_PROFILE_SET
+
+	    {"Temperature: MANUAL mode", 0},                 // ID 4: EXP_TEMP_MANUAL_MODE
+	    {"Temperature: AUTO mode", 0},                   // ID 5: EXP_TEMP_AUTO_MODE
+	    {"Temperature: COOLING", 0},                     // ID 6: EXP_TEMP_COOLING
+	    {"Temperature: HEATING", 0},                     // ID 7: EXP_TEMP_HEATING
+	    {"Temperature: ERROR, Primary NTC = %1d Secondary NTC = %1d", 2}, // ID 8: EXP_TEMP_ERROR
+
+	    {"Temperature: Set TEC override profile: Interval: %2d, TEC[%1d]: %2d mV", 5}, // ID 9: EXP_TEMP_TEC_OVERRIDE_PROFILE
+	    {"Temperature: TEC override ON", 0},     // ID 10: EXP_TEMP_TEC_OVERRIDE_ON
+	    {"Temperature: TEC override OFF", 0},    // ID 11: EXP_TEMP_TEC_OVERRIDE_OFF
+
+	    {"TEC: MANUAL mode: TEC[%1d] ON", 1},            // ID 12: EXP_TEC_MANUAL_ON
+	    {"TEC: MANUAL mode: TEC[%1d] OFF", 1},           // ID 13: EXP_TEC_MANUAL_OFF
+	    {"TEC: AUTO mode: TEC ON with %2dmV", 2},        // ID 14: EXP_TEC_AUTO_ON
+	    {"TEC: AUTO mode: TEC OFF", 0},                  // ID 15: EXP_TEC_AUTO_OFF
+
+	    {"Heater: MANUAL mode: Heater[%1d] ON", 1},      	// ID 16: EXP_HEATER_MANUAL_ON
+	    {"Heater: MANUAL mode: Heater[%1d] OFF", 1},     	// ID 17: EXP_HEATER_MANUAL_OFF
+	    {"Heater: AUTO mode: Heater ON with duty %1d", 1}, 	// ID 18: EXP_HEATER_AUTO_ON
+	    {"Heater: AUTO mode: Heater OFF", 0},            	// ID 19: EXP_HEATER_AUTO_OFF
+
+	    {"Internal laser: MANUAL mode: Switch ON: Index: %1d, Current: %1d", 2}, // ID 20: EXP_LASER_INT_MANUAL_ON
+	    {"Internal laser: MANUAL mode: Switch OFF", 0},  // ID 21: EXP_LASER_INT_MANUAL_OFF
+	    {"Internal laser: SAMPLING mode: Switch ON: Index: %1d, Current: %1d", 2}, // ID 22: EXP_LASER_INT_SAMPLE_ON
+	    {"Internal laser: SAMPLING mode: Switch OFF", 0}, // ID 23: EXP_LASER_INT_SAMPLE_OFF
+
+	    {"External laser: MANUAL mode: Switch ON: Index: %1d, Current: %1d", 2}, // ID 24: EXP_LASER_EXT_MANUAL_ON
+	    {"External laser: MANUAL mode: Switch OFF", 0},  // ID 25: EXP_LASER_EXT_MANUAL_OFF
+	    {"External laser: SAMPLING mode: Switch ON: Index: %1d, Current: %1d", 2}, // ID 26: EXP_LASER_EXT_SAMPLE_ON
+	    {"External laser: SAMPLING mode: Switch OFF", 0}, // ID 27: EXP_LASER_EXT_SAMPLE_OFF
+
+	    {"Photo: SAMPLING mode: Switch ON: Index: %1d", 1}, // ID 28: EXP_PHOTO_SAMPLE_ON
+	    {"Photo: SAMPLING mode: Switch OFF", 0},         // ID 29: EXP_PHOTO_SAMPLE_OFF
+
+	    {"Experiment: Set photo profile: Sample_rate: %4d (sample/s), Pre_duration: %2d (mS), \
+	    		Sample_duration: %2d (mS), Post_duration: %2d (mS)", 10}, // ID 30: EXP_SET_PHOTO_PROFILE
+	    {"Experiment: Set laser intensity: %1d", 1},      // ID 31: EXP_SET_LASER_INTENSITY
+	    {"Experiment: Set laser&photo index: %1d", 1},   // ID 32: EXP_SET_LASER_PHOTO_INDEX
+	    {"Experiment: Start", 0},                        // ID 33: EXP_START
+	    {"Experiment: Stop", 0},                         // ID 34: EXP_STOP
+
+	    {"System: Reset OTA", 0},                        // ID 35: EXP_SYS_RESET_OTA
+
+		{"System: Set time: Day: %1d, Hour: %1d, Minute: %1d, Second: %1d", 4},                        // ID 36:
+
+		{"Transmit: Send photo chunk[%1d] data", 1},			// 37
+		{"Transmit: Send laser current data", 0},				// 38
+		{"Transmit: Send log data", 0},							// 39
 
     // OBC_STM32 --------------------------------------------------------------------------------
-    {"OBC-STM32 Log Block------------------------", 0}, //OBC_STM32------------LOG,      // ID 23
-    {"OBC-STM32 Test Log", 0},  // ID 24
-    {"OBC-STM32 Start Up", 0},  // ID 25
-    {"OBC-STM32 Booting at %02d/%02d/%04d %02d:%02d:%02d", 6}, // 26
-    {"OBC-STM32 LogTest at %02d/%02d/%04d %02d:%02d:%02d", 6} // 26
+    {"[OBC-STM32] Log Block------------------------", 0}, //OBC_STM32------------LOG,      // ID 40
+    {"[OBC-STM32] Test Log", 0},  // ID 41
+    {"]OBC-STM32] Start Up", 0},  // ID 42
+    {"[OBC-STM32] Booting at %1d/%1d/%2d %1d:%1d:%1d", 7}, // 43
+    {"[OBC-STM32] LogTest at %1d/%1d/%1d %1d:%1d:%1d", 6}, // 44
+
+	{"[OBC-STM32] [Init] Step %1d - return code %1d", 2}, // 45
+
+	{"[OBC-STM32] [Alive] Miss Heart Beat at %1d/%1d/20%1d %1d:%1d:%1d", 6}, // 46
+
+	{"[OBC-STM32] [FileSystem] SD Release at %1d/%1d/20%1d %1d:%1d:%1d", 6}, // 47
+	{"[OBC-STM32] [FileSystem] SD Lockin at %1d/%1d/20%1d %1d:%1d:%1d", 6}, // 48
+	{"[OBC-STM32] [FileSystem] SD Clean at %1d/%1d/20%1d %1d:%1d:%1d", 6}, // 49
+
+	{"[OBC-STM32] [SimpleTransf] CM4 not response at %1d/%1d/20%1d %1d:%1d:%1d", 6}, // 50
+	{"[OBC-STM32] [SimpleTransf] File Write Fail at %1d/%1d/20%1d %1d:%1d:%1d", 6},  // 51
+
+	{"[OBC-STM32] [ScriptManager] RTC is set to %1d/%1d/20%1d %1d:%1d:%1d", 6}, // 52
+	{"[OBC-STM32] [ScriptManager] Time point at %1d/%1d/20%1d %1d:%1d:%1d, Index: %1d", 7},  //53
+	{"[OBC-STM32] [ScriptManager] Execute Routine INIT: %1d, Step: %2d", 2}, 	// 54
+	{"[OBC-STM32] [ScriptManager] Execute Routine DLS: %1d, Step: %2d", 2}, 	// 55
+	{"[OBC-STM32] [ScriptManager] Execute Routine CAM: %1d, Step: %2d", 2}, 	// 56
+	{"[OBC-STM32] [ScriptManager] Execute Routine Return Code: %1d", 1}, 	// 57
+
+	{"[OBC-STM32] [MIN-EXP] Callback of ID: %1d, return size: %1d", 2}, 		// 58
+	{"[OBC-STM32] [MODFSP-CM4] Callback of ID: %1d, return size: %2d", 3}, 		// 59
 };
 static const uint8_t lwl_msg_table_size = sizeof(lwl_msg_table) / sizeof(lwl_msg_table[0]);
 

@@ -19,27 +19,27 @@ void SysLogQueue_Init(void);
  * ON/OFF LOGLEVEL  (Only for QUEUE)
  *---------------------------*/
 #ifndef QUEUE_INFOR_ENABLED
-#define QUEUE_INFOR_ENABLED 1
+#define QUEUE_INFOR_ENABLED 0
 #endif
 
 #ifndef QUEUE_DEBUG_ENABLED
-#define QUEUE_DEBUG_ENABLED 1
+#define QUEUE_DEBUG_ENABLED 0
 #endif
 
 #ifndef QUEUE_NOTICE_ENABLED
-#define QUEUE_NOTICE_ENABLED 1
+#define QUEUE_NOTICE_ENABLED 0
 #endif
 
 #ifndef QUEUE_WARN_ENABLED
-#define QUEUE_WARN_ENABLED 1
+#define QUEUE_WARN_ENABLED 0
 #endif
 
 #ifndef QUEUE_ERROR_ENABLED
-#define QUEUE_ERROR_ENABLED 1
+#define QUEUE_ERROR_ENABLED 0
 #endif
 
 #ifndef QUEUE_FATAL_ENABLED
-#define QUEUE_FATAL_ENABLED 1
+#define QUEUE_FATAL_ENABLED 0
 #endif
 
 /*---------------------------

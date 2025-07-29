@@ -75,7 +75,7 @@ Std_ReturnType Mgmt_SystemInitStepZero(void)
 
 	LogManager_Init();
 
-//	LWL_TestLogs();
+	LWL_TestLogs();
 
 	if(Utils_SoftTime_Sync() == E_OK){
 		Sys_Boardcast(E_OK,	LOG_NOTICE, "[Sync Time!]");
@@ -83,7 +83,7 @@ Std_ReturnType Mgmt_SystemInitStepZero(void)
 	    s_DateTime now;
 	    Utils_GetRTC(&now);
 	    uint16_t full_year = 2000 + now.year;
-	    LWL_Log(OBC_STM32_BOOTING, now.day, now.month, full_year, now.hour, now.minute, now.second);
+	    LWL_Log(OBC_STM32_BOOTING, LWL_1(now.day), LWL_1(now.month), LWL_2(full_year), LWL_1(now.hour), LWL_1(now.minute), LWL_1(now.second));
 
 	}else{
 		system_status.last_error = ret;
@@ -120,7 +120,7 @@ Std_ReturnType Mgmt_SystemInitStepOne(void)
 	}
 
 	SysLogQueue_Init();
-
+    LWL_Log(OBC_STM32_INIT_STEP, LWL_1(1), LWL_1(ret));
 	return ret;
 }
 
@@ -147,7 +147,7 @@ Std_ReturnType Mgmt_SystemInitStepTwo(void)
 	}else{
 		Sys_Boardcast(E_OK, LOG_NOTICE, "[SPI Master Init Done]");
 	}
-
+    LWL_Log(OBC_STM32_INIT_STEP, LWL_1(2), LWL_1(ret));
 	return ret;
 }
 

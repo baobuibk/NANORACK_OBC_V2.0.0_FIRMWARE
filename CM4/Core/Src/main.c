@@ -28,7 +28,8 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
+#define USE_BOOTLOADER
+#define USE_CORE_M4
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -78,7 +79,7 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-
+#ifndef USE_BOOTLOADER
   /* USER CODE END 1 */
 
 /* USER CODE BEGIN Boot_Mode_Sequence_1 */
@@ -94,6 +95,30 @@ int main(void)
   HAL_PWREx_EnterSTOPMode(PWR_MAINREGULATOR_ON, PWR_STOPENTRY_WFE, PWR_D2_DOMAIN);
   /* Clear HSEM flag */
   __HAL_HSEM_CLEAR_FLAG(__HAL_HSEM_SEMID_TO_MASK(HSEM_ID_0));
+
+#else
+
+// TODO: Change linker
+/*
+ *
+FLASH (rx)     : ORIGIN = 0x08140000, LENGTH = 384K
+ *
+ */
+
+#ifdef USE_CORE_M4
+  __HAL_RCC_HSEM_CLK_ENABLE();
+  HAL_HSEM_FastTake(0);
+#else
+  __HAL_RCC_HSEM_CLK_ENABLE();
+  HAL_HSEM_ActivateNotification(__HAL_HSEM_SEMID_TO_MASK(HSEM_ID_0));
+  HAL_PWREx_ClearPendingEvent();
+  HAL_PWREx_EnterSTOPMode(PWR_MAINREGULATOR_ON, PWR_STOPENTRY_WFE, PWR_D2_DOMAIN);
+  __HAL_HSEM_CLEAR_FLAG(__HAL_HSEM_SEMID_TO_MASK(HSEM_ID_0));
+#endif
+
+#endif
+
+
 
 /* USER CODE END Boot_Mode_Sequence_1 */
   /* MCU Configuration--------------------------------------------------------*/

@@ -23,6 +23,8 @@ void min_debug_print(const char *msg, ...) {
 #include "uart_driver_dma.h"
 #include "Tick/tick.h"
 
+#include "lwl.h"
+
 static MIN_Context_t *registered_contexts[MAX_MIN_CONTEXTS] = {0};
 
 uint16_t min_tx_space(uint8_t port)
@@ -175,6 +177,8 @@ void min_application_handler(uint8_t min_id, const uint8_t *min_payload, uint8_t
     if (response_handler != NULL) {
             response_handler(min_id, min_payload, len_payload);
     }
+
+    LWL_Log(OBC_STM32_MIN_CALLBACK, LWL_1(min_id), LWL_1(len_payload));
 
     const MIN_Command_t *command_table = MIN_GetCommandTable();
     int table_size = MIN_GetCommandTableSize();

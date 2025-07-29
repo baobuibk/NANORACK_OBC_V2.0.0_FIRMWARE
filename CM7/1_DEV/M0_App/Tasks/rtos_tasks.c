@@ -36,6 +36,7 @@
 #include "uart_driver_dma.h"
 //#include "cdc_driver.h"
 //#include "usbd_cdc_if.h"
+#include "lwl.h"
 /*************************************************
  *                     TEST                      *
  *************************************************/
@@ -252,7 +253,7 @@ Std_ReturnType OBC_AppInit(void)
 	}else{
     	Sys_Boardcast(E_OK, LOG_INFOR, "[WELCOME]");
 	}
-
+    LWL_Log(OBC_STM32_INIT_STEP, LWL_1(3), LWL_1(ret));
 //	char boot_log[256] = {0};
 //    int offset = 0;
 //    s_DateTime rtc;
@@ -337,6 +338,8 @@ Std_ReturnType OBC_AppInit(void)
 
 
 	Dmesg_Init();
+
+    LWL_Log(OBC_STM32_INIT_STEP, LWL_1(1), LWL_1(E_OK));
 
     return E_OK;
 }
@@ -605,6 +608,11 @@ void WatchdogMonitorTask(void *pvParameters) {
                 if (taskHeartbeats[i].alive == 0) {
                     allAlive = 0;
                     SYSLOG_WARN("Missed heartbeat");
+
+            	    s_DateTime now;
+            	    Utils_GetRTC(&now);
+            	    LWL_Log(OBC_STM32_MISS_HEARTBEAT, LWL_1(now.day), LWL_1(now.month), LWL_1(now.year), LWL_1(now.hour), LWL_1(now.minute), LWL_1(now.second));
+
                 }
             }
 

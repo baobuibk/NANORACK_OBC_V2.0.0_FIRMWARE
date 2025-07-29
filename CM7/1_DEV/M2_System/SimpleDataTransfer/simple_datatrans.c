@@ -27,6 +27,8 @@
 
 #include "MIN_Process/min_process.h"
 
+#include "lwl.h"
+
 #define MODFSP_TYPE_CHUNK_CMD   		0x21
 #define MODFSP_TYPE_CURRENT_CMD        	0x22
 #define MODFSP_TYPE_LOG_CMD        		0x23
@@ -75,6 +77,11 @@ static SimpleTransferResult_t ExecuteSingleTransfer(SimpleDataType_t data_type,
 
 void SimpleDataTransfer_SetFatfsOk(bool status)
 {
+	if(status == false){
+	    s_DateTime now;
+	    Utils_GetRTC(&now);
+	    LWL_Log(OBC_STM32_WRITE_FATFS_FAIL, LWL_1(now.day), LWL_1(now.month), LWL_1(now.year), LWL_1(now.hour), LWL_1(now.minute), LWL_1(now.second));
+	}
     fatfs_ok = status;
 }
 
@@ -85,6 +92,11 @@ bool SimpleDataTransfer_IsFatfsOk(void)
 
 void SimpleDataTransfer_SetMasterCommOk(bool status)
 {
+	if(status == false){
+	    s_DateTime now;
+	    Utils_GetRTC(&now);
+	    LWL_Log(OBC_STM32_CM4_SCRIP_NAK, LWL_1(now.day), LWL_1(now.month), LWL_1(now.year), LWL_1(now.hour), LWL_1(now.minute), LWL_1(now.second));
+	}
     master_comm_ok = status;
 }
 

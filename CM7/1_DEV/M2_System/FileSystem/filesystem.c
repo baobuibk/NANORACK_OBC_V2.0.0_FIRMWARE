@@ -21,6 +21,7 @@
 #define SECONDS_PER_DAY (24 * 60 * 60)
 
 #include "reinit.h"
+#include "lwl.h"
 /*************************************************
  *                 FATFS Variable                *
  *************************************************/
@@ -73,6 +74,11 @@ uint8_t SD_Lockin(void)
         return 0;
     }
 
+    s_DateTime now;
+    Utils_GetRTC(&now);
+    LWL_Log(OBC_STM32_LOCKIN, LWL_1(now.day), LWL_1(now.month), LWL_1(now.year), LWL_1(now.hour), LWL_1(now.minute), LWL_1(now.second));
+
+
     xSemaphoreGive(fsMutex);
     return 1;
 }
@@ -103,6 +109,11 @@ uint8_t SD_Release(void)
     GPIO_SetLow(SD_Detect_Port, SD_Detect);
 
     SDFS_State = SDFS_RELEASE;
+
+    s_DateTime now;
+    Utils_GetRTC(&now);
+    LWL_Log(OBC_STM32_RELEASE, LWL_1(now.day), LWL_1(now.month), LWL_1(now.year), LWL_1(now.hour), LWL_1(now.minute), LWL_1(now.second));
+
 
     xSemaphoreGive(fsMutex);
 
@@ -457,6 +468,10 @@ Std_ReturnType PerformCleanup(void) {
         .n_root = 0,            // Number of root directory entries (0 = default)
         .au_size = 0            // Allocation unit size (0 = default)
     };
+
+    s_DateTime now;
+    Utils_GetRTC(&now);
+    LWL_Log(OBC_STM32_CLEAN, LWL_1(now.day), LWL_1(now.month), LWL_1(now.year), LWL_1(now.hour), LWL_1(now.minute), LWL_1(now.second));
 
     // Format the entire filesystem - this deletes everything
     res = f_mkfs(MMC1Path, &mkfs_opt, work, sizeof(work));
