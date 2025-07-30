@@ -1314,6 +1314,7 @@ void ScriptDLS_Task(void *pvParameters)
                     g_script_manager.dls_run_count++;
                     BScript_Log("[ScriptDLS] Routine completed successfully (total runs: %u)",
                                g_script_manager.dls_run_count);
+                    BScript_Log("-----------------------------------------------------------");
                 }
 
                 xSemaphoreGive(g_script_manager.execution_mutex);
@@ -1379,6 +1380,7 @@ void ScriptCAM_Task(void *pvParameters)
                     g_script_manager.cam_run_count++;
                     BScript_Log("[ScriptCAM] Routine completed successfully (total runs: %u)",
                                g_script_manager.cam_run_count);
+                    BScript_Log("-----------------------------------------------------------");
                 }
 
                 xSemaphoreGive(g_script_manager.execution_mutex);

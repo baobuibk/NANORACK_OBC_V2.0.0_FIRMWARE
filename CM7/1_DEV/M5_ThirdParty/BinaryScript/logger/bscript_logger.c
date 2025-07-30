@@ -25,22 +25,23 @@ void BScript_Log(const char* fmt, ...) {
 
 void BScript_Log(const char* fmt, ...) {
     char log_buf[256];
-    char time_prefix[32];
+    int offset = 0;
 
     uint32_t days;
     uint8_t hours, minutes, seconds;
     Utils_GetWorkingTime(&days, &hours, &minutes, &seconds);
 
-    snprintf(time_prefix, sizeof(time_prefix), "[%lu-%02u:%02u:%02u] ", days, hours, minutes, seconds);
+    offset += snprintf(log_buf + offset, sizeof(log_buf) - offset,
+                       "[%02u:%02u:%02u] ", hours, minutes, seconds);
 
     va_list args;
     va_start(args, fmt);
-    vsnprintf(log_buf, sizeof(log_buf), fmt, args);
+    offset += vsnprintf(log_buf + offset, sizeof(log_buf) - offset, fmt, args);
     va_end(args);
 
-    UART_Driver_SendString(BSCRIPT_LOG_UART, time_prefix);
+    snprintf(log_buf + offset, sizeof(log_buf) - offset, "\r\n");
+
     UART_Driver_SendString(BSCRIPT_LOG_UART, log_buf);
-    UART_Driver_SendString(BSCRIPT_LOG_UART, "\r\n");
 }
 
 #endif

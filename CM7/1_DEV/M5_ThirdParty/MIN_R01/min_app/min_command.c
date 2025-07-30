@@ -45,8 +45,8 @@ static void MIN_Handler_PLEASE_RESET_ACK(MIN_Context_t *ctx, const uint8_t *payl
     for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
         offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
     }
-    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
-    BScript_Log(buffer);
+//    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
+     BScript_Log(buffer);
 
     if (len <= sizeof(g_last_response_data.data)) {
         memcpy(g_last_response_data.data, payload, len);
@@ -63,10 +63,10 @@ static void MIN_Handler_TEST_CONNECTION_ACK(MIN_Context_t *ctx, const uint8_t *p
     for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
         offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
     }
-    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
+//    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
     BScript_Log(buffer);
-    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
-    BScript_Log(buffer);
+//    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
+//    BScript_Log(buffer);
 
     if (len <= sizeof(g_last_response_data.data)) {
         memcpy(g_last_response_data.data, payload, len);
@@ -83,10 +83,10 @@ static void MIN_Handler_SET_WORKING_RTC_ACK(MIN_Context_t *ctx, const uint8_t *p
     for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
         offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
     }
-    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
+//    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
     BScript_Log(buffer);
-    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
-    BScript_Log(buffer);
+//    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
+//    BScript_Log(buffer);
 
     if (len <= sizeof(g_last_response_data.data)) {
         memcpy(g_last_response_data.data, payload, len);
@@ -103,10 +103,10 @@ static void MIN_Handler_SET_NTC_CONTROL_ACK(MIN_Context_t *ctx, const uint8_t *p
     for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
         offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
     }
-    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
+//    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
     BScript_Log(buffer);
-    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
-    BScript_Log(buffer);
+//    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
+//    BScript_Log(buffer);
     if (len <= sizeof(g_last_response_data.data)) {
         memcpy(g_last_response_data.data, payload, len);
         g_last_response_data.length = len;
@@ -123,10 +123,10 @@ static void MIN_Handler_SET_TEMP_PROFILE_ACK(MIN_Context_t *ctx, const uint8_t *
     for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
         offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
     }
-    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
+//    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
     BScript_Log(buffer);
-    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
-    BScript_Log(buffer);
+//    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
+//    BScript_Log(buffer);
     if (len <= sizeof(g_last_response_data.data)) {
         memcpy(g_last_response_data.data, payload, len);
         g_last_response_data.length = len;
@@ -143,10 +143,10 @@ static void MIN_Handler_START_TEMP_PROFILE_ACK(MIN_Context_t *ctx, const uint8_t
     for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
         offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
     }
-    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
+//    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
     BScript_Log("%s", buffer);
-    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
-    BScript_Log("%s", buffer);
+//    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
+//    BScript_Log("%s", buffer);
     if (len <= sizeof(g_last_response_data.data)) {
         memcpy(g_last_response_data.data, payload, len);
         g_last_response_data.length = len;
@@ -162,10 +162,10 @@ static void MIN_Handler_STOP_TEMP_PROFILE_ACK(MIN_Context_t *ctx, const uint8_t 
     for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
         offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
     }
-    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
+//    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
     BScript_Log("%s", buffer);
-    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
-    BScript_Log("%s", buffer);
+//    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
+//    BScript_Log("%s", buffer);
     if (len <= sizeof(g_last_response_data.data)) {
         memcpy(g_last_response_data.data, payload, len);
         g_last_response_data.length = len;
@@ -181,10 +181,10 @@ static void MIN_Handler_SET_OVERRIDE_TEC_PROFILE_ACK(MIN_Context_t *ctx, const u
     for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
         offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
     }
-    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
+//    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
     BScript_Log("%s", buffer);
-    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
-    BScript_Log("%s", buffer);
+//    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
+//    BScript_Log("%s", buffer);
     if (len <= sizeof(g_last_response_data.data)) {
         memcpy(g_last_response_data.data, payload, len);
         g_last_response_data.length = len;
@@ -200,10 +200,10 @@ static void MIN_Handler_START_OVERRIDE_TEC_PROFILE_ACK(MIN_Context_t *ctx, const
     for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
         offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
     }
-    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
+//    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
     BScript_Log("%s", buffer);
-    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
-    BScript_Log("%s", buffer);
+//    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
+//    BScript_Log("%s", buffer);
     if (len <= sizeof(g_last_response_data.data)) {
         memcpy(g_last_response_data.data, payload, len);
         g_last_response_data.length = len;
@@ -219,10 +219,10 @@ static void MIN_Handler_STOP_OVERRIDE_TEC_PROFILE_ACK(MIN_Context_t *ctx, const 
     for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
         offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
     }
-    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
+//    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
     BScript_Log("%s", buffer);
-    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
-    BScript_Log("%s", buffer);
+//    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
+//    BScript_Log("%s", buffer);
     if (len <= sizeof(g_last_response_data.data)) {
         memcpy(g_last_response_data.data, payload, len);
         g_last_response_data.length = len;
@@ -238,10 +238,10 @@ static void MIN_Handler_SET_PDA_PROFILE_ACK(MIN_Context_t *ctx, const uint8_t *p
     for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
         offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
     }
-    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
+//    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
     BScript_Log("%s", buffer);
-    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
-    BScript_Log("%s", buffer);
+//    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
+//    BScript_Log("%s", buffer);
     if (len <= sizeof(g_last_response_data.data)) {
         memcpy(g_last_response_data.data, payload, len);
         g_last_response_data.length = len;
@@ -257,10 +257,10 @@ static void MIN_Handler_SET_LASER_INTENSITY_ACK(MIN_Context_t *ctx, const uint8_
     for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
         offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
     }
-    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
+//    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
     BScript_Log("%s", buffer);
-    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
-    BScript_Log("%s", buffer);
+//    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
+//    BScript_Log("%s", buffer);
     if (len <= sizeof(g_last_response_data.data)) {
         memcpy(g_last_response_data.data, payload, len);
         g_last_response_data.length = len;
@@ -276,10 +276,10 @@ static void MIN_Handler_SET_POSITION_ACK(MIN_Context_t *ctx, const uint8_t *payl
     for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
         offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
     }
-    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
+//    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
     BScript_Log("%s", buffer);
-    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
-    BScript_Log("%s", buffer);
+//    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
+//    BScript_Log("%s", buffer);
     if (len <= sizeof(g_last_response_data.data)) {
         memcpy(g_last_response_data.data, payload, len);
         g_last_response_data.length = len;
@@ -295,10 +295,10 @@ static void MIN_Handler_START_SAMPLE_CYCLE_ACK(MIN_Context_t *ctx, const uint8_t
     for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
         offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
     }
-    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
+//    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
     BScript_Log("%s", buffer);
-    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
-    BScript_Log("%s", buffer);
+//    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
+//    BScript_Log("%s", buffer);
     if (len <= sizeof(g_last_response_data.data)) {
         memcpy(g_last_response_data.data, payload, len);
         g_last_response_data.length = len;
@@ -314,10 +314,10 @@ static void MIN_Handler_GET_INFO_SAMPLE_ACK(MIN_Context_t *ctx, const uint8_t *p
     for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
         offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
     }
-    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
+//    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
     BScript_Log("%s", buffer);
-    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
-    BScript_Log("%s", buffer);
+//    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
+//    BScript_Log("%s", buffer);
     if (len <= sizeof(g_last_response_data.data)) {
         memcpy(g_last_response_data.data, payload, len);
         g_last_response_data.length = len;
@@ -333,10 +333,10 @@ static void MIN_Handler_GET_CHUNK_ACK(MIN_Context_t *ctx, const uint8_t *payload
     for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
         offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
     }
-    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
+//    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
     BScript_Log("%s", buffer);
-    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
-    BScript_Log("%s", buffer);
+//    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
+//    BScript_Log("%s", buffer);
     if (len <= sizeof(g_last_response_data.data)) {
         memcpy(g_last_response_data.data, payload, len);
         g_last_response_data.length = len;
@@ -352,10 +352,10 @@ static void MIN_Handler_GET_CHUNK_CRC_ACK(MIN_Context_t *ctx, const uint8_t *pay
     for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
         offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
     }
-    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
+//    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
     BScript_Log("%s", buffer);
-    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
-    BScript_Log("%s", buffer);
+//    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
+//    BScript_Log("%s", buffer);
     if (len <= sizeof(g_last_response_data.data)) {
         memcpy(g_last_response_data.data, payload, len);
         g_last_response_data.length = len;
@@ -371,10 +371,10 @@ static void MIN_Handler_GET_LASER_CURRENT_DATA_ACK(MIN_Context_t *ctx, const uin
     for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
         offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
     }
-    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
+//    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
     BScript_Log("%s", buffer);
-    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
-    BScript_Log("%s", buffer);
+//    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
+//    BScript_Log("%s", buffer);
     if (len <= sizeof(g_last_response_data.data)) {
         memcpy(g_last_response_data.data, payload, len);
         g_last_response_data.length = len;
@@ -390,10 +390,10 @@ static void MIN_Handler_GET_LASER_CURRENT_CRC_ACK(MIN_Context_t *ctx, const uint
     for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
         offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
     }
-    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
+//    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
     BScript_Log("%s", buffer);
-    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
-    BScript_Log("%s", buffer);
+//    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
+//    BScript_Log("%s", buffer);
     if (len <= sizeof(g_last_response_data.data)) {
         memcpy(g_last_response_data.data, payload, len);
         g_last_response_data.length = len;
@@ -408,10 +408,10 @@ static void MIN_Handler_MANUAL_SET_LASER_INTENSITY_ACK(MIN_Context_t *ctx, const
     for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
         offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
     }
-    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
+//    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
     BScript_Log("%s", buffer);
-    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
-    BScript_Log("%s", buffer);
+//    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
+//    BScript_Log("%s", buffer);
     if (len <= sizeof(g_last_response_data.data)) {
         memcpy(g_last_response_data.data, payload, len);
         g_last_response_data.length = len;
@@ -427,10 +427,10 @@ static void MIN_Handler_MANUAL_TURN_ON_LASER_ACK(MIN_Context_t *ctx, const uint8
     for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
         offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
     }
-    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
+//    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
     BScript_Log("%s", buffer);
-    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
-    BScript_Log("%s", buffer);
+//    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
+//    BScript_Log("%s", buffer);
     if (len <= sizeof(g_last_response_data.data)) {
         memcpy(g_last_response_data.data, payload, len);
         g_last_response_data.length = len;
@@ -446,10 +446,10 @@ static void MIN_Handler_MANUAL_TURN_OFF_LASER_ACK(MIN_Context_t *ctx, const uint
     for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
         offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
     }
-    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
+//    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
     BScript_Log("%s", buffer);
-    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
-    BScript_Log("%s", buffer);
+//    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
+//    BScript_Log("%s", buffer);
     if (len <= sizeof(g_last_response_data.data)) {
         memcpy(g_last_response_data.data, payload, len);
         g_last_response_data.length = len;
@@ -465,10 +465,10 @@ static void MIN_Handler_MANUAL_MANUAL_GET_LASER_CURRENT_ACK(MIN_Context_t *ctx, 
     for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
         offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
     }
-    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
+//    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
     BScript_Log("%s", buffer);
-    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
-    BScript_Log("%s", buffer);
+//    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
+//    BScript_Log("%s", buffer);
     if (len <= sizeof(g_last_response_data.data)) {
         memcpy(g_last_response_data.data, payload, len);
         g_last_response_data.length = len;
@@ -484,10 +484,10 @@ static void MIN_Handler_SET_LASER_INT_ACK(MIN_Context_t *ctx, const uint8_t *pay
     for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
         offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
     }
-    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
+//    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
     BScript_Log("%s", buffer);
-    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
-    BScript_Log("%s", buffer);
+//    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
+//    BScript_Log("%s", buffer);
     if (len <= sizeof(g_last_response_data.data)) {
         memcpy(g_last_response_data.data, payload, len);
         g_last_response_data.length = len;
@@ -503,10 +503,10 @@ static void MIN_Handler_GET_LASER_CURRENT_ACK(MIN_Context_t *ctx, const uint8_t 
     for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
         offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
     }
-    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
+//    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
     BScript_Log("%s", buffer);
-    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
-    BScript_Log("%s", buffer);
+//    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
+//    BScript_Log("%s", buffer);
     if (len <= sizeof(g_last_response_data.data)) {
         memcpy(g_last_response_data.data, payload, len);
         g_last_response_data.length = len;
@@ -522,10 +522,10 @@ static void MIN_Handler_SET_LASER_EXT_ACK(MIN_Context_t *ctx, const uint8_t *pay
     for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
         offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
     }
-    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
+//    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
     BScript_Log("%s", buffer);
-    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
-    BScript_Log("%s", buffer);
+//    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
+//    BScript_Log("%s", buffer);
     if (len <= sizeof(g_last_response_data.data)) {
         memcpy(g_last_response_data.data, payload, len);
         g_last_response_data.length = len;
@@ -541,10 +541,10 @@ static void MIN_Handler_GET_LOG_ACK(MIN_Context_t *ctx, const uint8_t *payload, 
     for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
         offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
     }
-    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
+//    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
     BScript_Log("%s", buffer);
-    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
-    BScript_Log("%s", buffer);
+//    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
+//    BScript_Log("%s", buffer);
     if (len <= sizeof(g_last_response_data.data)) {
         memcpy(g_last_response_data.data, payload, len);
         g_last_response_data.length = len;
@@ -560,10 +560,10 @@ static void MIN_Handler_CUSTOM_COMMAND_ACK(MIN_Context_t *ctx, const uint8_t *pa
     for (uint8_t i = 0; i < len && offset < sizeof(buffer) - 4; i++) {
         offset += snprintf(buffer + offset, sizeof(buffer) - offset, " %02X", payload[i]);
     }
-    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
+//    snprintf(buffer + offset, sizeof(buffer) - offset, "\r\n");
     BScript_Log("%s", buffer);
-    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
-    BScript_Log("%s", buffer);
+//    snprintf(buffer, sizeof(buffer), "Message: \"%s\"\r\n", payload);
+//    BScript_Log("%s", buffer);
     if (len <= sizeof(g_last_response_data.data)) {
         memcpy(g_last_response_data.data, payload, len);
         g_last_response_data.length = len;

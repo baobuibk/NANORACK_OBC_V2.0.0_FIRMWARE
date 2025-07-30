@@ -132,7 +132,7 @@ MODFSP_Return_t MODFSP_Read(MODFSP_Data_t *this, const uint8_t *rx_data)
 
             if (byte == SFP_START1_BYTE)
             {
-            	MODFSP_Log("Start1");
+//            	MODFSP_Log("Start1");
                 MODFSP_Reset(this); /* Reset instance and make it ready for receiving */
                 crc_init(this, &this->crc16);
                 go_to_next_rx_state_decode(this);
@@ -143,7 +143,7 @@ MODFSP_Return_t MODFSP_Read(MODFSP_Data_t *this, const uint8_t *rx_data)
         {
             if (byte == SFP_START2_BYTE)
             {
-            	MODFSP_Log("Start2");
+//            	MODFSP_Log("Start2");
                 go_to_next_rx_state_decode(this);
             } else {
                 MODFSP_Reset(this);
@@ -160,7 +160,7 @@ MODFSP_Return_t MODFSP_Read(MODFSP_Data_t *this, const uint8_t *rx_data)
         }
         case SFP_DECODE_LEN_LOW:
         {
-        	MODFSP_Log("LEN-LOW: %d", byte);
+//        	MODFSP_Log("LEN-LOW: %d", byte);
             crc_update(&this->crc16, byte);
             this->length = byte;
             go_to_next_rx_state_decode(this);
@@ -168,7 +168,7 @@ MODFSP_Return_t MODFSP_Read(MODFSP_Data_t *this, const uint8_t *rx_data)
         }
         case SFP_DECODE_LEN_HIGH:
         {
-        	MODFSP_Log("LEN-HIGH: %d", byte);
+//        	MODFSP_Log("LEN-HIGH: %d", byte);
             crc_update(&this->crc16, byte);
             this->length |= ((uint16_t)byte) << 8;
             go_to_next_rx_state_decode(this);
@@ -178,7 +178,7 @@ MODFSP_Return_t MODFSP_Read(MODFSP_Data_t *this, const uint8_t *rx_data)
         {
             if (this->index < sizeof(this->data))
             {
-            	MODFSP_Log("DATA[%d]: 0x%02X (%d)", this->index, byte, byte);
+//            	MODFSP_Log("DATA[%d]: 0x%02X (%d)", this->index, byte, byte);
             	this->data[this->index++] = byte;
                 crc_update(&this->crc16, byte);
                 if (this->index == this->length)
@@ -210,12 +210,12 @@ MODFSP_Return_t MODFSP_Read(MODFSP_Data_t *this, const uint8_t *rx_data)
                 /* Check if calculated CRC matches the received data */
                 if (calculated_crc == this->crc16_data)
                 {
-                	MODFSP_Log("CRC OK!");
+//                	MODFSP_Log("CRC OK!");
                     go_to_next_rx_state_decode(this);
                 }
                 else
                 {
-                	MODFSP_Log("ERROR CRC!!!");
+//                	MODFSP_Log("ERROR CRC!!!");
                     MODFSP_Reset(this);
                     res = MODFSP_ERRCRC;
                     return res;
@@ -228,7 +228,7 @@ MODFSP_Return_t MODFSP_Read(MODFSP_Data_t *this, const uint8_t *rx_data)
         {
             if (byte == SFP_STOP1_BYTE)
             {
-            	MODFSP_Log("Stop1");
+//            	MODFSP_Log("Stop1");
                 go_to_next_rx_state_decode(this);
             } else {
                 MODFSP_Reset(this);
@@ -242,7 +242,7 @@ MODFSP_Return_t MODFSP_Read(MODFSP_Data_t *this, const uint8_t *rx_data)
         {
             if (byte == SFP_STOP2_BYTE)
             {
-            	MODFSP_Log("Stop2");
+//            	MODFSP_Log("Stop2");
                 res = MODFSP_VALID; /* Packet fully valid, take data from it */
                 go_to_next_rx_state_decode(this);
                 return res;

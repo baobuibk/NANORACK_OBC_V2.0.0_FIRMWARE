@@ -154,10 +154,12 @@ SimpleTransferResult_t SimpleDataTransfer_ExecuteTransfer(SimpleDataType_t data_
     if (result == SIMPLE_TRANSFER_SUCCESS) {
         g_successful_transfers++;
         BScript_Log("[SimpleDataTransfer] Overall result this step: Completed");
+        BScript_Log("--------------------------------------------------------");
     } else {
         g_failed_transfers++;
         BScript_Log("[SimpleDataTransfer] Transfer failed: %s",
                     SimpleDataTransfer_GetResultString(result));
+        BScript_Log("--------------------------------------------------------");
     }
 
     return result;
@@ -292,8 +294,8 @@ static SimpleTransferResult_t ExecuteSingleTransfer(SimpleDataType_t data_type,
 //        vTaskDelay(10);
 
         // Step 2: Read data from slave via SPI DMA
-        BScript_Log("[SimpleDataTransfer] Step 2: Reading %u bytes from slave (attempt %u)...",
-                   DATA_CHUNK_SIZE, retry_count + 1);
+//        BScript_Log("[SimpleDataTransfer] Step 2: Reading %u bytes from slave (attempt %u)...",
+//                   DATA_CHUNK_SIZE, retry_count + 1);
 
 //        return SIMPLE_TRANSFER_SUCCESS;
 //
@@ -337,11 +339,11 @@ static SimpleTransferResult_t ExecuteSingleTransfer(SimpleDataType_t data_type,
 
         // Handshake complete, reset READDONE pin for the next transfer cycle
         LL_GPIO_ResetOutputPin(READDONE_PIN_PORT, READDONE_PIN);
-        BScript_Log("[SimpleDataTransfer] Handshake complete. DATAREADY is low.");
+//        BScript_Log("[SimpleDataTransfer] Handshake complete. DATAREADY is low.");
 
         // Step 3: CRC verification (skip for LOG data)
         if (crc_check_needed) {
-            BScript_Log("[SimpleDataTransfer] Step 3: Verifying CRC...");
+//            BScript_Log("[SimpleDataTransfer] Step 3: Verifying CRC...");
 
             // Get CRC from slave
             uint8_t crc_response[4];
@@ -389,7 +391,7 @@ static SimpleTransferResult_t ExecuteSingleTransfer(SimpleDataType_t data_type,
 
             calculated_crc = CRC_HW_Calculation(g_transfer_ram_d1_buffer, DATA_CHUNK_SIZE);
 
-            BScript_Log("[SimpleDataTransfer] CRC32 ->>>>> Calculated: 0x%08X", calculated_crc);
+//            BScript_Log("[SimpleDataTransfer] CRC32 ->>>>> Calculated: 0x%08X", calculated_crc);
 
             if (expected_crc != calculated_crc) {
                 BScript_Log("[SimpleDataTransfer] CRC mismatch - Expected: 0x%08X, Calculated: 0x%08X",
@@ -451,7 +453,7 @@ static SimpleTransferResult_t ExecuteSingleTransfer(SimpleDataType_t data_type,
 			}
 
 			// Step 6: Trigger master to read data
-			BScript_Log("[SimpleDataTransfer] Step 6: Triggering master...");
+//			BScript_Log("[SimpleDataTransfer] Step 6: Triggering master...");
 			g_master_ack_received = false;
 			g_master_ack_success = false;
 
@@ -559,7 +561,7 @@ static SimpleTransferResult_t ExecuteSingleTransfer(SimpleDataType_t data_type,
 		SimpleDataTransfer_SetMasterCommOk(false);
 		BScript_Log("[SimpleDataTransfer] Max master retries exceeded");
 	}else{
-    	BScript_Log("[ScriptDLS] Master communication error, Bypass!!");
+    	BScript_Log("[ScriptDLS] Master communication error, Bypass!!!!!!!!!!!!");
         return SIMPLE_TRANSFER_SUCCESS;
     }
     return SIMPLE_TRANSFER_SUCCESS;
