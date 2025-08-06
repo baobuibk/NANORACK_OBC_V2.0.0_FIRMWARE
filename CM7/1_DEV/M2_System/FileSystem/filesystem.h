@@ -21,6 +21,13 @@ typedef enum{
 }SDFS_StateTypedef;
 extern SDFS_StateTypedef SDFS_State;
 
+typedef struct {
+    uint32_t total_kb;
+    uint32_t free_kb;
+    uint8_t used_percent;
+} FS_UsageInfo_t;
+
+
 /*************************************************
  *              Core API Functions               *
  *************************************************/
@@ -94,4 +101,6 @@ _Bool NeedCleanup(void);
 Std_ReturnType CreateOrUpdateDateFile(void);
 Std_ReturnType PerformCleanup(void);
 
+_Bool FS_GetUsage(FS_UsageInfo_t *info);
+Std_ReturnType FS_FormatFull(void);
 #endif /* M1_DRIVERS_FILESYSTEM_FILESYSTEM_H_ */

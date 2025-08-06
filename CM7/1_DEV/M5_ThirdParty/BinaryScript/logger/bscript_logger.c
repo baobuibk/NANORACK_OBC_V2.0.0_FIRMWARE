@@ -4,6 +4,8 @@
 #include "DateTime/date_time.h"
 #include <stdio.h>
 
+#include "OBC_Config/obc_config.h"
+
 #define BSCRIPT_LOG_UART UART_USB
 
 #ifdef LOG_WITHOUT_TIMESTAMP
@@ -24,6 +26,11 @@ void BScript_Log(const char* fmt, ...) {
 #else
 
 void BScript_Log(const char* fmt, ...) {
+
+    if (OBC_Config_GetCliMode() == CLI_MODE_DISABLE_LOG || OBC_Config_GetCliMode() == CLI_MODE_ENABLE_LOG_ONLY_DMESG ) {
+        return;
+    }
+
     char log_buf[256];
     int offset = 0;
 

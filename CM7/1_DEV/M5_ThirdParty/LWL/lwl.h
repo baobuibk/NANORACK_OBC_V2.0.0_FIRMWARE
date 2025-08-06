@@ -109,7 +109,9 @@ enum {
 	OBC_STM32_ROUTINE_RETURN, 			// ID 57
 
 	OBC_STM32_MIN_CALLBACK,				// ID 58
-	OBC_STM32_MODFSP_CALLBACK			// ID 59
+	OBC_STM32_MODFSP_CALLBACK,			// ID 59
+
+	OBC_STM32_LOG_RESET_CAUSE
 };
 
 ////////////////////////////////////////////////////////////////////////////////

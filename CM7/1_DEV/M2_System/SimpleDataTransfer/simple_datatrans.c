@@ -61,6 +61,7 @@ static volatile bool master_comm_ok = true;
  *              PRIVATE FUNCTIONS                *
  *************************************************/
 static SimpleTransferResult_t ExecuteSingleTransfer(SimpleDataType_t data_type,
+												   uint8_t cur_slot_laser,
                                                    uint16_t chunk_id,
                                                    const char* base_filename,
                                                    uint8_t year,
@@ -131,6 +132,7 @@ Std_ReturnType SimpleDataTransfer_Init(void)
  * @brief Transfer single chunk of data (BLOCKING)
  */
 SimpleTransferResult_t SimpleDataTransfer_ExecuteTransfer(SimpleDataType_t data_type,
+														 uint8_t cur_slot_laser,
 														 uint16_t chunk_id,
                                                          const char* base_filename,
                                                          uint8_t year,
@@ -148,7 +150,7 @@ SimpleTransferResult_t SimpleDataTransfer_ExecuteTransfer(SimpleDataType_t data_
                 SimpleDataTransfer_GetTypeString(data_type), chunk_id);
 
 
-    SimpleTransferResult_t result = ExecuteSingleTransfer(data_type, chunk_id, base_filename, year, month, day, hour, minute, second);
+    SimpleTransferResult_t result = ExecuteSingleTransfer(data_type, cur_slot_laser, chunk_id, base_filename, year, month, day, hour, minute, second);
 
 
     if (result == SIMPLE_TRANSFER_SUCCESS) {
@@ -224,6 +226,7 @@ uint32_t CRC_HW_Calculation(const uint8_t *data_buffer, uint32_t length)
  * @brief Execute single transfer with full sequence
  */
 static SimpleTransferResult_t ExecuteSingleTransfer(SimpleDataType_t data_type,
+												   uint8_t cur_slot_laser,
                                                    uint16_t chunk_id,
                                                    const char* base_filename,
                                                    uint8_t year,
@@ -459,7 +462,7 @@ static SimpleTransferResult_t ExecuteSingleTransfer(SimpleDataType_t data_type,
 
 			switch (data_type) {
 			  case DATA_TYPE_CHUNK: {
-				uint8_t trigger_data[12];
+				uint8_t trigger_data[13];
 				trigger_data[0] = (uint8_t)((chunk_id >> 8) & 0xFF);
 				trigger_data[1] = (uint8_t)(chunk_id & 0xFF);
 				uint32_t crc_for_master = crc_check_needed ? calculated_crc : 0;
@@ -474,6 +477,7 @@ static SimpleTransferResult_t ExecuteSingleTransfer(SimpleDataType_t data_type,
 				trigger_data[9] = hour;
 				trigger_data[10] = minute;
 				trigger_data[11] = second;
+				trigger_data[12] = cur_slot_laser;
 
 				if (MODFSP_Send(&cm4_protocol, MODFSP_TYPE_CHUNK_CMD,
 								 trigger_data, sizeof(trigger_data)) != MODFSP_OK) {
@@ -485,7 +489,7 @@ static SimpleTransferResult_t ExecuteSingleTransfer(SimpleDataType_t data_type,
 			  }
 
 			  case DATA_TYPE_CURRENT: {
-				uint8_t trigger_data[10];
+				uint8_t trigger_data[11];
 				uint32_t crc_for_master = crc_check_needed ? calculated_crc : 0;
 				trigger_data[0] = (uint8_t)((crc_for_master >> 24) & 0xFF);
 				trigger_data[1] = (uint8_t)((crc_for_master >> 16) & 0xFF);
@@ -498,6 +502,7 @@ static SimpleTransferResult_t ExecuteSingleTransfer(SimpleDataType_t data_type,
 				trigger_data[7] = hour;
 				trigger_data[8] = minute;
 				trigger_data[9] = second;
+				trigger_data[10] = cur_slot_laser;
 
 				if (MODFSP_Send(&cm4_protocol, MODFSP_TYPE_CURRENT_CMD,
 								 trigger_data, sizeof(trigger_data)) != MODFSP_OK) {
@@ -567,7 +572,8 @@ static SimpleTransferResult_t ExecuteSingleTransfer(SimpleDataType_t data_type,
     return SIMPLE_TRANSFER_SUCCESS;
 }
 
-SimpleTransferResult_t SimpleDataTransfer_ExecuteLogTransfer(const char* base_filename, uint8_t* log_data_ptr, uint32_t log_data_size,                                                           uint8_t year,
+SimpleTransferResult_t SimpleDataTransfer_ExecuteLogTransfer(const char* base_filename,
+		uint8_t year,
         uint8_t month,
         uint8_t day,
         uint8_t hour,
@@ -576,20 +582,18 @@ SimpleTransferResult_t SimpleDataTransfer_ExecuteLogTransfer(const char* base_fi
 {
     char filename[64];
 
-    if (log_data_ptr == NULL) {
-        BScript_Log("[SimpleDataTransfer] Error: Log data pointer is null.");
-        return SIMPLE_TRANSFER_ERROR_INVALID_PARAMS;
-    }
 
-    SimpleDataTransfer_GenerateFilename(DATA_TYPE_LOG, base_filename,0 , filename);
+    SimpleDataTransfer_GenerateFilename(DATA_TYPE_LOG, base_filename, 0 , filename);
+
+    //Should memcpy there
 
 	if(SimpleDataTransfer_IsFatfsOk()){
 		BScript_Log("[SimpleDataTransfer] Saving log to %s...", filename);
-		Std_ReturnType fs_result = FS_Write_Direct(filename, log_data_ptr, log_data_size);
+		Std_ReturnType fs_result = FS_Write_Direct(filename, g_transfer_ram_d1_buffer, DATA_CHUNK_SIZE);
 		if (fs_result == E_BUSY) {
 			BScript_Log("[SimpleDataTransfer] Filesystem busy, retrying...");
 			BScript_Delayms(10);
-			fs_result = FS_Write_Direct(filename, log_data_ptr, log_data_size);
+			fs_result = FS_Write_Direct(filename, g_transfer_ram_d1_buffer, DATA_CHUNK_SIZE);
 		}
 
 		if (fs_result != E_OK) {
@@ -608,7 +612,7 @@ SimpleTransferResult_t SimpleDataTransfer_ExecuteLogTransfer(const char* base_fi
 		uint8_t master_retry = 0;
 		do {
 			BScript_Log("[SimpleDataTransfer] Step 5: Sending data to master...");
-			if (SPI_SlaveDevice_ResetDMA((uint32_t)log_data_ptr, log_data_size) != E_OK) {
+			if (SPI_SlaveDevice_ResetDMA((uint32_t)g_transfer_ram_d1_buffer, DATA_CHUNK_SIZE) != E_OK) {
 				BScript_Log("[SimpleDataTransfer] SPI slave setup failed");
 				return SIMPLE_TRANSFER_ERROR_MASTER_TRIGGER_FAILED;
 			}

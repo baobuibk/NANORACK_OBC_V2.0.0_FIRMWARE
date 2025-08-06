@@ -64,6 +64,8 @@
 #include "log_manager.h"
 #include "AliveCM4/alive_cm4.h"
 
+#include "OBC_Config/obc_config.h"
+
 /*************************************************
  *                    Header                     *
  *************************************************/
@@ -246,6 +248,8 @@ Std_ReturnType OBC_AppInit(void)
 
 	FS_Init();
 
+	OBC_Config_Init();
+
 	MIN_Process_Init();
 
 	if (ret != E_OK){
@@ -317,7 +321,7 @@ Std_ReturnType OBC_AppInit(void)
     		CREATE_TASK(ScriptManager_Task, 		"ScriptManager", 		MIN_STACK_SIZE * 20, 	NULL, 									1, NULL);
     		CREATE_TASK(ScriptDLS_Task, 			"ScriptDLS", 			MIN_STACK_SIZE * 20, 	NULL, 									1, NULL);
     		CREATE_TASK(ScriptCAM_Task, 			"ScriptCAM", 			MIN_STACK_SIZE * 20, 	NULL, 									1, NULL);
-    		CREATE_TASK(LogManager_Task, 			"LogManager", 			MIN_STACK_SIZE * 5, 	NULL, 								1, NULL);
+    		CREATE_TASK(LogManager_Task, 			"LogManager", 			MIN_STACK_SIZE * 2, 	NULL, 								1, NULL);
 
     CREATE_TASK(UART_USB_DMA_RX_TASK, 	"UART_USB_RX", MIN_STACK_SIZE * 20, 	(void*)UART_DMA_Driver_Get(UART_USB),	1, NULL);
 
@@ -330,7 +334,7 @@ Std_ReturnType OBC_AppInit(void)
 
     CREATE_TASK(ExpMonitorTask, 		"ExpMonitor", 		MIN_STACK_SIZE * 2, 		NULL, 									1, NULL);
 
-    CREATE_TASK(SDLockRelease_Task, 	"SDLockRelease", 	MIN_STACK_SIZE * 5, 		NULL, 									1, NULL);
+//    CREATE_TASK(SDLockRelease_Task, 	"SDLockRelease", 	MIN_STACK_SIZE * 5, 		NULL, 									1, NULL);
 
     vTaskDelay(pdMS_TO_TICKS(1));
 

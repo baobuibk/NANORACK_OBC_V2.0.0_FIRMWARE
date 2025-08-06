@@ -27,6 +27,7 @@
 
 #include "lwl.h"
 #include "log_manager.h"
+#include "RAMBK_Infor/rambk_infor.h"
 
 SystemStatus_t Mgmt_GetSystemStatus(void);
 
@@ -76,6 +77,9 @@ Std_ReturnType Mgmt_SystemInitStepZero(void)
 	LogManager_Init();
 
 	LWL_TestLogs();
+
+	uint32_t cause = GetResetCause();
+    LWL_Log(OBC_STM32_LOG_RESET_CAUSE, LWL_4(cause));
 
 	if(Utils_SoftTime_Sync() == E_OK){
 		Sys_Boardcast(E_OK,	LOG_NOTICE, "[Sync Time!]");

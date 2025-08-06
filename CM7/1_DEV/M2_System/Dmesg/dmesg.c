@@ -39,32 +39,49 @@ void Dmesg_Init(void) {
 }
 
 static void dmesg_write(const char *msg, uint32_t len) {
-    if (len > DMESG_MSG_MAX_LENGTH) len = DMESG_MSG_MAX_LENGTH;
     if (len > 255) len = 255;
 
     uint32_t required_space = len + 1;
-    uint32_t space_left = (read_ptr <= write_ptr) ?
-                          (DMESG_BUFFER_SIZE - (write_ptr - read_ptr)) :
-                          (read_ptr - write_ptr);
+
+    uint32_t space_left;
+    if (read_ptr <= write_ptr) {
+        // Case 1: [____R###W____] - data  R  W
+        space_left = DMESG_BUFFER_SIZE - (write_ptr - read_ptr) - 1; // -1 collision
+    } else {
+        // Case 2: [###W____R###] -
+        space_left = read_ptr - write_ptr - 1; // -1 collision
+    }
+
     while (space_left < required_space && log_count > 0) {
         uint8_t old_len = *read_ptr;
         read_ptr += old_len + 1;
+
+        // Wrap around
         if (read_ptr >= &_edmesg_buffer) {
             read_ptr = &_sdmesg_buffer + (read_ptr - &_edmesg_buffer);
         }
+
         log_count--;
-        space_left = (read_ptr <= write_ptr) ?
-                     (DMESG_BUFFER_SIZE - (write_ptr - read_ptr)) :
-                     (read_ptr - write_ptr);
+
+        // space_left
+        if (read_ptr <= write_ptr) {
+            space_left = DMESG_BUFFER_SIZE - (write_ptr - read_ptr) - 1;
+        } else {
+            space_left = read_ptr - write_ptr - 1;
+        }
     }
 
-    *write_ptr++ = (uint8_t)len;
+    // write length
+    *write_ptr = (uint8_t)len;
+    write_ptr++;
     if (write_ptr >= &_edmesg_buffer) {
         write_ptr = &_sdmesg_buffer;
     }
 
+    // write data
     for (uint32_t i = 0; i < len; i++) {
-        *write_ptr++ = msg[i];
+        *write_ptr = msg[i];
+        write_ptr++;
         if (write_ptr >= &_edmesg_buffer) {
             write_ptr = &_sdmesg_buffer;
         }
@@ -109,9 +126,13 @@ void Dmesg_GetLogs(EmbeddedCli *cli) {
     }
 
     uint8_t *ptr = read_ptr;
-    while (ptr != write_ptr) {
+    uint8_t *end_ptr = write_ptr;
+    size_t entries_to_read = log_count;
+
+    for (size_t i = 0; i < entries_to_read && ptr != end_ptr; i++) {
         dmesg_print_entry(&ptr, cli);
     }
+
     xSemaphoreGive(dmesg_mutex);
 }
 

@@ -12,6 +12,7 @@
 #include "stdio.h"
 #include "DateTime/date_time.h"
 #include "Dmesg/dmesg.h"
+#include "OBC_Config/obc_config.h"
 
 #define SYSLOG_OUTPUT_BUFFER_SIZE 128
 #define SYSLOG_MSG_MAX_LENGTH     64
@@ -104,7 +105,10 @@ void SysLog_Task(void *parameters)
                                "\"%s", logMsg.msg);
 
   #ifdef DEBUG_USE_UART
-            //Dmesg_SafeWrite(outputBuffer);
+            if (OBC_Config_GetCliMode() == CLI_MODE_DISABLE_LOG || OBC_Config_GetCliMode() == CLI_MODE_ENABLE_LOG_ONLY_BSCRIPT ) {
+                 return;
+             }
+            Dmesg_SafeWrite(outputBuffer);
   #endif
         }
     }

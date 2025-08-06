@@ -16,6 +16,8 @@
 #include "SysLog/syslog.h"
 #include "DateTime/date_time.h"
 
+#include "OBC_Config/obc_config.h"
+
 #define LOG_RETENTION_DAYS 3
 #define DATE_TIME_FILENAME "date_time.txt"
 #define SECONDS_PER_DAY (24 * 60 * 60)
@@ -268,6 +270,44 @@ Std_ReturnType Link_SDFS_Driver(void) {
     return E_OK;
 }
 
+_Bool FS_GetUsage(FS_UsageInfo_t *info) {
+    FATFS *fs;
+    DWORD free_clusters;
+    FRESULT res;
+
+    if (!info) return false;
+
+    if (xSemaphoreTake(fsMutex, pdMS_TO_TICKS(1000)) != pdTRUE) {
+        return false;
+    }
+
+    res = f_getfree(MMC1Path, &free_clusters, &fs);
+    if (res != FR_OK) {
+        xSemaphoreGive(fsMutex);
+        return false;
+    }
+
+
+    uint64_t total_clusters = (uint64_t)(fs->n_fatent - 2);
+    uint64_t cluster_size = (uint64_t)fs->csize * 512;
+
+
+    uint64_t total_bytes = total_clusters * cluster_size;
+    uint64_t free_bytes = (uint64_t)free_clusters * cluster_size;
+
+    info->total_kb = (uint32_t)(total_bytes / 1024);
+    info->free_kb = (uint32_t)(free_bytes / 1024);
+
+    if (total_bytes > 0) {
+        uint64_t used_bytes = total_bytes - free_bytes;
+        info->used_percent = (uint8_t)((used_bytes * 100) / total_bytes);
+    } else {
+        info->used_percent = 0;
+    }
+
+    xSemaphoreGive(fsMutex);
+    return true;
+}
 /*************************************************
  *              CLI Commands (Unchanged)         *
  *************************************************/
@@ -386,6 +426,46 @@ void FS_ListFiles_path(EmbeddedCli *cli) {
     xSemaphoreGive(fsMutex);
 }
 
+Std_ReturnType FS_FormatFull(void) {
+    FRESULT res;
+    BYTE work[FF_MAX_SS];
+
+    if (xSemaphoreTake(fsMutex, pdMS_TO_TICKS(5000)) != pdTRUE) {
+        SYSLOG_ERROR("[FS] Failed to acquire FS mutex for full format");
+        return E_BUSY;
+    }
+
+    f_mount(NULL, MMC1Path, 0);
+
+    MKFS_PARM opt = {
+        .fmt = FM_FAT32,
+        .n_fat = 1,
+        .align = 0,
+        .n_root = 0,
+        .au_size = 0
+    };
+
+    res = f_mkfs(MMC1Path, &opt, work, sizeof(work));
+
+    if (res == FR_OK) {
+        res = f_mount(&MMC1FatFs, (TCHAR const*)MMC1Path, 1);
+        if (res == FR_OK) {
+            SYSLOG_INFO("[FS] Full format completed successfully.");
+            xSemaphoreGive(fsMutex);
+            return E_OK;
+        } else {
+            SYSLOG_ERROR("[FS] Failed to remount after full format.");
+        }
+    } else {
+        SYSLOG_ERROR("[FS] f_mkfs failed during full format ");
+    }
+
+    f_mount(&MMC1FatFs, (TCHAR const*)MMC1Path, 1);
+    xSemaphoreGive(fsMutex);
+    return E_ERROR;
+}
+
+
 Std_ReturnType CreateOrUpdateDateFile(void) {
     uint32_t current_epoch;
     char epoch_str[16];
@@ -398,50 +478,16 @@ Std_ReturnType CreateOrUpdateDateFile(void) {
 }
 
 _Bool NeedCleanup(void) {
-    FIL file;
-    FRESULT res;
-    char date_str[16];
-    UINT bytes_read;
-    uint32_t stored_epoch = 0;
-    uint32_t current_epoch;
-//    _Bool result = false;
+    FS_UsageInfo_t usage;
 
-    // Get current epoch time using existing function
-    current_epoch = Utils_GetEpoch();
-
-    // Take mutex for file operations
-    if (xSemaphoreTake(fsMutex, pdMS_TO_TICKS(1000)) != pdTRUE) {
-        SYSLOG_ERROR("Failed to acquire FS mutex for cleanup check");
+    if (!FS_GetUsage(&usage)) {
+        SYSLOG_ERROR("NeedCleanup: Failed to get FS usage");
         return false;
     }
 
-    // Try to open date file
-    res = f_open(&file, DATE_TIME_FILENAME, FA_READ);
-    if (res != FR_OK) {
-        // File doesn't exist, no cleanup needed (first run)
-        xSemaphoreGive(fsMutex);
-        return false;
-    }
+    uint8_t threshold = OBC_Config_GetCleanThreshold();
 
-    // Read stored epoch
-    res = f_read(&file, date_str, sizeof(date_str) - 1, &bytes_read);
-    f_close(&file);
-
-    xSemaphoreGive(fsMutex);
-
-    if (res != FR_OK || bytes_read == 0) {
-        return false; // Can't read file
-    }
-
-    date_str[bytes_read] = '\0';
-
-    // Parse stored epoch (stored as string)
-    if (sscanf(date_str, "%lu", &stored_epoch) != 1) {
-        return false; // Invalid format
-    }
-
-    // Check if more than 3 days have passed
-    return (current_epoch - stored_epoch) > (LOG_RETENTION_DAYS * SECONDS_PER_DAY);
+    return (usage.used_percent > threshold);
 }
 
 
@@ -463,7 +509,7 @@ Std_ReturnType PerformCleanup(void) {
     // Prepare MKFS_PARM structure for new FatFS API
     MKFS_PARM mkfs_opt = {
         .fmt = FM_FAT32,        // Format type
-        .n_fat = 0,             // Number of FATs (0 = default)
+        .n_fat = 1,             // Number of FATs (0 = default)
         .align = 0,             // Data area alignment (0 = default)
         .n_root = 0,            // Number of root directory entries (0 = default)
         .au_size = 0            // Allocation unit size (0 = default)

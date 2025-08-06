@@ -52,5 +52,6 @@ typedef struct _s_firmware_info_
 
 
 uint8_t SystemOnBootloader_Reset(void);
+uint32_t GetResetCause(void);
 
 #endif /* M2_SYSTEM_RAMBK_INFOR_RAMBK_INFOR_H_ */

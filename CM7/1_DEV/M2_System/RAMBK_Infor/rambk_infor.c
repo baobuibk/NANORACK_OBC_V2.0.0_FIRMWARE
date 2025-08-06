@@ -36,6 +36,24 @@ static void DisableBackupRAM(void)
     HAL_PWR_DisableBkUpAccess();
 }
 
+uint32_t GetResetCause(void)
+{
+    uint32_t cause;
+
+    EnableBackupRAM();
+
+    if (no_init_vars.magic == WDG_NO_INIT_VARS_MAGIC) {
+        cause = no_init_vars.reset_cause;
+    } else {
+        cause = 0xFFFFFFFF;
+    }
+
+    DisableBackupRAM();
+
+    return cause;
+}
+
+
 uint8_t SystemOnBootloader_Reset(void)
 {
 	update_no_init_vars(RESET_CAUSE_BOOTLOADER);

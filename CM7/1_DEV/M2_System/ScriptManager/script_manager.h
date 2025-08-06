@@ -19,6 +19,9 @@
 #include "parser/bscript_parser.h"
 
 // MODFSP Frame IDs
+#define CMD_REQUEST_SCRIPT		0x09
+#define CMD_SEND_RTC_STM32		0x08
+
 #define FRAME_ID_INIT           0xF0
 #define FRAME_ID_DLS_ROUTINE    0xF1
 #define FRAME_ID_CAM_ROUTINE    0xF2
@@ -105,14 +108,22 @@ typedef struct {
     Script parsed_script;
 } ScriptStorage_t;
 
+typedef struct {
+    uint16_t max_runs;              // Maximum runs (0 = infinite)
+    uint16_t remaining_runs;        // Remaining runs (countdown)
+    uint16_t total_completed;       // Total completed runs
+    bool run_limit_enabled;         // Whether run limit is active
+    bool run_limit_reached;         // Whether limit has been reached
+} ScriptRunCounter_t;
+
 // Script Execution Context
 typedef struct {
     ScriptExecState_t state;
     uint16_t current_step;
     uint8_t retry_count;
     uint8_t max_retries;
-    bool fatfs_not_ok;
     bool first_run;
+    ScriptRunCounter_t run_counter;
 } ScriptExecContext_t;
 
 // Script Manager Structure
@@ -183,7 +194,7 @@ void ScriptManager_HandleSelfTest(const uint8_t* data, uint32_t length);
 
 /* Time Point Functions */
 _Bool ScriptManager_GenerateTimePoints(TimePointSchedule_t* schedule, uint32_t start_daily_time, uint32_t interval_sec);
-_Bool ScriptManager_IsTimeToRunSchedule(TimePointSchedule_t* schedule);
+_Bool ScriptManager_IsTimeToRunSchedule(TimePointSchedule_t* schedule, ScriptType_t type);
 void ScriptManager_PrintTimePoints(TimePointSchedule_t* schedule, const char* routine_name);
 void ScriptManager_AdvanceSchedule(TimePointSchedule_t* schedule, const char* routine_name);
 

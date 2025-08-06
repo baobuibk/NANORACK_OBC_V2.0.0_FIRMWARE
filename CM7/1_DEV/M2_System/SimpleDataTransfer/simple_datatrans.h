@@ -58,6 +58,7 @@ Std_ReturnType SimpleDataTransfer_Init(void);
  * @return Transfer result
  */
 SimpleTransferResult_t SimpleDataTransfer_ExecuteTransfer(SimpleDataType_t data_type,
+														 uint8_t cur_slot_laser,
                                                          uint16_t chunk_id,
                                                          const char* base_filename,
                                                          uint8_t year,
@@ -154,7 +155,8 @@ void SimpleDataTransfer_GenerateFilename(SimpleDataType_t data_type,
                                         uint16_t chunk_id,
                                         char* output_filename);
 
-SimpleTransferResult_t SimpleDataTransfer_ExecuteLogTransfer(const char* base_filename, uint8_t* log_data_ptr, uint32_t log_data_size,                                                          uint8_t year,
+SimpleTransferResult_t SimpleDataTransfer_ExecuteLogTransfer(const char* base_filename,
+		uint8_t year,
         uint8_t month,
         uint8_t day,
         uint8_t hour,

@@ -75,6 +75,7 @@ extern MODFSP_Data_t cm4_protocol;
 
 static SDScheduler_t g_sd_scheduler = {0};
 
+static volatile uint8_t slot_laser = 0;
 /*************************************************
  *               PRIVATE FUNCTIONS               *
  *************************************************/
@@ -85,12 +86,19 @@ static StepExecResult ScriptManager_ExecuteCAMStep(Step* step);
 
 static void ScriptManager_ResetContext(ScriptType_t type);
 static void ScriptManager_HandleStepResult(ScriptType_t type, StepExecResult result);
-static uint32_t ScriptManager_GetCurrentTimeSeconds(void);
 static uint32_t ScriptManager_ParseStartTime(uint32_t time_value);
 static void ScriptManager_TimeToHMS(uint32_t seconds_in_day, uint8_t* hour, uint8_t* minute, uint8_t* second);
 
 static void ScriptManager_RequestScriptsFromMaster(void);
 static _Bool ScriptManager_HandleAutoLoad(void);
+
+void ScriptManager_SetRunLimit(ScriptType_t type, uint32_t max_runs);
+void ScriptManager_ClearRunLimit(ScriptType_t type);
+uint32_t ScriptManager_GetRemainingRuns(ScriptType_t type);
+uint32_t ScriptManager_GetTotalCompletedRuns(ScriptType_t type);
+bool ScriptManager_IsRunLimitReached(ScriptType_t type);
+void ScriptManager_ResetRunCounter(ScriptType_t type);
+
 /*************************************************
  *           TIME MANAGEMENT FUNCTIONS           *
  *************************************************/
@@ -130,27 +138,6 @@ static uint32_t ScriptManager_GetCurrentDailyTimeSeconds(void)
 
     uint32_t daily_seconds = (rtc.hour * 3600) + (rtc.minute * 60) + rtc.second;
     return daily_seconds;
-}
-
-/**
- * @brief Get current soft time in seconds since system start (for logging only)
- * @return Current time in seconds
- */
-static uint32_t ScriptManager_GetCurrentTimeSeconds(void)
-{
-    s_DateTime rtc;
-    Utils_GetRTC(&rtc);
-
-    // Convert to total seconds (simplified calculation)
-    // This provides a monotonic increasing value for logging only
-    uint32_t total_seconds = (rtc.year * 365 * 24 * 3600) +
-                            (rtc.month * 30 * 24 * 3600) +
-                            (rtc.day * 24 * 3600) +
-                            (rtc.hour * 3600) +
-                            (rtc.minute * 60) +
-                            rtc.second;
-
-    return total_seconds;
 }
 
 /**
@@ -247,20 +234,6 @@ _Bool ScriptManager_GenerateTimePoints(TimePointSchedule_t* schedule, uint32_t s
         BScript_Log("[ScriptManager] Invalid start_daily_time: %u (must be 0-86400)", start_daily_time);
         return false;
     }
-
-//    if (start_daily_time >= SCHED_OFFSET_SEC) {
-//        start_daily_time -= SCHED_OFFSET_SEC;
-//        BScript_Log("[ScriptManager] Adjusted start_daily_time by -%u seconds to compensate for delay", SCHED_OFFSET_SEC);
-//    } else {
-//        start_daily_time = 0;
-//        BScript_Log("[ScriptManager] Start time too close to 00:00:00, adjusted to zero");
-//    }
-
-
-//    // Store interval for future regeneration
-//    uint32_t stored_interval = schedule->interval_sec;
-//    _Bool was_configured = schedule->is_configured;
-
     // Clear existing schedule but preserve interval if this is a regeneration
     memset(schedule, 0, sizeof(TimePointSchedule_t));
     schedule->interval_sec = interval_sec;
@@ -278,32 +251,26 @@ _Bool ScriptManager_GenerateTimePoints(TimePointSchedule_t* schedule, uint32_t s
     uint16_t point_count = 0;
 
     while (point_count < MAX_TIME_POINTS) {
-        // Check if we can fit another complete interval before end of day
-        if (current_point + interval_sec > SECONDS_PER_DAY) {
-            BScript_Log("[ScriptManager] Cannot fit next interval (%u + %u > %u), stopping",
-                       current_point, interval_sec, SECONDS_PER_DAY);
-            break;
-        }
-
-        // Create time point
         TimePoint_t* point = &schedule->points[point_count];
-        point->daily_timestamp = current_point;
-        ScriptManager_TimeToHMS(current_point, &point->hour, &point->minute, &point->second);
+        point->daily_timestamp = current_point % SECONDS_PER_DAY;
+        ScriptManager_TimeToHMS(point->daily_timestamp, &point->hour, &point->minute, &point->second);
 
         BScript_Log("  - Point %u: %02u:%02u:%02u (daily_timestamp: %u)",
                    point_count, point->hour, point->minute, point->second, point->daily_timestamp);
 
         point_count++;
+        if (current_point + interval_sec >= start_daily_time + SECONDS_PER_DAY) {
+            break;
+        }
+
         current_point += interval_sec;
     }
-
     schedule->count = point_count;
     schedule->current_index = 0;
     schedule->is_configured = true;
 
     BScript_Log("[ScriptManager] Generated %u time points", point_count);
 
-    // Find the current or next time point index
     _Bool found_current = false;
     for (uint16_t i = 0; i < point_count; i++) {
         if (schedule->points[i].daily_timestamp >= current_daily_time) {
@@ -329,7 +296,7 @@ _Bool ScriptManager_GenerateTimePoints(TimePointSchedule_t* schedule, uint32_t s
  * @param schedule Pointer to schedule structure
  * @return true if should run, false otherwise
  */
-_Bool ScriptManager_IsTimeToRunSchedule(TimePointSchedule_t* schedule)
+_Bool ScriptManager_IsTimeToRunSchedule(TimePointSchedule_t* schedule, ScriptType_t type)
 {
     if (!schedule || !schedule->is_configured || schedule->count == 0) {
         return false;
@@ -337,11 +304,17 @@ _Bool ScriptManager_IsTimeToRunSchedule(TimePointSchedule_t* schedule)
 
     uint32_t current_daily_time = ScriptManager_GetCurrentDailyTimeSeconds();
 
+    ScriptRunCounter_t* counter = &g_script_manager.contexts[type].run_counter;
+    if (counter->run_limit_enabled && counter->run_limit_reached) {
+        return false; // Don't run if limit reached
+    }
+
+
     // Check if current time point is reached
     if (schedule->current_index < schedule->count) {
         TimePoint_t* current_point = &schedule->points[schedule->current_index];
 
-        if (current_daily_time >= current_point->daily_timestamp) {
+        if ((current_daily_time >= current_point->daily_timestamp) && ((current_daily_time - current_point->daily_timestamp) < 3600)) {
             return true;
         }
     }
@@ -473,6 +446,102 @@ static void ScriptManager_ResetContext(ScriptType_t type)
     SimpleDataTransfer_SetFatfsOk(true);
     SimpleDataTransfer_SetMasterCommOk(true);
     context->first_run = true;
+
+    if (!context->run_counter.run_limit_enabled) {
+        context->run_counter.max_runs = 0;
+        context->run_counter.remaining_runs = 0;
+        context->run_counter.total_completed = 0;
+        context->run_counter.run_limit_enabled = false;
+        context->run_counter.run_limit_reached = false;
+    }
+}
+
+void ScriptManager_SetRunLimit(ScriptType_t type, uint32_t max_runs)
+{
+    if (type >= SCRIPT_TYPE_COUNT) return;
+
+    ScriptExecContext_t* context = &g_script_manager.contexts[type];
+    ScriptRunCounter_t* counter = &context->run_counter;
+
+    counter->max_runs = max_runs;
+    counter->remaining_runs = max_runs;
+    counter->run_limit_enabled = (max_runs > 0);
+    counter->run_limit_reached = false;
+
+    const char* script_names[] = {"INIT", "DLS", "CAM"};
+
+    if (max_runs == 0) {
+        BScript_Log("[ScriptManager] %s: Run limit set to INFINITE", script_names[type]);
+    } else {
+        BScript_Log("[ScriptManager] %s: Run limit set to %u runs", script_names[type], max_runs);
+    }
+}
+
+/**
+ * @brief Clear run limit for a script type (set to infinite)
+ * @param type Script type
+ */
+void ScriptManager_ClearRunLimit(ScriptType_t type)
+{
+    ScriptManager_SetRunLimit(type, 0);
+}
+
+/**
+ * @brief Get remaining runs for a script type
+ * @param type Script type
+ * @return Remaining runs (0 if infinite or limit reached)
+ */
+uint32_t ScriptManager_GetRemainingRuns(ScriptType_t type)
+{
+    if (type >= SCRIPT_TYPE_COUNT) return 0;
+
+    ScriptRunCounter_t* counter = &g_script_manager.contexts[type].run_counter;
+
+    if (!counter->run_limit_enabled) return 0; // Infinite
+    return counter->remaining_runs;
+}
+
+/**
+ * @brief Get total completed runs for a script type
+ * @param type Script type
+ * @return Total completed runs
+ */
+uint32_t ScriptManager_GetTotalCompletedRuns(ScriptType_t type)
+{
+    if (type >= SCRIPT_TYPE_COUNT) return 0;
+    return g_script_manager.contexts[type].run_counter.total_completed;
+}
+
+/**
+ * @brief Check if run limit has been reached
+ * @param type Script type
+ * @return true if limit reached, false otherwise
+ */
+bool ScriptManager_IsRunLimitReached(ScriptType_t type)
+{
+    if (type >= SCRIPT_TYPE_COUNT) return false;
+
+    ScriptRunCounter_t* counter = &g_script_manager.contexts[type].run_counter;
+    return counter->run_limit_enabled && counter->run_limit_reached;
+}
+
+/**
+ * @brief Reset run counter (keep limit settings)
+ * @param type Script type
+ */
+void ScriptManager_ResetRunCounter(ScriptType_t type)
+{
+    if (type >= SCRIPT_TYPE_COUNT) return;
+
+    ScriptRunCounter_t* counter = &g_script_manager.contexts[type].run_counter;
+
+    // Reset counters but keep limit settings
+    counter->remaining_runs = counter->max_runs;
+    counter->total_completed = 0;
+    counter->run_limit_reached = false;
+
+    const char* script_names[] = {"INIT", "DLS", "CAM"};
+    BScript_Log("[ScriptManager] %s: Run counter reset", script_names[type]);
 }
 
 /**
@@ -693,7 +762,7 @@ static _Bool ScriptManager_HandleAutoLoad(void)
     if (!any_script_exists) {
         BScript_Log("[ScriptManager] No scripts found in FRAM, waiting for user input...");
         // Start a task to request scripts from master after timeout
-        // TODO: Create a task that waits and then calls ScriptManager_RequestScriptsFromMaster()
+        MODFSP_Send(&cm4_protocol, CMD_REQUEST_SCRIPT, NULL, 0);
         return false;
     }
 
@@ -714,7 +783,6 @@ static _Bool ScriptManager_HandleAutoLoad(void)
         return true;
     } else {
         BScript_Log("[ScriptManager] Auto-load failed, requesting scripts from master");
-        ScriptManager_RequestScriptsFromMaster();
         return false;
     }
 }
@@ -1210,13 +1278,14 @@ void ScriptManager_Task(void *pvParameters)
             }
 
             // Check if it's time to run routines (without modifying schedules yet)
+            // Check if it's time to run routines (WITH run limit check)
             _Bool dls_time_reached = (g_script_manager.init_completed &&
                 g_script_manager.scripts[SCRIPT_TYPE_DLS_ROUTINE].is_loaded &&
-                ScriptManager_IsTimeToRunSchedule(&g_script_manager.dls_schedule));
+                ScriptManager_IsTimeToRunSchedule(&g_script_manager.dls_schedule, SCRIPT_TYPE_DLS_ROUTINE));
 
             _Bool cam_time_reached = (g_script_manager.init_completed &&
                 g_script_manager.scripts[SCRIPT_TYPE_CAM_ROUTINE].is_loaded &&
-                ScriptManager_IsTimeToRunSchedule(&g_script_manager.cam_schedule));
+                ScriptManager_IsTimeToRunSchedule(&g_script_manager.cam_schedule, SCRIPT_TYPE_CAM_ROUTINE));
 
             // If any routine should run, advance schedules and set flags
             if (dls_time_reached || cam_time_reached) {
@@ -1312,6 +1381,22 @@ void ScriptDLS_Task(void *pvParameters)
                 if (context->current_step >= storage->parsed_script.total_steps) {
                     context->state = SCRIPT_EXEC_COMPLETED;
                     g_script_manager.dls_run_count++;
+
+                    // Update run counter
+                    ScriptRunCounter_t* counter = &context->run_counter;
+                    counter->total_completed++;
+
+                    if (counter->run_limit_enabled && counter->remaining_runs > 0) {
+                        counter->remaining_runs--;
+
+                        if (counter->remaining_runs == 0) {
+                            counter->run_limit_reached = true;
+                            BScript_Log("[ScriptDLS] Run limit reached! No more executions.");
+                        } else {
+                            BScript_Log("[ScriptDLS] Runs remaining: %u", counter->remaining_runs);
+                        }
+                    }
+
                     BScript_Log("[ScriptDLS] Routine completed successfully (total runs: %u)",
                                g_script_manager.dls_run_count);
                     BScript_Log("-----------------------------------------------------------");
@@ -1378,6 +1463,23 @@ void ScriptCAM_Task(void *pvParameters)
                 if (context->current_step >= storage->parsed_script.total_steps) {
                     context->state = SCRIPT_EXEC_COMPLETED;
                     g_script_manager.cam_run_count++;
+
+                    // Update run counter
+                    ScriptRunCounter_t* counter = &context->run_counter;
+                    counter->total_completed++;
+
+                    if (counter->run_limit_enabled && counter->remaining_runs > 0) {
+                        counter->remaining_runs--;
+
+                        if (counter->remaining_runs == 0) {
+                            counter->run_limit_reached = true;
+                            BScript_Log("[ScriptCAM] Run limit reached! No more executions.");
+                        } else {
+                            BScript_Log("[ScriptCAM] Runs remaining: %u", counter->remaining_runs);
+                        }
+                    }
+
+
                     BScript_Log("[ScriptCAM] Routine completed successfully (total runs: %u)",
                                g_script_manager.cam_run_count);
                     BScript_Log("-----------------------------------------------------------");
@@ -1398,7 +1500,6 @@ void ScriptCAM_Task(void *pvParameters)
  */
 void LogFetching_Task(void *pvParameters)
 {
-    bool date_file_created = false;
     TickType_t last_cleanup_check_time = 0;
 
     while (1) {
@@ -1427,7 +1528,7 @@ void LogFetching_Task(void *pvParameters)
 
                     // Execute transfer and check result
                     Std_ReturnType transfer_result = SimpleDataTransfer_ExecuteTransfer(
-                        DATA_TYPE_LOG, 0, base_filename,
+                        DATA_TYPE_LOG, 0, 0, base_filename,
                         rtc.year, rtc.month, rtc.day, rtc.hour, rtc.minute, rtc.second);
 
                     if (transfer_result == E_OK) {
@@ -1436,8 +1537,8 @@ void LogFetching_Task(void *pvParameters)
                         BScript_Log("[LogFetching] EXP transfer failed: %d", transfer_result);
                     }
 
-                    xSemaphoreGive(g_script_manager.execution_mutex);
-                    continue;
+//                    xSemaphoreGive(g_script_manager.execution_mutex);
+//                    continue;
                 }
             }
 
@@ -1459,14 +1560,8 @@ void LogFetching_Task(void *pvParameters)
 
             if (NeedCleanup()) {
                 BScript_Log("[LogFetching] Performing periodic cleanup...");
-                if (PerformCleanup() == E_OK) {
-                    date_file_created = false;
-                }
-            }
-
-            if (!date_file_created) {
-                if (CreateOrUpdateDateFile() == E_OK) {
-                    date_file_created = true;
+                if (FS_FormatFull() == E_OK) {
+                	BScript_Log("[LogFetching] Formating fail...");
                 }
             }
 
@@ -1564,7 +1659,21 @@ static StepExecResult ScriptManager_ExecuteInitStep(Step* step)
     switch (step->action_id) {
         case CLEAR_PROFILE: {
             BScript_Log("[ScriptInit] ->CLEAR_PROFILE");
-            // TODO: Implement profile clearing
+            uint16_t run_limit_count;
+
+            if (BScript_ParseParamByIndex(step->parameters, step->param_len, 0, &run_limit_count) != PARSE_IDX_OK)
+            {
+                return STEP_EXEC_ERROR;
+            }
+            if(run_limit_count == 0){
+                BScript_Log("[ScriptInit] ->Run limit: INFINITY");
+            }else{
+                BScript_Log("[ScriptInit] ->Run limit: %u", run_limit_count);
+            }
+
+            ScriptManager_SetRunLimit(SCRIPT_TYPE_DLS_ROUTINE, run_limit_count);
+            ScriptManager_SetRunLimit(SCRIPT_TYPE_CAM_ROUTINE, run_limit_count);
+
             break;
         }
 
@@ -1949,6 +2058,7 @@ static StepExecResult ScriptManager_ExecuteDLSStep(Step* step)
             if (BScript_ParseParamByIndex(step->parameters, step->param_len, 0, &position) != PARSE_IDX_OK) {
                 return STEP_EXEC_ERROR;
             }
+            slot_laser = position;
             BScript_Log("[ScriptDLS] ->SET_POSITION: Set position: %u", position);
 
             uint8_t resp_info[2];
@@ -2045,21 +2155,22 @@ static StepExecResult ScriptManager_ExecuteDLSStep(Step* step)
             BScript_Log("[ScriptDLS] Got total chunk: %u (> 256)", total_chunk);
 
             char base_filename[48];
+            uint8_t current_slot_laser = slot_laser;
 
             s_DateTime rtc;
             Utils_GetRTC(&rtc);
             const char* type_prefix = "";
-            type_prefix = "dls_data";
-            snprintf(base_filename, sizeof(base_filename), "%s_20%02d%02d%02d_%02d%02d%02d",
-                                type_prefix, rtc.year, rtc.month, rtc.day, rtc.hour, rtc.minute, rtc.second);
+            type_prefix = "dls";
+            snprintf(base_filename, sizeof(base_filename), "%s_i%02d_20%02d%02d%02d_%02d%02d%02d",
+                                type_prefix, current_slot_laser, rtc.year, rtc.month, rtc.day, rtc.hour, rtc.minute, rtc.second);
 
             uint16_t chunk_id = 0;
             for(chunk_id = 0; chunk_id < total_chunk; chunk_id++){
 
-                BScript_Log("[ScriptDLS] ->GET_SAMPLE: Chunks=%u, Base=%s",
-                		chunk_id, base_filename);
+                BScript_Log("[ScriptDLS] ->GET_SAMPLE: Slot=%u, Chunks=%u, Base=%s",
+                		current_slot_laser, chunk_id, base_filename);
                 SimpleTransferResult_t result;
-                result = SimpleDataTransfer_ExecuteTransfer(DATA_TYPE_CHUNK, chunk_id, base_filename, rtc.year, rtc.month, rtc.day, rtc.hour, rtc.minute, rtc.second);
+                result = SimpleDataTransfer_ExecuteTransfer(DATA_TYPE_CHUNK, current_slot_laser , chunk_id, base_filename, rtc.year, rtc.month, rtc.day, rtc.hour, rtc.minute, rtc.second);
                 // Check result and return appropriate step result
                 if (result == SIMPLE_TRANSFER_SUCCESS) {
                     BScript_Log("[ScriptDLS] ->GET_SAMPLE: Data acquisition chunk: %u completed successfully", chunk_id);
@@ -2071,12 +2182,12 @@ static StepExecResult ScriptManager_ExecuteDLSStep(Step* step)
             }
             BScript_Log("[ScriptDLS] ->GET_SAMPLE: Finish collect Chunk");
             BScript_Log("[ScriptDLS] ->GET_SAMPLE: Now, we shall collect Current sample data");
-            type_prefix = "current_data";
-            snprintf(base_filename, sizeof(base_filename), "%s_20%02d%02d%02d_%02d%02d%02d",
-                                type_prefix, rtc.year, rtc.month, rtc.day, rtc.hour, rtc.minute, rtc.second);
+            type_prefix = "current";
+            snprintf(base_filename, sizeof(base_filename), "%s_i%02d_20%02d%02d%02d_%02d%02d%02d",
+                                type_prefix, current_slot_laser, rtc.year, rtc.month, rtc.day, rtc.hour, rtc.minute, rtc.second);
             BScript_Log("[ScriptDLS] ->GET_SAMPLE: Base=%s", base_filename);
             SimpleTransferResult_t result;
-            result = SimpleDataTransfer_ExecuteTransfer(DATA_TYPE_CURRENT, 0, base_filename, rtc.year, rtc.month, rtc.day, rtc.hour, rtc.minute, rtc.second);
+            result = SimpleDataTransfer_ExecuteTransfer(DATA_TYPE_CURRENT, current_slot_laser, 0, base_filename, rtc.year, rtc.month, rtc.day, rtc.hour, rtc.minute, rtc.second);
             // Check result and return appropriate step result
             if (result == SIMPLE_TRANSFER_SUCCESS) {
                 BScript_Log("[ScriptDLS] ->GET_SAMPLE: Data acquisition CURRENT completed successfully");
@@ -2116,6 +2227,25 @@ static StepExecResult ScriptManager_ExecuteCAMStep(Step* step)
             if (BScript_ParseParamByIndex(step->parameters, step->param_len, 0, &interval) != PARSE_IDX_OK) {
                 return STEP_EXEC_ERROR;
             }
+
+        	s_DateTime dt;
+        	Utils_GetRTC(&dt);
+
+        	uint8_t payload[6];
+        	payload[0] = dt.hour;
+        	payload[1] = dt.minute;
+        	payload[2] = dt.second;
+        	payload[3] = dt.day;
+        	payload[4] = dt.month;
+        	payload[5] = dt.year;
+
+        	MODFSP_Send(&cm4_protocol, CMD_SEND_RTC_STM32, payload,
+        			sizeof(payload));
+
+        	BScript_Log(
+        			"[ScriptCAM] Sent RTC: %02d:%02d:%02d, %02d/%02d/20%02d to CM4",
+        			dt.hour, dt.minute, dt.second, dt.day, dt.month, dt.year);
+
 
             BScript_Log("[ScriptCAM] ->SET_CAMERA_INTERVAL: Reached step with interval %u seconds (using time points instead)", interval);
             break;
@@ -2341,7 +2471,6 @@ void ScriptManager_PrintStatus(void)
         "INIT", "DLS", "CAM"
     };
 
-    uint32_t current_time = ScriptManager_GetCurrentTimeSeconds();
     s_DateTime current_rtc;
     Utils_GetRTC(&current_rtc);
 
@@ -2349,7 +2478,6 @@ void ScriptManager_PrintStatus(void)
     BScript_Log("[ScriptManager] Current RTC: 20%02d-%02d-%02d %02d:%02d:%02d",
                current_rtc.year, current_rtc.month, current_rtc.day,
                current_rtc.hour, current_rtc.minute, current_rtc.second);
-    BScript_Log("[ScriptManager] System time: %u seconds", current_time);
     BScript_Log("[ScriptManager] Manager running: %s", g_script_manager.manager_running ? "YES" : "NO");
     BScript_Log("[ScriptManager] Init completed: %s", g_script_manager.init_completed ? "YES" : "NO");
     BScript_Log("[ScriptManager] Log Fetching: %s", g_log_fetching_enabled ? "ENABLED" : "DISABLED");
@@ -2383,6 +2511,7 @@ void ScriptManager_PrintStatus(void)
     // Script status
     for (int i = 0; i < SCRIPT_TYPE_COUNT; i++) {
         ScriptExecContext_t* ctx = &g_script_manager.contexts[i];
+        ScriptRunCounter_t* counter = &ctx->run_counter;
         _Bool fram_exists = ScriptStorage_ScriptExists((ScriptType_t)i);
 
         BScript_Log("[ScriptManager] %s Script:", script_names[i]);
@@ -2391,7 +2520,15 @@ void ScriptManager_PrintStatus(void)
         BScript_Log("  - State: %s", state_names[ctx->state]);
         BScript_Log("  - Current step: %d", ctx->current_step);
         BScript_Log("  - Retry count: %d/%d", ctx->retry_count, ctx->max_retries);
-
+        // Add run counter info
+        if (counter->run_limit_enabled) {
+            BScript_Log("  - Run limit: %u (remaining: %u)",
+                       counter->max_runs, counter->remaining_runs);
+            BScript_Log("  - Limit reached: %s", counter->run_limit_reached ? "YES" : "NO");
+        } else {
+            BScript_Log("  - Run limit: INFINITE");
+        }
+        BScript_Log("  - Total completed: %u", counter->total_completed);
         // Show time point information for DLS and CAM
         if (i == SCRIPT_TYPE_DLS_ROUTINE) {
             TimePointSchedule_t* schedule = &g_script_manager.dls_schedule;
@@ -2424,8 +2561,8 @@ void ScriptManager_PrintStatus(void)
     BScript_Log("  - Total errors: %u", g_script_manager.total_errors);
 
     // Print FRAM storage status
-    BScript_Log("[ScriptManager] === FRAM STORAGE STATUS ===");
-    ScriptStorage_PrintStatus();
+//    BScript_Log("[ScriptManager] === FRAM STORAGE STATUS ===");
+//    ScriptStorage_PrintStatus();
 
     // Print detailed time point schedules
     if (g_script_manager.dls_schedule.is_configured) {

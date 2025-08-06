@@ -44,9 +44,11 @@
 
 #include "modfsp.h"
 
+#include "OBC_Config/obc_config.h"
+#include "RAMBK_Infor/rambk_infor.h"
 #define FRAM_USER_PWD_LEN_ADDR  0x0000
 #define FRAM_USER_PWD_ADDR      0x0001
-extern ShieldInstance_t auth_uart;
+//extern ShieldInstance_t auth_uart;
 extern ShieldInstance_t auth_usb;
 /*************************************************
  *                Command Define                 *
@@ -63,6 +65,7 @@ static void CMD_sd_lockin(EmbeddedCli *cli, char *args, void *context);
 static void CMD_vim_bypass(EmbeddedCli *cli, char *args, void *context);
 static void CMD_vim(EmbeddedCli *cli, char *args, void *context);
 static void CMD_cat(EmbeddedCli *cli, char *args, void *context);
+static void CMD_DiskInfo(EmbeddedCli *cli, char *args, void *context);
 static void CMD_Cm4Rst(EmbeddedCli *cli, char *args, void *context);
 static void CMD_Cm4Dis(EmbeddedCli *cli, char *args, void *context);
 static void CMD_Cm4Ena(EmbeddedCli *cli, char *args, void *context);
@@ -123,6 +126,16 @@ static void CMD_DevCM4KeepAliveStatus(EmbeddedCli *cli, char *args, void *contex
 
 static void CMD_Testcase(EmbeddedCli *cli, char *args, void *context);
 static void CMD_FormatSD(EmbeddedCli *cli, char *args, void *context);
+
+static void CMD_OBCConfigSet(EmbeddedCli *cli, char *args, void *context);
+static void CMD_OBCConfigGet(EmbeddedCli *cli, char *args, void *context);
+
+static void CMD_ScriptStart(EmbeddedCli *cli, char *args, void *context);
+static void CMD_ScriptStop(EmbeddedCli *cli, char *args, void *context);
+static void CMD_ScriptPause(EmbeddedCli *cli, char *args, void *context);
+static void CMD_ScriptResume(EmbeddedCli *cli, char *args, void *context);
+
+static void CMD_ResetCause(EmbeddedCli *cli, char *args, void *context);
 /*************************************************
  *                 Command  Array                *
  *************************************************/
@@ -153,6 +166,7 @@ static const CliCommandBinding cliStaticBindings_internal[] = {
     { "FileSystem", 	"vim_bypass", 	"Write no queue: vim_bypass <filename> \"content\"", 	true, 	NULL, CMD_vim_bypass 	 },
     { "FileSystem", 	"vim", 			"Write queue: vim <filename> \"content\"", 				true, 	NULL, CMD_vim 			 },
     { "FileSystem", 	"cat", 			"Read file content: cat <filename>", 					true, 	NULL, CMD_cat 			 },
+	{ "FileSystem", 	"disk_info", 	"Show filesystem usage (total/free/percent)", 			false, 	NULL, CMD_DiskInfo 		 },
     { "RP-CM4",         "cm4_rst",     	"Trigger CM4 reset pulse (low then high)",          	false, 	NULL, CMD_Cm4Rst,    	 },
     { "RP-CM4",         "cm4_dis",     	"Disable CM4 power (drive enable low)",             	false, 	NULL, CMD_Cm4Dis,    	 },
     { "RP-CM4",         "cm4_ena",     	"Enable CM4 power (drive enable high)",             	false, 	NULL, CMD_Cm4Ena,    	 },
@@ -212,6 +226,14 @@ static const CliCommandBinding cliStaticBindings_internal[] = {
 
 	{ NULL, "testcase", 					"Run step-by-step testcase: testcase <mode>", 			true, 	NULL, CMD_Testcase },
 
+	{ "System", "obc_set", "Set OBC config (cli_mode[0|1dmesg|2bscrip|3all]|threshold|date)", 		true, 	NULL, CMD_OBCConfigSet },
+	{ "System", "obc_get", "Get OBC config values", 												false, 	NULL, CMD_OBCConfigGet },
+	{ "System", "reason_reset", "Show last reset cause", false, NULL, CMD_ResetCause },
+    { NULL, "script_start",  "Start script execution",   false, NULL, CMD_ScriptStart },
+    { NULL, "script_stop",   "Stop script execution",    false, NULL, CMD_ScriptStop  },
+    { NULL, "script_pause",  "Pause script execution",   false, NULL, CMD_ScriptPause },
+    { NULL, "script_resume", "Resume script execution",  false, NULL, CMD_ScriptResume },
+
 
 };
 /*************************************************
@@ -222,7 +244,7 @@ static const CliCommandBinding cliStaticBindings_internal[] = {
  *             Command List Function             *
  *************************************************/
 extern uint32_t _scustom_data;
-extern uint32_t _ecustom_data;
+//extern uint32_t _ecustom_data;
 
 extern uint8_t g_simple_ram_d3_buffer[DATA_CHUNK_SIZE];
 extern MODFSP_Data_t cm4_protocol;
@@ -883,6 +905,27 @@ static void CMD_cat(EmbeddedCli *cli, char *args, void *context) {
     embeddedCliPrint(cli, "");
 }
 
+static void CMD_DiskInfo(EmbeddedCli *cli, char *args, void *context) {
+    FS_UsageInfo_t info;
+    char buffer[128];
+
+    if (FS_GetUsage(&info)) {
+        snprintf(buffer, sizeof(buffer), "Disk Total: %lu KB", (unsigned long)info.total_kb);
+        embeddedCliPrint(cli, buffer);
+
+        snprintf(buffer, sizeof(buffer), "Disk Free : %lu KB", (unsigned long)info.free_kb);
+        embeddedCliPrint(cli, buffer);
+
+        snprintf(buffer, sizeof(buffer), "Used      : %u%%", info.used_percent);
+        embeddedCliPrint(cli, buffer);
+    } else {
+        embeddedCliPrint(cli, "Failed to get disk info.");
+    }
+
+    embeddedCliPrint(cli, "");
+}
+
+
 static void CMD_Cm4Rst(EmbeddedCli *cli, char *args, void *context) {
     GPIO_SetLow(CM4_RST_Port, CM4_RST_Pin);
     vTaskDelay(pdMS_TO_TICKS(100));
@@ -1481,15 +1524,27 @@ static void CMD_DevSetExtLaserProfile(EmbeddedCli *cli, char *args, void *contex
 static void CMD_DevTurnOnExtLaser(EmbeddedCli *cli, char *args, void *context)
 {
     char buffer[100];
-    const char *arg1 = embeddedCliGetToken(args, 1);
-    if (!arg1) {
-        snprintf(buffer, sizeof(buffer), "Usage: turn_on_ext_laser <position>");
+    uint8_t bitmask = 0;
+
+    int i = 1;
+    const char *arg = NULL;
+    while ((arg = embeddedCliGetToken(args, i)) != NULL) {
+        uint8_t ld = (uint8_t)strtoul(arg, NULL, 0);
+        if (ld > 0 && ld <= 8) {
+            bitmask |= (1 << (ld - 1));
+        }
+        i++;
+    }
+
+    if (bitmask == 0) {
+        snprintf(buffer, sizeof(buffer), "Usage: turn_on_ext_laser <ld_id1> [ld_id2] ...");
         embeddedCliPrint(cli, buffer);
         return;
     }
-    uint8_t position = (uint8_t)strtoul(arg1, NULL, 0);
-    MIN_Send_MANUAL_TURN_ON_LASER_CMD(0x01, position);
-    snprintf(buffer, sizeof(buffer), "Sent TURN_ON_EXT_LASER_CMD for position: %u", position);
+
+    MIN_Send_MANUAL_TURN_ON_LASER_CMD(0x01, bitmask);
+
+    snprintf(buffer, sizeof(buffer), "Sent TURN_ON_EXT_LASER_CMD for bitmask: 0x%02X", bitmask);
     embeddedCliPrint(cli, buffer);
     embeddedCliPrint(cli, "");
 }
@@ -1712,7 +1767,7 @@ static void CMD_Testcase(EmbeddedCli *cli, char *args, void *context)
 
 
 static void CMD_FormatSD(EmbeddedCli *cli, char *args, void *context) {
-    Std_ReturnType ret = PerformCleanup();
+    Std_ReturnType ret = FS_FormatFull();
     if (ret == E_OK) {
         embeddedCliPrint(cli, "Filesystem formatted successfully.");
     } else if (ret == E_BUSY) {
@@ -1723,6 +1778,110 @@ static void CMD_FormatSD(EmbeddedCli *cli, char *args, void *context) {
     embeddedCliPrint(cli, "");
 }
 
+static void CMD_OBCConfigSet(EmbeddedCli *cli, char *args, void *context) {
+    const char *param = embeddedCliGetToken(args, 1); // field
+    const char *value = embeddedCliGetToken(args, 2); // value
+    char buffer[128];
+
+    if (!param || !value) {
+        embeddedCliPrint(cli, "Usage: obc_set <cli_mode|threshold|date> <value(s)>");
+        return;
+    }
+
+    if (strcmp(param, "cli_mode") == 0) {
+        int mode = atoi(value);
+        if (OBC_Config_SetCliMode((OBC_CliMode_t)mode))
+            snprintf(buffer, sizeof(buffer), "CLI Mode set to %d", mode);
+        else
+            snprintf(buffer, sizeof(buffer), "Failed to set CLI Mode");
+    }
+    else if (strcmp(param, "threshold") == 0) {
+        uint8_t threshold = (uint8_t)atoi(value);
+        if (OBC_Config_SetCleanThreshold(threshold))
+            snprintf(buffer, sizeof(buffer), "Clean threshold set to %u%%", threshold);
+        else
+            snprintf(buffer, sizeof(buffer), "Failed to set threshold");
+    }
+    else if (strcmp(param, "date") == 0) {
+        const char *dd = embeddedCliGetToken(args, 2);
+        const char *mm = embeddedCliGetToken(args, 3);
+        const char *yy = embeddedCliGetToken(args, 4);
+        if (!dd || !mm || !yy) {
+            embeddedCliPrint(cli, "Usage: obc_set date <dd> <mm> <yy>");
+            return;
+        }
+        if (OBC_Config_SetCleanDate((uint8_t)atoi(dd), (uint8_t)atoi(mm), (uint8_t)atoi(yy)))
+            snprintf(buffer, sizeof(buffer), "Clean date set to %s/%s/%s", dd, mm, yy);
+        else
+            snprintf(buffer, sizeof(buffer), "Failed to set clean date");
+    }
+    else {
+        snprintf(buffer, sizeof(buffer), "Unknown field: %s", param);
+    }
+    embeddedCliPrint(cli, buffer);
+}
+
+static void CMD_OBCConfigGet(EmbeddedCli *cli, char *args, void *context) {
+    char buffer[128];
+    uint8_t dd, mm, yy;
+
+    snprintf(buffer, sizeof(buffer), "CLI Mode: %d", OBC_Config_GetCliMode());
+    embeddedCliPrint(cli, buffer);
+
+    snprintf(buffer, sizeof(buffer), "Threshold: %u%%", OBC_Config_GetCleanThreshold());
+    embeddedCliPrint(cli, buffer);
+
+    OBC_Config_GetCleanDate(&dd, &mm, &yy);
+    snprintf(buffer, sizeof(buffer), "Next Clean Date: %02u/%02u/%02u", dd, mm, yy);
+    embeddedCliPrint(cli, buffer);
+}
+
+// ---- Script Manager Control Commands ----
+static void CMD_ScriptStart(EmbeddedCli *cli, char *args, void *context) {
+    ScriptManager_StartExecution();
+    embeddedCliPrint(cli, "Script Manager: START execution");
+    embeddedCliPrint(cli, "");
+}
+
+static void CMD_ScriptStop(EmbeddedCli *cli, char *args, void *context) {
+    ScriptManager_StopExecution();
+    embeddedCliPrint(cli, "Script Manager: STOP execution");
+    embeddedCliPrint(cli, "");
+}
+
+static void CMD_ScriptPause(EmbeddedCli *cli, char *args, void *context) {
+    ScriptManager_HandlePauseFrame(NULL, 0);
+    embeddedCliPrint(cli, "Script Manager: PAUSED");
+    embeddedCliPrint(cli, "");
+}
+
+static void CMD_ScriptResume(EmbeddedCli *cli, char *args, void *context) {
+    ScriptManager_HandleResumeFrame(NULL, 0);
+    embeddedCliPrint(cli, "Script Manager: RESUMED");
+    embeddedCliPrint(cli, "");
+}
+
+static void CMD_ResetCause(EmbeddedCli *cli, char *args, void *context) {
+    uint32_t cause = GetResetCause();
+
+    switch (cause) {
+        case RESET_CAUSE_NORMAL:
+            embeddedCliPrint(cli, "Reset cause: NORMAL");
+            break;
+        case RESET_CAUSE_BOOTLOADER:
+            embeddedCliPrint(cli, "Reset cause: BOOTLOADER");
+            break;
+        case 0xFFFFFFFF:
+            embeddedCliPrint(cli, "Reset cause: INVALID / FIRST BOOT");
+            break;
+        default:
+            char buffer[64];
+            snprintf(buffer, sizeof(buffer), "Reset cause: UNKNOWN (0x%08lX)", cause);
+            embeddedCliPrint(cli, buffer);
+            break;
+    }
+    embeddedCliPrint(cli, "");
+}
 
 
 /*************************************************
