@@ -115,7 +115,7 @@ static const struct lwl_msg lwl_msg_table[] = {
     // OBC_STM32 --------------------------------------------------------------------------------
     {"[OBC-STM32] Log Block------------------------", 0}, //OBC_STM32------------LOG,      // ID 40
     {"[OBC-STM32] Test Log", 0},  // ID 41
-    {"]OBC-STM32] Start Up", 0},  // ID 42
+    {"[OBC-STM32] Start Up", 0},  // ID 42
     {"[OBC-STM32] Booting at %1d/%1d/%2d %1d:%1d:%1d", 7}, // 43
     {"[OBC-STM32] LogTest at %1d/%1d/%1d %1d:%1d:%1d", 6}, // 44
 
@@ -132,15 +132,18 @@ static const struct lwl_msg lwl_msg_table[] = {
 
 	{"[OBC-STM32] [ScriptManager] RTC is set to %1d/%1d/20%1d %1d:%1d:%1d", 6}, // 52
 	{"[OBC-STM32] [ScriptManager] Time point at %1d/%1d/20%1d %1d:%1d:%1d, Index: %1d", 7},  //53
-	{"[OBC-STM32] [ScriptManager] Execute Routine INIT: %1d, Step: %2d", 3}, 	// 54
-	{"[OBC-STM32] [ScriptManager] Execute Routine DLS: %1d, Step: %2d", 3}, 	// 55
-	{"[OBC-STM32] [ScriptManager] Execute Routine CAM: %1d, Step: %2d", 3}, 	// 56
+	{"[OBC-STM32] [ScriptManager] Execute Routine INIT: %1d, Step: %2d @ %1d/%1d/%2d %1d:%1d:%1d", 10}, 	// 54
+	{"[OBC-STM32] [ScriptManager] Execute Routine DLS: %1d, Step: %2d @ %1d/%1d/%2d %1d:%1d:%1d", 10}, 	// 55
+	{"[OBC-STM32] [ScriptManager] Execute Routine CAM: %1d, Step: %2d @ %1d/%1d/%2d %1d:%1d:%1d", 10}, 	// 56
 	{"[OBC-STM32] [ScriptManager] Execute Routine Return Code: %1d", 1}, 	// 57
 
 	{"[OBC-STM32] [MIN-EXP] Callback of ID: %1d, return size: %1d", 2}, 		// 58
 	{"[OBC-STM32] [MODFSP-CM4] Callback of ID: %1d, return size: %2d", 3}, 		// 59
 
-	{"[OBC-STM32] Reset cause: %4d", 4}, 		// 59
+	{"[OBC-STM32] Reset cause: %4d", 4}, 		// 60
+
+	{"[OBC-STM32] [CM4] CM4 Miss count: %2d", 2}, 		// 61
+	{"[OBC-STM32] [CM4] CM4 Not response - Trigger Reset at %1d/%1d/%2d %1d:%1d:%1d", 7}, 		// 62
 };
 static const uint8_t lwl_msg_table_size = sizeof(lwl_msg_table) / sizeof(lwl_msg_table[0]);
 

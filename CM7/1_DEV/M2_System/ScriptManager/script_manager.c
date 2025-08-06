@@ -314,7 +314,7 @@ _Bool ScriptManager_IsTimeToRunSchedule(TimePointSchedule_t* schedule, ScriptTyp
     if (schedule->current_index < schedule->count) {
         TimePoint_t* current_point = &schedule->points[schedule->current_index];
 
-        if ((current_daily_time >= current_point->daily_timestamp) && ((current_daily_time - current_point->daily_timestamp) < 3600)) {
+        if ((current_daily_time >= current_point->daily_timestamp) && ((current_daily_time - current_point->daily_timestamp) < 7200)) {
             return true;
         }
     }
@@ -560,7 +560,7 @@ static void ScriptManager_HandleStepResult(ScriptType_t type, StepExecResult res
             context->current_step++;
             context->retry_count = 0;
 
-            LWL_Log(OBC_STM32_ROUTINE_INIT_STEP, LWL_1(STEP_EXEC_SUCCESS));
+            LWL_Log(OBC_STM32_ROUTINE_RETURN, LWL_1(STEP_EXEC_SUCCESS));
 
             // Check if INIT is completed
             if (type == SCRIPT_TYPE_INIT &&
@@ -573,7 +573,7 @@ static void ScriptManager_HandleStepResult(ScriptType_t type, StepExecResult res
 
         case STEP_EXEC_ERROR:
             context->retry_count++;
-            LWL_Log(OBC_STM32_ROUTINE_INIT_STEP, LWL_1(STEP_EXEC_ERROR));
+            LWL_Log(OBC_STM32_ROUTINE_RETURN, LWL_1(STEP_EXEC_ERROR));
             if (context->retry_count >= context->max_retries) {
                 context->state = SCRIPT_EXEC_FAILED_MAX_RETRIES;
                 g_script_manager.total_errors++;
@@ -902,9 +902,14 @@ _Bool ScriptManager_ScriptExistsInFRAM(ScriptType_t type)
 void MODFSP_ApplicationHandler(MODFSP_Data_t *ctx, uint8_t id, const uint8_t *payload, uint16_t len)
 {
 
+    if (id == MODFSP_MASTER_ACK) {
+        SimpleDataTransfer_HandleMasterAck(id, payload, len);
+        return;
+    }
+
     LWL_Log(OBC_STM32_MODFSP_CALLBACK, LWL_1(id), LWL_2(len));
 
-    if (id == MODFSP_MASTER_ACK ||  id == MODFSP_MASTER_NAK) {
+    if (id == MODFSP_MASTER_NAK) {
         SimpleDataTransfer_HandleMasterAck(id, payload, len);
         return;
     }
@@ -1654,7 +1659,11 @@ static StepExecResult ScriptManager_ExecuteInitStep(Step* step)
 {
     BScript_Log("[ScriptInit] Executing step %u: action_id = 0x%02X", step->step_id, step->action_id);
 
-    LWL_Log(OBC_STM32_ROUTINE_INIT_STEP, LWL_2(step->step_id), LWL_1(step->action_id));
+    s_DateTime now;
+    Utils_GetRTC(&now);
+    uint16_t full_year = 2000 + now.year;
+
+    LWL_Log(OBC_STM32_ROUTINE_INIT_STEP, LWL_1(step->action_id), LWL_2(step->step_id), LWL_1(now.day), LWL_1(now.month), LWL_2(full_year), LWL_1(now.hour), LWL_1(now.minute), LWL_1(now.second));
 
     switch (step->action_id) {
         case CLEAR_PROFILE: {
@@ -1994,8 +2003,12 @@ static StepExecResult ScriptManager_ExecuteInitStep(Step* step)
 static StepExecResult ScriptManager_ExecuteDLSStep(Step* step)
 {
     BScript_Log("[ScriptDLS] Executing step %u: action_id = 0x%02X", step->step_id, step->action_id);
+    s_DateTime now;
+    Utils_GetRTC(&now);
+    uint16_t full_year = 2000 + now.year;
 
-    LWL_Log(OBC_STM32_ROUTINE_DLS_STEP, LWL_2(step->step_id), LWL_1(step->action_id));
+    LWL_Log(OBC_STM32_ROUTINE_DLS_STEP, LWL_1(step->action_id), LWL_2(step->step_id), LWL_1(now.day), LWL_1(now.month), LWL_2(full_year), LWL_1(now.hour), LWL_1(now.minute), LWL_1(now.second));
+
 
 
     switch (step->action_id) {
@@ -2218,8 +2231,13 @@ static StepExecResult ScriptManager_ExecuteDLSStep(Step* step)
 static StepExecResult ScriptManager_ExecuteCAMStep(Step* step)
 {
     BScript_Log("[ScriptCAM] Executing step %u: action_id = 0x%02X", step->step_id, step->action_id);
+    s_DateTime now;
+    Utils_GetRTC(&now);
+    uint16_t full_year = 2000 + now.year;
 
-    LWL_Log(OBC_STM32_ROUTINE_CAM_STEP, LWL_2(step->step_id), LWL_1(step->action_id));
+    LWL_Log(OBC_STM32_ROUTINE_CAM_STEP, LWL_1(step->action_id), LWL_2(step->step_id), LWL_1(now.day), LWL_1(now.month), LWL_2(full_year), LWL_1(now.hour), LWL_1(now.minute), LWL_1(now.second));
+
+
 
     switch (step->action_id) {
         case SET_CAMERA_INTERVAL: { // set_camera_interval (now only for logging)

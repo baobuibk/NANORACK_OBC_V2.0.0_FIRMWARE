@@ -178,7 +178,9 @@ void min_application_handler(uint8_t min_id, const uint8_t *min_payload, uint8_t
             response_handler(min_id, min_payload, len_payload);
     }
 
-    LWL_Log(OBC_STM32_MIN_CALLBACK, LWL_1(min_id), LWL_1(len_payload));
+    if(min_id != 0x23 && min_id != 0x25){
+        LWL_Log(OBC_STM32_MIN_CALLBACK, LWL_1(min_id), LWL_1(len_payload));
+    }
 
     const MIN_Command_t *command_table = MIN_GetCommandTable();
     int table_size = MIN_GetCommandTableSize();

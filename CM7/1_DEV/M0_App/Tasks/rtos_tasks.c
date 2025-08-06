@@ -368,7 +368,7 @@ void vSoft_RTC_Task(void *pvParameters)
             }
         }
 
-        vTaskDelay(1000);
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
 
@@ -562,10 +562,10 @@ void vTask1_handler(void *pvParameters)
 	while (1)
 	{
 		GPIO_SetLow(LED0_Port, LED0);
-		vTaskDelay(1000);
+		vTaskDelay(pdMS_TO_TICKS(1000));
 
 		GPIO_SetHigh(LED0_Port, LED0);
-		vTaskDelay(1000);
+		vTaskDelay(pdMS_TO_TICKS(1000));
 	}
 }
 
@@ -574,9 +574,9 @@ void vTask2_handler(void *pvParameters)
 	while (1)
 	{
 		GPIO_SetHigh(LED1_Port, LED1);
-		vTaskDelay(1000);
+		vTaskDelay(pdMS_TO_TICKS(1000));
 		GPIO_SetLow(LED1_Port, LED1);
-		vTaskDelay(1000);
+		vTaskDelay(pdMS_TO_TICKS(1000));
 	}
 }
 

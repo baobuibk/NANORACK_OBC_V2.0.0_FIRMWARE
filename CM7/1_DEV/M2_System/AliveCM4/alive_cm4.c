@@ -14,6 +14,9 @@
 #include "task.h"
 #include "SysLog/syslog.h"
 
+#include "lwl.h"
+#include "DateTime/date_time.h"
+
 #define KEEPALIVE_OUT_PORT    STMOUT_CM4IN_SDA_GPIO_Port
 #define KEEPALIVE_OUT_PIN     STMOUT_CM4IN_SDA_Pin
 
@@ -57,10 +60,17 @@ void CM4_KeepAliveTask(void *pvParameters)
         if (respondedLow && respondedHigh) {
             cm4_miss_count = 0;
         } else {
+    	    LWL_Log(OBC_STM32_CM4_MISS_COUNT, LWL_2(cm4_miss_count));
             cm4_miss_count++;
         }
 
         if (cm4_miss_count >= MAX_RETRY_COUNT) {
+
+    	    s_DateTime now;
+    	    Utils_GetRTC(&now);
+    	    uint16_t full_year = 2000 + now.year;
+    	    LWL_Log(OBC_STM32_CM4_TRIGGER_RESET, LWL_1(now.day), LWL_1(now.month), LWL_2(full_year), LWL_1(now.hour), LWL_1(now.minute), LWL_1(now.second));
+
             SYSLOG_ERROR("CM4 unresponsive. Triggering reset.");
             GPIO_SetLow(CM4_RST_PORT, CM4_RST_PIN);
             vTaskDelay(pdMS_TO_TICKS(100));
