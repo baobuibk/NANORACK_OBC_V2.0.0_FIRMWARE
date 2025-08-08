@@ -148,8 +148,11 @@ static uint32_t ScriptManager_GetCurrentDailyTimeSeconds(void)
 static uint32_t ScriptManager_ParseStartTime(uint32_t time_value)
 {
     if (time_value == 0xFFFFFFFF) {
-        // "now" - return current daily time
-        uint32_t current_daily_time = ScriptManager_GetCurrentDailyTimeSeconds();
+        // "now" - return current daily time (+30s, wrap around if >= 86400)
+        uint32_t current_daily_time = ScriptManager_GetCurrentDailyTimeSeconds() + 30;
+        if (current_daily_time >= 86400) {
+            current_daily_time -= 86400;
+        }
         BScript_Log("[ScriptManager] Start time = now (%u seconds from 00:00:00)", current_daily_time);
         return current_daily_time;
     }
@@ -163,11 +166,18 @@ static uint32_t ScriptManager_ParseStartTime(uint32_t time_value)
     if (hours > 23 || minutes > 59 || seconds > 59) {
         BScript_Log("[ScriptManager] Invalid time format: %02u:%02u:%02u, using now",
                    hours, minutes, seconds);
-        return ScriptManager_GetCurrentDailyTimeSeconds();
+        uint32_t fallback_time = ScriptManager_GetCurrentDailyTimeSeconds() + 30;
+        if (fallback_time >= 86400) {
+            fallback_time -= 86400;
+        }
+        return fallback_time;
     }
 
-    // Convert to daily seconds
+    // Convert to daily seconds (+ wrap-around if needed)
     uint32_t daily_seconds = (hours * 3600) + (minutes * 60) + seconds;
+    if (daily_seconds >= 86400) {
+        daily_seconds -= 86400;
+    }
 
     BScript_Log("[ScriptManager] Start time set to %02u:%02u:%02u (%u seconds from 00:00:00)",
                hours, minutes, seconds, daily_seconds);
