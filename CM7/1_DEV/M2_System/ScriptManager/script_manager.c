@@ -41,6 +41,15 @@ extern MODFSP_Data_t cm4_protocol;
 
 #define CLEANUP_CHECK_INTERVAL_HOURS    4
 #define CLEANUP_CHECK_INTERVAL_TICKS    (pdMS_TO_TICKS(CLEANUP_CHECK_INTERVAL_HOURS * 3600 * 1000))
+
+#ifndef INIT_RETRY_DELAY_DEFAULT_MS
+#define INIT_RETRY_DELAY_DEFAULT_MS (900000UL) /* 1 hour default */
+#endif
+static uint32_t g_init_retry_delay_ms = INIT_RETRY_DELAY_DEFAULT_MS;
+static TickType_t g_init_last_fail_tick = 0;
+static bool g_init_retry_pending = false;
+static bool g_init_auto_retry_enabled = true;
+
 /*************************************************
  *               PRIVATE VARIABLES               *
  *************************************************/
@@ -588,6 +597,13 @@ static void ScriptManager_HandleStepResult(ScriptType_t type, StepExecResult res
                 context->state = SCRIPT_EXEC_FAILED_MAX_RETRIES;
                 g_script_manager.total_errors++;
                 BScript_Log("[ScriptManager] Script type %d failed after max retries", type);
+                if (type == SCRIPT_TYPE_INIT && g_init_auto_retry_enabled) {
+                	g_init_last_fail_tick = xTaskGetTickCount();
+                	g_init_retry_pending = true;
+                	BScript_Log("[ScriptManager] INIT auto-retry scheduled in %lu ms",
+                                                (unsigned long)g_init_retry_delay_ms);
+                }
+
             } else {
                 BScript_Log("[ScriptManager] Script type %d retrying step %d (attempt %d/%d)",
                            type, context->current_step, context->retry_count, context->max_retries);
@@ -658,6 +674,21 @@ void ScriptManager_EnableLogFetching(bool enable)
     }
 }
 
+void ScriptManager_SetInitRetryDelayMs(uint32_t delay_ms)
+{
+    g_init_retry_delay_ms = delay_ms;
+    BScript_Log("[ScriptManager] INIT auto-retry delay set to %lu ms",
+                (unsigned long)g_init_retry_delay_ms);
+}
+
+void ScriptManager_EnableInitAutoRetry(bool enable)
+{
+    g_init_auto_retry_enabled = enable;
+    BScript_Log("[ScriptManager] INIT auto-retry %s", enable ? "ENABLED" : "DISABLED");
+    if (!enable) {
+        g_init_retry_pending = false;
+    }
+}
 /**
  * @brief Load a script binary into the manager
  * @param type Script type
@@ -1290,6 +1321,24 @@ void ScriptManager_Task(void *pvParameters)
                     StepExecResult result = ScriptManager_ExecuteStep(SCRIPT_TYPE_INIT, step);
                     ScriptManager_HandleStepResult(SCRIPT_TYPE_INIT, result);
                 }
+            }
+
+            // Auto-retry INIT after a delay if it hit FAILED_MAX_RETRIES
+            if (!g_script_manager.init_completed) {
+            	ScriptExecContext_t* init_ctx = &g_script_manager.contexts[SCRIPT_TYPE_INIT];
+            	if (g_init_auto_retry_enabled &&
+            			g_init_retry_pending &&
+						init_ctx->state == SCRIPT_EXEC_FAILED_MAX_RETRIES &&
+						g_script_manager.scripts[SCRIPT_TYPE_INIT].is_loaded)
+            	{
+            		TickType_t now = xTaskGetTickCount();
+            		if ((uint32_t)(now - g_init_last_fail_tick) >= pdMS_TO_TICKS(g_init_retry_delay_ms)) {
+            				BScript_Log("[ScriptManager] INIT auto-retry starting now");
+            				ScriptManager_ResetContext(SCRIPT_TYPE_INIT);
+            				init_ctx->state = SCRIPT_EXEC_RUNNING;
+            				g_init_retry_pending = false;
+            		}
+            	}
             }
 
             // Check if it's time to run routines (without modifying schedules yet)
@@ -2040,6 +2089,23 @@ static StepExecResult ScriptManager_ExecuteDLSStep(Step* step)
                 BScript_Log("[ScriptDLS] Failed to SET_WORKING_RTC");
                 return STEP_EXEC_ERROR;
             }
+
+            s_DateTime rtc;
+            Utils_GetRTC(&rtc);
+
+			uint8_t trigger_data[6];
+			trigger_data[0] = rtc.year;
+			trigger_data[1] = rtc.month;
+			trigger_data[2] = rtc.day;
+			trigger_data[3] = rtc.hour;
+			trigger_data[4] = rtc.minute;
+			trigger_data[5] = rtc.second;
+
+			BScript_Log("[ScriptDLS] Sending request to make folder time point");
+			if (MODFSP_Send(&cm4_protocol, CMD_REQUEST_MAKE_FOLDER_TIMEPOINT, trigger_data, sizeof(trigger_data)) != MODFSP_OK) {
+			  BScript_Log("[ScriptDLS] Send request to make folder time point failed");
+			}
+			vTaskDelay(1000);
 
             break;
         }

@@ -19,6 +19,11 @@
 #include "parser/bscript_parser.h"
 
 // MODFSP Frame IDs
+
+// Request modified table: >> 09/08, start from 0x70
+#define CMD_REQUEST_MAKE_FOLDER_TIMEPOINT	0x70
+
+//
 #define CMD_REQUEST_SCRIPT		0x09
 #define CMD_SEND_RTC_STM32		0x08
 
@@ -44,19 +49,19 @@
 #define SCRIPT_ACK_DLS        	0xA1
 #define SCRIPT_ACK_CAM        	0xA2
 
-#define MODFSP_TYPE_GET_STM32RTC 	0x40
-#define MODFSP_TYPE_RESP_STM32RTC	0x41
+#define MODFSP_TYPE_GET_STM32RTC 			0x40
+#define MODFSP_TYPE_RESP_STM32RTC			0x41
 
-#define MODFSP_TYPE_SET_CAM_POSITION_CMD 0x50
-#define MODFSP_TYPE_TAKE_IMAGE_CMD		 0x51
+#define MODFSP_TYPE_SET_CAM_POSITION_CMD 	0x50
+#define MODFSP_TYPE_TAKE_IMAGE_CMD		 	0x51
 
-#define SELF_TEST_CMD			0xCB
-#define SELF_TEST_ACK			0xCC
+#define SELF_TEST_CMD						0xCB
+#define SELF_TEST_ACK						0xCC
 
-#define FRAME_PAUSE_CMD          0xB0
-#define FRAME_PAUSE_ACK          0xB1
-#define FRAME_RESUME_CMD          0xB2
-#define FRAME_RESUME_ACK          0xB3
+#define FRAME_PAUSE_CMD          			0xB0
+#define FRAME_PAUSE_ACK          			0xB1
+#define FRAME_RESUME_CMD          			0xB2
+#define FRAME_RESUME_ACK          			0xB3
 
 // Time Point Configuration
 #define MAX_TIME_POINTS         288    // Maximum points for 5-minute intervals in 24 hours
@@ -163,6 +168,9 @@ bool ScriptManager_LoadScript(ScriptType_t type, const uint8_t* binary_data, uin
 void ScriptManager_StartExecution(void);
 void ScriptManager_StopExecution(void);
 void ScriptManager_HandleMODFSPFrame(uint8_t frame_id, const uint8_t* data, uint32_t length);
+
+void ScriptManager_EnableInitAutoRetry(bool enable);
+void ScriptManager_SetInitRetryDelayMs(uint32_t delay_ms);
 
 /* Task functions */
 void ScriptManager_Task(void *pvParameters);
