@@ -173,7 +173,7 @@ void Shield_ReceiveChar(ShieldInstance_t *instance, char ch) {
                 instance->state = AUTH_ADMIN;
                 Shield_WriteString(instance, SHIELD_NEWLINE);
                 Shield_WriteString(instance, "‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\r\n");
-                Shield_WriteString(instance, "Logged in as admin: SLT-OBC v1.2.1\r\n");
+                Shield_WriteString(instance, "Logged in as admin: SLT-OBC v1.2.3\r\n");
 
                 s_DateTime now;
                 Utils_GetRTC(&now);
@@ -197,7 +197,7 @@ void Shield_ReceiveChar(ShieldInstance_t *instance, char ch) {
                 instance->state = AUTH_USER;
                 Shield_WriteString(instance, SHIELD_NEWLINE);
                 Shield_WriteString(instance, "‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\r\n");
-                Shield_WriteString(instance, "Logged in as user: SLT-OBC v1.2.1\r\n");
+                Shield_WriteString(instance, "Logged in as user: SLT-OBC v1.2.3\r\n");
 
                 s_DateTime now;
                 Utils_GetRTC(&now);

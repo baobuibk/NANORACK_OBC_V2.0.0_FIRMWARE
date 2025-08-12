@@ -438,7 +438,7 @@ static SimpleTransferResult_t ExecuteSingleTransfer(SimpleDataType_t data_type,
 
 			SimpleDataTransfer_SetFatfsOk(false);
 
-			return SIMPLE_TRANSFER_ERROR_FILE_SAVE_FAILED;
+//			return SIMPLE_TRANSFER_ERROR_FILE_SAVE_FAILED;
 		}
     }else{
     	BScript_Log("[SimpleDataTransfer] Bypass Filesystem write file !!!...");
@@ -601,7 +601,7 @@ SimpleTransferResult_t SimpleDataTransfer_ExecuteLogTransfer(const char* base_fi
 						  (fs_result == E_BUSY) ? "Filesystem busy" : "Write error");
 			SimpleDataTransfer_SetFatfsOk(false);
 
-			return SIMPLE_TRANSFER_ERROR_FILE_SAVE_FAILED;
+//			return SIMPLE_TRANSFER_ERROR_FILE_SAVE_FAILED;
 		}
 
     }else{
@@ -633,7 +633,7 @@ SimpleTransferResult_t SimpleDataTransfer_ExecuteLogTransfer(const char* base_fi
 
 			if (MODFSP_Send(&cm4_protocol, MODFSP_TYPE_LOG_CMD, trigger_data, sizeof(trigger_data)) != MODFSP_OK) {
 				BScript_Log("[SimpleDataTransfer] Master trigger failed");
-				return SIMPLE_TRANSFER_ERROR_MASTER_TRIGGER_FAILED;
+//				return SIMPLE_TRANSFER_ERROR_MASTER_TRIGGER_FAILED;
 			}
 
 			BScript_Log("[SimpleDataTransfer] Step 7: Waiting for master acknowledgment...");

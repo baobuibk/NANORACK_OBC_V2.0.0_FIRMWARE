@@ -93,6 +93,7 @@ static StepExecResult ScriptManager_ExecuteInitStep(Step* step);
 static StepExecResult ScriptManager_ExecuteDLSStep(Step* step);
 static StepExecResult ScriptManager_ExecuteCAMStep(Step* step);
 
+static void ScriptManager_ResetToInit(void);
 static void ScriptManager_ResetContext(ScriptType_t type);
 static void ScriptManager_HandleStepResult(ScriptType_t type, StepExecResult result);
 static uint32_t ScriptManager_ParseStartTime(uint32_t time_value);
@@ -443,6 +444,41 @@ void ScriptManager_PrintTimePoints(TimePointSchedule_t* schedule, const char* ro
         }
     } else {
         BScript_Log("  - All points completed for today, will reset at midnight");
+    }
+}
+
+
+/**
+ * @brief Reset entire system back to INIT script when MAX_RETRIES reached
+ */
+static void ScriptManager_ResetToInit(void)
+{
+    BScript_Log("[ScriptManager] MAX_RETRIES reached - Resetting entire system to INIT");
+
+    // Stop current execution
+    g_script_manager.manager_running = false;
+    g_script_manager.init_completed = false;
+
+    // Reset all contexts
+    for (int i = 0; i < SCRIPT_TYPE_COUNT; i++) {
+        ScriptManager_ResetContext((ScriptType_t)i);
+    }
+
+    // Clear time point schedules
+    memset(&g_script_manager.dls_schedule, 0, sizeof(TimePointSchedule_t));
+    memset(&g_script_manager.cam_schedule, 0, sizeof(TimePointSchedule_t));
+
+    // Reset system configuration flags
+    g_script_manager.system_time_configured = false;
+    g_sd_scheduler.configured = false;
+
+    // Restart with INIT script if loaded
+    if (g_script_manager.scripts[SCRIPT_TYPE_INIT].is_loaded) {
+        g_script_manager.manager_running = true;
+        g_script_manager.contexts[SCRIPT_TYPE_INIT].state = SCRIPT_EXEC_RUNNING;
+        BScript_Log("[ScriptManager] Restarting from INIT script");
+    } else {
+        BScript_Log("[ScriptManager] Cannot restart - INIT script not loaded");
     }
 }
 
@@ -1428,7 +1464,10 @@ void ScriptDLS_Task(void *pvParameters)
 
                             g_script_manager.total_errors++;
                             BScript_Log("[ScriptDLS] Max retries reached for step %d — skipping this run", context->current_step);
-                            ScriptManager_ResetContext(SCRIPT_TYPE_DLS_ROUTINE);
+//                            ScriptManager_ResetContext(SCRIPT_TYPE_DLS_ROUTINE);
+                            xSemaphoreGive(g_script_manager.execution_mutex);
+
+                            ScriptManager_ResetToInit();
 
 
                             break;
@@ -1511,7 +1550,10 @@ void ScriptCAM_Task(void *pvParameters)
 
                             g_script_manager.total_errors++;
                             BScript_Log("[ScriptCAM] Max retries reached for step %d — skipping this run", context->current_step);
-                            ScriptManager_ResetContext(SCRIPT_TYPE_CAM_ROUTINE);
+                            xSemaphoreGive(g_script_manager.execution_mutex);
+
+                            // Reset entire system to INIT
+                            ScriptManager_ResetToInit();
 
                             break;
                         } else {
