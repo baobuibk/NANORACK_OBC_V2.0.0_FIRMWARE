@@ -17,6 +17,8 @@
 #include "lwl.h"
 #include "DateTime/date_time.h"
 
+#include "ControlCM4/control_cm4.h"
+
 #define KEEPALIVE_OUT_PORT    STMOUT_CM4IN_SDA_GPIO_Port
 #define KEEPALIVE_OUT_PIN     STMOUT_CM4IN_SDA_Pin
 
@@ -28,11 +30,27 @@
 
 static uint16_t cm4_miss_count = 0;
 
+extern CM4_ControlManager_t g_cm4_manager;
+
 void CM4_KeepAliveTask(void *pvParameters)
 {
     TickType_t xLastWakeTime = xTaskGetTickCount();
     while (1)
     {
+
+    	if (!g_cm4_manager.keep_alive_enabled || g_cm4_manager.current_state == CM4_STATE_OFF) {
+    	   vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(10000));
+    	    continue;
+    	}
+
+    	// Skip keep-alive during boot and shutdown states
+    	if (g_cm4_manager.current_state == CM4_STATE_BOOTING ||
+    	    g_cm4_manager.current_state == CM4_STATE_SHUTTING_DOWN) {
+    	    vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(10000));
+    	    continue;
+    	}
+
+
         GPIO_SetLow(KEEPALIVE_OUT_PORT, KEEPALIVE_OUT_PIN);
 
         uint8_t respondedLow = 0;

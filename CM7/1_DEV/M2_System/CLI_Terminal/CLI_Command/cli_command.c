@@ -46,6 +46,9 @@
 
 #include "OBC_Config/obc_config.h"
 #include "RAMBK_Infor/rambk_infor.h"
+
+#include "ControlCM4/control_cm4.h"
+
 #define FRAM_USER_PWD_LEN_ADDR  0x0000
 #define FRAM_USER_PWD_ADDR      0x0001
 //extern ShieldInstance_t auth_uart;
@@ -67,6 +70,10 @@ static void CMD_vim(EmbeddedCli *cli, char *args, void *context);
 static void CMD_cat(EmbeddedCli *cli, char *args, void *context);
 static void CMD_DiskInfo(EmbeddedCli *cli, char *args, void *context);
 static void CMD_Cm4Rst(EmbeddedCli *cli, char *args, void *context);
+
+static void CMD_Cm4HoldRST(EmbeddedCli *cli, char *args, void *context);
+static void CMD_Cm4ReleaseRST(EmbeddedCli *cli, char *args, void *context);
+
 static void CMD_Cm4Dis(EmbeddedCli *cli, char *args, void *context);
 static void CMD_Cm4Ena(EmbeddedCli *cli, char *args, void *context);
 static void CMD_ExpForward(EmbeddedCli *cli, char *args, void *context);
@@ -136,6 +143,8 @@ static void CMD_ScriptPause(EmbeddedCli *cli, char *args, void *context);
 static void CMD_ScriptResume(EmbeddedCli *cli, char *args, void *context);
 
 static void CMD_ResetCause(EmbeddedCli *cli, char *args, void *context);
+static void CMD_ControlCM4Status(EmbeddedCli *cli, char *args, void *context);
+static void CMD_CM4AutoPowerSet(EmbeddedCli *cli, char *args, void *context);
 /*************************************************
  *                 Command  Array                *
  *************************************************/
@@ -168,8 +177,12 @@ static const CliCommandBinding cliStaticBindings_internal[] = {
     { "FileSystem", 	"cat", 			"Read file content: cat <filename>", 					true, 	NULL, CMD_cat 			 },
 	{ "FileSystem", 	"disk_info", 	"Show filesystem usage (total/free/percent)", 			false, 	NULL, CMD_DiskInfo 		 },
     { "RP-CM4",         "cm4_rst",     	"Trigger CM4 reset pulse (low then high)",          	false, 	NULL, CMD_Cm4Rst,    	 },
+    { "RP-CM4",         "cm4_hold_rst",    "Hold CM4 to Reset State",          					false, 	NULL, CMD_Cm4HoldRST,    	 },
+    { "RP-CM4",         "cm4_rele_rst", "Release CM4 from Reset State to normal work",  		false, 	NULL, CMD_Cm4ReleaseRST,   	 },
     { "RP-CM4",         "cm4_dis",     	"Disable CM4 power (drive enable low)",             	false, 	NULL, CMD_Cm4Dis,    	 },
     { "RP-CM4",         "cm4_ena",     	"Enable CM4 power (drive enable high)",             	false, 	NULL, CMD_Cm4Ena,    	 },
+    { "RP-CM4",         "controlcm4_status",     	"-",             							false, 	NULL, CMD_ControlCM4Status},
+    { "RP-CM4",         "cm4_autopowerset",    "auto_power_set <on_hour> <on_min> <on_sec> <off_hour> <off_min> <off_sec> <enable>",  true, 	NULL, CMD_CM4AutoPowerSet},
     { "EXP",         	"exp_forward", 	"Enable forward mode: exp_forward <cm4|usb|normal>", 	false, 	NULL, CMD_ExpForward,	 },
     { "EXP",         	"exp_send",    	"Send Msg to EXP: exp_send \"message\"",            	true,  	NULL, CMD_ExpSend,   	 },
     { "EXP",         	"exp_listen",  	"Choose w listen to EXP: exp_listen <cm4|usb|off>",  	true,  	NULL, CMD_ExpListen, 	 },
@@ -922,6 +935,19 @@ static void CMD_DiskInfo(EmbeddedCli *cli, char *args, void *context) {
         embeddedCliPrint(cli, "Failed to get disk info.");
     }
 
+    embeddedCliPrint(cli, "");
+}
+
+
+static void CMD_Cm4HoldRST(EmbeddedCli *cli, char *args, void *context) {
+    GPIO_SetLow(CM4_RST_Port, CM4_RST_Pin);
+    embeddedCliPrint(cli, "OBC Start to Hold Reset CM4 - Hold!");
+    embeddedCliPrint(cli, "");
+}
+
+static void CMD_Cm4ReleaseRST(EmbeddedCli *cli, char *args, void *context) {
+    GPIO_SetHigh(CM4_RST_Port, CM4_RST_Pin);
+    embeddedCliPrint(cli, "OBC Stop Holding Reset CM4 - Release!");
     embeddedCliPrint(cli, "");
 }
 
@@ -1881,6 +1907,60 @@ static void CMD_ResetCause(EmbeddedCli *cli, char *args, void *context) {
             break;
     }
     embeddedCliPrint(cli, "");
+}
+
+static void CMD_ControlCM4Status(EmbeddedCli *cli, char *args, void *context) {
+	CM4_Control_PrintStatus();
+    embeddedCliPrint(cli, "");
+}
+
+static void CMD_CM4AutoPowerSet(EmbeddedCli *cli, char *args, void *context)
+{
+    const char *arg1 = embeddedCliGetToken(args, 1); // ON hour
+    const char *arg2 = embeddedCliGetToken(args, 2); // ON minute
+    const char *arg3 = embeddedCliGetToken(args, 3); // ON second
+    const char *arg4 = embeddedCliGetToken(args, 4); // OFF hour
+    const char *arg5 = embeddedCliGetToken(args, 5); // OFF minute
+    const char *arg6 = embeddedCliGetToken(args, 6); // OFF second
+    const char *arg7 = embeddedCliGetToken(args, 7); // enable (0 or 1)
+
+    char buffer[100];
+    if (!arg1 || !arg2 || !arg3 || !arg4 || !arg5 || !arg6 || !arg7) {
+        snprintf(buffer, sizeof(buffer),
+                 "Usage: auto_power_set <on_hour> <on_min> <on_sec> <off_hour> <off_min> <off_sec> <enable>");
+        embeddedCliPrint(cli, buffer);
+        return;
+    }
+
+    int on_h  = atoi(arg1);
+    int on_m  = atoi(arg2);
+    int on_s  = atoi(arg3);
+    int off_h = atoi(arg4);
+    int off_m = atoi(arg5);
+    int off_s = atoi(arg6);
+    int enable = atoi(arg7);
+
+    // Validate
+    if (on_h < 0 || on_h > 23 || on_m < 0 || on_m > 59 || on_s < 0 || on_s > 59 ||
+        off_h < 0 || off_h > 23 || off_m < 0 || off_m > 59 || off_s < 0 || off_s > 59 ||
+        (enable != 0 && enable != 1)) {
+        embeddedCliPrint(cli, "Invalid parameters. Please check time format and enable value (0 or 1).");
+        return;
+    }
+
+    uint32_t on_time_raw  = (on_h << 16) | (on_m << 8) | on_s;
+    uint32_t off_time_raw = (off_h << 16) | (off_m << 8) | off_s;
+
+    CM4_Result_t res = CM4_Control_ConfigureAutoPower(on_time_raw, off_time_raw, enable != 0);
+
+    if (res == CM4_RESULT_OK) {
+        snprintf(buffer, sizeof(buffer),
+                 "--> Auto power set: ON %02d:%02d:%02d, OFF %02d:%02d:%02d, Enabled: %s",
+                 on_h, on_m, on_s, off_h, off_m, off_s, enable ? "YES" : "NO");
+        embeddedCliPrint(cli, buffer);
+    } else {
+        embeddedCliPrint(cli, "Failed to configure auto power. (Maybe semaphore timeout or invalid input)");
+    }
 }
 
 

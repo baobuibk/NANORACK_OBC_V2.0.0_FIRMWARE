@@ -65,7 +65,7 @@
 #include "AliveCM4/alive_cm4.h"
 
 #include "OBC_Config/obc_config.h"
-
+#include "ControlCM4/control_cm4.h"
 /*************************************************
  *                    Header                     *
  *************************************************/
@@ -286,6 +286,9 @@ Std_ReturnType OBC_AppInit(void)
 //	    LL_USART_TransmitData8(USART2, (uint8_t)boot_log[i]);
 //	}
 //	while (!LL_USART_IsActiveFlag_TC(USART2));
+
+    CM4_Control_Init();
+
 	Watchdog_Mechanism_Init();
 
 	ScriptManager_Init();
@@ -329,6 +332,8 @@ Std_ReturnType OBC_AppInit(void)
     CREATE_TASK(WatchdogPulseTask, 		"WatchdogPulse", 	MIN_STACK_SIZE * 2, 		NULL, 									1, NULL);
 
     CREATE_TASK(CM4_KeepAliveTask, 		"CM4_KeepAlive", 		MIN_STACK_SIZE * 5, 		NULL, 									1, NULL);
+
+    CREATE_TASK(CM4_Control_Task, 		"CM4_Control", 		MIN_STACK_SIZE * 5, 		NULL, 									1, NULL);
 
     CREATE_TASK(LogFetching_Task, 		"LogFetching", 		MIN_STACK_SIZE * 10, 		NULL, 									1, NULL);
 

@@ -39,6 +39,8 @@ extern MODFSP_Data_t cm4_protocol;
 
 #include "RAMBK_Infor/rambk_infor.h"
 
+#include "ControlCM4/control_cm4.h"
+
 #define CLEANUP_CHECK_INTERVAL_HOURS    4
 #define CLEANUP_CHECK_INTERVAL_TICKS    (pdMS_TO_TICKS(CLEANUP_CHECK_INTERVAL_HOURS * 3600 * 1000))
 
@@ -49,6 +51,8 @@ static uint32_t g_init_retry_delay_ms = INIT_RETRY_DELAY_DEFAULT_MS;
 static TickType_t g_init_last_fail_tick = 0;
 static bool g_init_retry_pending = false;
 static bool g_init_auto_retry_enabled = true;
+
+extern CM4_ControlManager_t g_cm4_manager;
 
 /*************************************************
  *               PRIVATE VARIABLES               *
@@ -1132,6 +1136,7 @@ void ScriptManager_HandleHaltFrame(const uint8_t* data, uint32_t length)
 	MODFSP_Send(&cm4_protocol, FRAME_HALT_ACK, NULL, 0);
     BScript_Log("[ScriptManager] Received HALT frame");
     frames_received = 0;
+    g_cm4_manager.script_on_requests = 0;
     ScriptManager_StopExecution();
 }
 
@@ -1585,6 +1590,8 @@ void ScriptCAM_Task(void *pvParameters)
                         }
                     }
 
+                    vTaskDelay(pdTICKS_TO_MS(5000));
+                    CM4_Control_ScriptRequestOff();
 
                     BScript_Log("[ScriptCAM] Routine completed successfully (total runs: %u)",
                                g_script_manager.cam_run_count);
@@ -1834,6 +1841,12 @@ static StepExecResult ScriptManager_ExecuteInitStep(Step* step)
                        lockin_time_hh, lockin_time_mm, lockin_time_ss);
             BScript_Log("[ScriptInit] ->SET_SYSTEM: DLS Interval = %u seconds", dls_interval);
             BScript_Log("[ScriptInit] ->SET_SYSTEM: CAM Interval = %u seconds", cam_interval);
+
+            BScript_Log("[CM4_Control] After v1.2.4b -> Setup auto power");
+            BScript_Log("================== Auto Power Set ==================");
+            CM4_Control_ConfigureAutoPower(release_time, lockin_time, 1);
+            BScript_Log("====================================================");
+
 
             // Generate time points for DLS routine
             if (ScriptManager_GenerateTimePoints(&g_script_manager.dls_schedule, start_daily_time, dls_interval)) {
@@ -2125,6 +2138,15 @@ static StepExecResult ScriptManager_ExecuteDLSStep(Step* step)
             uint8_t resp_info[5];
             uint8_t resp_len = 0;
 
+            CM4_Result_t result = CM4_Control_ScriptRequestOn();
+            if (result != CM4_RESULT_OK && result != CM4_RESULT_ALREADY_ON) {
+                BScript_Log("[ScriptManager] Warning: Failed to request CM4 power on: %s",
+                           CM4_Control_ResultToString(result));
+            }
+
+            BScript_Log("[CM4_Control] Delay 60*1000*2 for wating Boot CM4 Up...");
+            vTaskDelay(pdTICKS_TO_MS(60*1000*2));
+
             if(MIN_Send_SET_WORKING_RTC_CMD_WithData(resp_info, &resp_len)){
             	BScript_Log("[ScriptDLS] SET_WORKING_RTC received: %u bytes", resp_len);
             }else {
@@ -2328,7 +2350,7 @@ static StepExecResult ScriptManager_ExecuteDLSStep(Step* step)
                 return STEP_EXEC_ERROR;
             }
 
-            BScript_Log("[ScriptDLS] ->GET_SAMPLE: [v] Done this stop");
+            BScript_Log("[ScriptDLS] ->GET_SAMPLE: [v] Done this step");
             break;
 
         }
